@@ -5,10 +5,11 @@ struct State {}
 impl GameState for State {
     fn tick(&mut self, ctx: &mut BTerm) {
         let mut draw_batch = DrawBatch::new();
-        // draw_batch.target(1);
-        // draw_batch.cls();
-
         draw_batch.target(0);
+        draw_batch.cls();
+        draw_batch.set(Point::new(3, 7), ColorPair::new(WHITE, BLACK), 1u16);
+
+        draw_batch.target(1);
         draw_batch.cls();
         draw_batch.print(Point::new(1, 1), "Hello Ben");
         draw_batch.print_color_with_z(Point::new(1, 2), &format!("FPS: {}", ctx.fps), ColorPair::new(PINK, BLACK), 1000);
@@ -30,12 +31,13 @@ fn main() -> BError {
 
     let context = BTermBuilder::new()
         .with_title("Tile RPG")
-        .with_simple_console(WIDTH, HEIGHT, "terminal8x8.png")
         .with_font("terminal8x8.png", 8u32, 8u32)
+        .with_font("example_small.png", 8u32, 8u32)
+
+        .with_simple_console(WIDTH, HEIGHT, "example_small.png")
+        .with_tile_dimensions(8u32, 8u32)
+        .with_simple_console_no_bg(WIDTH, HEIGHT, "terminal8x8.png")
         .with_dimensions(WIDTH, HEIGHT)
-        // .with_simple_console(WIDTH, HEIGHT, "example_tiles.png")
-        // .with_font("example_tiles.png", 16u32, 16u32)
-        // .with_tile_dimensions(16u32, 16u32)
         .build()?;
 
     let gs: State = State {};
