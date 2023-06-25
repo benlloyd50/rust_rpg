@@ -1,3 +1,5 @@
 /target
 
 *.aseprite
+
+interface_tiles.*
