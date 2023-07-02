@@ -3,3 +3,5 @@
 *.aseprite
 
 interface_tiles.*
+
+.vscode
