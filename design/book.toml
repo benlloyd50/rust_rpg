@@ -1,0 +1,6 @@
+[book]
+authors = ["Benjamin Lloyd"]
+language = "en"
+multilingual = false
+src = "src"
+title = "RPG Design Docs"
