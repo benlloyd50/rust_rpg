@@ -1,21 +1,24 @@
 use bracket_terminal::prelude::*;
+use drawsprites::draw_sprites;
 use specs::{prelude::*, Component, VecStorage};
 
+mod drawsprites;
 mod player;
 use player::manage_player_input;
 mod map;
-use map::{Map, render_map};
+use map::{render_map, Map};
+mod components;
 
-use crate::player::Player;
+use crate::{components::Renderable, player::Player, drawsprites::xy_to_idx};
 
 // Size of the terminal window
 pub const DISPLAY_WIDTH: u32 = 40;
 pub const DISPLAY_HEIGHT: u32 = 30;
 
 // CL - Console layer, represents the indices for each console
-pub const CL_TEXT: usize = 2;           // Used for UI
-pub const CL_WORLD: usize = 0;          // Used for terrain tiles
-pub const CL_INTERACTABLES: usize = 1;  // Used for the few or so moving items/entities on screen
+pub const CL_TEXT: usize = 2; // Used for UI
+pub const CL_WORLD: usize = 0; // Used for terrain tiles
+pub const CL_INTERACTABLES: usize = 1; // Used for the few or so moving items/entities on screen
 
 pub struct State {
     ecs: World,
@@ -27,13 +30,10 @@ impl GameState for State {
 
         // TODO: extract func
         let mut draw_batch = DrawBatch::new();
-        
+
         draw_batch.target(CL_INTERACTABLES);
         draw_batch.cls();
-        let positions = self.ecs.read_storage::<Position>();
-        for pos in positions.join() {
-            draw_batch.set(Point::new(pos.x, pos.y), ColorPair::new(WHITE, BLACK), 2);
-        }
+        draw_sprites(&self.ecs, &mut draw_batch);
         draw_batch.submit(CL_INTERACTABLES).expect("Batch error??");
 
         draw_batch.target(CL_TEXT).cls().print_color_with_z(
@@ -52,7 +52,6 @@ impl GameState for State {
         render_draw_buffer(ctx).expect("Render error??");
     }
 }
-
 
 /// Represents a position of anything that exists physically in the game world
 #[derive(Debug, Component)]
@@ -88,12 +87,33 @@ fn main() -> BError {
     let mut world = World::new();
     world.register::<Position>();
     world.register::<Player>();
+    world.register::<Renderable>();
 
     // A very plain map
     let map = Map::new(DISPLAY_WIDTH as usize, DISPLAY_HEIGHT as usize);
     world.insert(map);
 
-    world.create_entity().with(Position { x: 17, y: 20}).with(Player {}).build();
+    world
+        .create_entity()
+        .with(Position { x: 17, y: 20 })
+        .with(Player {})
+        .with(Renderable::new(ColorPair::new(WHITE, BLACK), 2))
+        .build();
+    world
+        .create_entity()
+        .with(Position { x: 14, y: 10 })
+        .with(Renderable::new(ColorPair::new(DARKSALMON, BLACK), xy_to_idx(1, 4, 16)))
+        .build();
+    world
+        .create_entity()
+        .with(Position { x: 15, y: 10 })
+        .with(Renderable::new(ColorPair::new(ROSYBROWN, BLACK), xy_to_idx(1, 4, 16)))
+        .build();
+    world
+        .create_entity()
+        .with(Position { x: 16, y: 10 })
+        .with(Renderable::new(ColorPair::new(BURLYWOOD, BLACK), xy_to_idx(1, 4, 16)))
+        .build();
 
     let game_state: State = State { ecs: world };
     main_loop(context, game_state)
