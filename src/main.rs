@@ -1,15 +1,16 @@
 use bracket_terminal::prelude::*;
-use drawsprites::draw_all_layers;
-use specs::{prelude::*, Component, VecStorage};
+use draw_sprites::draw_all_layers;
+use specs::prelude::*;
 
-mod drawsprites;
+mod draw_sprites;
 mod player;
 use player::manage_player_input;
 mod map;
-use map::Map;
+use map::{Map, MapIndexingSystem};
 mod components;
+use components::Position;
 
-use crate::{components::Renderable, drawsprites::debug_rocks, player::Player};
+use crate::{components::{Renderable, Blocking, Breakable}, draw_sprites::debug_rocks, player::Player};
 
 // Size of the terminal window
 pub const DISPLAY_WIDTH: u32 = 40;
@@ -24,20 +25,20 @@ pub struct State {
     ecs: World,
 }
 
-impl GameState for State {
-    fn tick(&mut self, ctx: &mut BTerm) {
-        manage_player_input(self, ctx);
-
-        draw_all_layers(&self.ecs, ctx);
+impl State {
+    fn run_systems(&mut self) {
+        let mut mapindex = MapIndexingSystem;
+        mapindex.run_now(&self.ecs);
     }
 }
 
-/// Represents a position of anything that exists physically in the game world
-#[derive(Debug, Component)]
-#[storage(VecStorage)]
-struct Position {
-    x: usize,
-    y: usize,
+impl GameState for State {
+    fn tick(&mut self, ctx: &mut BTerm) {
+        manage_player_input(self, ctx);
+        self.run_systems();
+
+        draw_all_layers(&self.ecs, ctx);
+    }
 }
 
 bracket_terminal::embedded_resource!(TILE_FONT, "../resources/interactable_tiles.png");
@@ -67,6 +68,8 @@ fn main() -> BError {
     world.register::<Position>();
     world.register::<Player>();
     world.register::<Renderable>();
+    world.register::<Blocking>();
+    world.register::<Breakable>();
 
     // A very plain map
     let map = Map::new(DISPLAY_WIDTH as usize, DISPLAY_HEIGHT as usize);
@@ -74,9 +77,10 @@ fn main() -> BError {
 
     world
         .create_entity()
-        .with(Position { x: 17, y: 20 })
+        .with(Position::new(17, 20))
         .with(Player {})
         .with(Renderable::new(ColorPair::new(WHITE, BLACK), 2))
+        .with(Blocking)
         .build();
 
     debug_rocks(&mut world);

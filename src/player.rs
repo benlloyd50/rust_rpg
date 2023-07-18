@@ -1,4 +1,4 @@
-use crate::{Position, State, DISPLAY_HEIGHT, DISPLAY_WIDTH};
+use crate::{Position, State, DISPLAY_HEIGHT, DISPLAY_WIDTH, map::Map};
 use bracket_terminal::prelude::{BTerm, Point, VirtualKeyCode};
 use specs::{prelude::*, Component};
 use std::process::exit;
@@ -24,6 +24,7 @@ pub fn manage_player_input(state: &mut State, ctx: &BTerm) {
 fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
     let mut positions = ecs.write_storage::<Position>();
     let players = ecs.read_storage::<Player>();
+    let map = ecs.fetch::<Map>();
 
     for (pos, _) in (&mut positions, &players).join() {
         let target_pos = Point::new(pos.x as i32 + delta_x, pos.y as i32 + delta_y);
@@ -36,6 +37,13 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
         {
             return;
         }
+
+        let target_idx = map.xy_to_idx(target_pos.x as usize, target_pos.y as usize); 
+        if map.blocked[target_idx] {
+            println!("Map is blocked at {}, {}", target_pos.x, target_pos.y);
+            return;
+        }
+
 
         pos.x = target_pos.x as usize;
         pos.y = target_pos.y as usize;

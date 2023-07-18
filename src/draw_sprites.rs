@@ -4,7 +4,7 @@ use bracket_terminal::prelude::{
 use specs::{Join, World, WorldExt, Builder};
 
 use crate::{
-    components::Renderable, map::render_map, Position, CL_INTERACTABLES, CL_TEXT, CL_WORLD,
+    components::{Renderable, Blocking, Breakable}, map::render_map, Position, CL_INTERACTABLES, CL_TEXT, CL_WORLD,
 };
 
 pub fn draw_sprites(ecs: &World, draw_batch: &mut DrawBatch) {
@@ -59,6 +59,8 @@ pub fn debug_rocks(world: &mut World) {
                 ColorPair::new(*COLORS[i], BLACK),
                 xy_to_idx(1, 4, 16),
             ))
+            .with(Blocking)
+            .with(Breakable::new(2, 0))
             .build();
     }
 }
