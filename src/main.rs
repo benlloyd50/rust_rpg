@@ -1,15 +1,15 @@
 use bracket_terminal::prelude::*;
-use drawsprites::draw_sprites;
+use drawsprites::draw_all_layers;
 use specs::{prelude::*, Component, VecStorage};
 
 mod drawsprites;
 mod player;
 use player::manage_player_input;
 mod map;
-use map::{render_map, Map};
+use map::Map;
 mod components;
 
-use crate::{components::Renderable, player::Player, drawsprites::xy_to_idx};
+use crate::{components::Renderable, drawsprites::debug_rocks, player::Player};
 
 // Size of the terminal window
 pub const DISPLAY_WIDTH: u32 = 40;
@@ -28,28 +28,7 @@ impl GameState for State {
     fn tick(&mut self, ctx: &mut BTerm) {
         manage_player_input(self, ctx);
 
-        // TODO: extract func
-        let mut draw_batch = DrawBatch::new();
-
-        draw_batch.target(CL_INTERACTABLES);
-        draw_batch.cls();
-        draw_sprites(&self.ecs, &mut draw_batch);
-        draw_batch.submit(CL_INTERACTABLES).expect("Batch error??");
-
-        draw_batch.target(CL_TEXT).cls().print_color_with_z(
-            Point::new(1, 2),
-            &format!("FPS: {}", ctx.fps),
-            ColorPair::new(PINK, BLACK),
-            1000,
-        );
-        draw_batch.submit(CL_TEXT).expect("Batch error??");
-
-        draw_batch.target(CL_WORLD);
-        draw_batch.cls();
-        render_map(&self.ecs, &mut draw_batch);
-        draw_batch.submit(CL_WORLD).expect("Batch error??");
-
-        render_draw_buffer(ctx).expect("Render error??");
+        draw_all_layers(&self.ecs, ctx);
     }
 }
 
@@ -99,21 +78,8 @@ fn main() -> BError {
         .with(Player {})
         .with(Renderable::new(ColorPair::new(WHITE, BLACK), 2))
         .build();
-    world
-        .create_entity()
-        .with(Position { x: 14, y: 10 })
-        .with(Renderable::new(ColorPair::new(DARKSALMON, BLACK), xy_to_idx(1, 4, 16)))
-        .build();
-    world
-        .create_entity()
-        .with(Position { x: 15, y: 10 })
-        .with(Renderable::new(ColorPair::new(ROSYBROWN, BLACK), xy_to_idx(1, 4, 16)))
-        .build();
-    world
-        .create_entity()
-        .with(Position { x: 16, y: 10 })
-        .with(Renderable::new(ColorPair::new(BURLYWOOD, BLACK), xy_to_idx(1, 4, 16)))
-        .build();
+
+    debug_rocks(&mut world);
 
     let game_state: State = State { ecs: world };
     main_loop(context, game_state)

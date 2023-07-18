@@ -1,7 +1,11 @@
-use bracket_terminal::prelude::{DrawBatch, Point};
-use specs::{Join, World, WorldExt};
+use bracket_terminal::prelude::{
+    render_draw_buffer, BTerm, ColorPair, DrawBatch, Point, *
+};
+use specs::{Join, World, WorldExt, Builder};
 
-use crate::{components::Renderable, Position};
+use crate::{
+    components::Renderable, map::render_map, Position, CL_INTERACTABLES, CL_TEXT, CL_WORLD,
+};
 
 pub fn draw_sprites(ecs: &World, draw_batch: &mut DrawBatch) {
     let positions = ecs.read_storage::<Position>();
@@ -17,6 +21,45 @@ pub fn draw_sprites(ecs: &World, draw_batch: &mut DrawBatch) {
             render.color_pair,
             render.atlas_index,
         );
+    }
+}
+
+pub fn draw_all_layers(ecs: &World, ctx: &mut BTerm) {
+    let mut draw_batch = DrawBatch::new();
+
+    draw_batch.target(CL_INTERACTABLES);
+    draw_batch.cls();
+    draw_sprites(&ecs, &mut draw_batch);
+    draw_batch.submit(CL_INTERACTABLES).expect("Batch error??");
+
+    draw_batch.target(CL_TEXT).cls().print_color_with_z(
+        Point::new(1, 2),
+        &format!("FPS: {}", ctx.fps),
+        ColorPair::new(PINK, BLACK),
+        1000,
+    );
+    draw_batch.submit(CL_TEXT).expect("Batch error??");
+
+    draw_batch.target(CL_WORLD);
+    draw_batch.cls();
+    render_map(&ecs, &mut draw_batch);
+    draw_batch.submit(CL_WORLD).expect("Batch error??");
+
+    render_draw_buffer(ctx).expect("Render error??");
+}
+
+const COLORS: [&'static (u8, u8, u8); 7] = [&ROSYBROWN, &DARKSALMON, &BURLYWOOD, &CADETBLUE4, &ANTIQUEWHITE, &DARKGOLDENROD1, &CORNFLOWER_BLUE];
+
+pub fn debug_rocks(world: &mut World) {
+    for i in 0..COLORS.len() {
+        world
+            .create_entity()
+            .with(Position { x: 13 + i, y: 10 })
+            .with(Renderable::new(
+                ColorPair::new(*COLORS[i], BLACK),
+                xy_to_idx(1, 4, 16),
+            ))
+            .build();
     }
 }
 
