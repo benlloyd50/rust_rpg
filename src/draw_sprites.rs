@@ -1,10 +1,10 @@
-use bracket_terminal::prelude::{
-    render_draw_buffer, BTerm, ColorPair, DrawBatch, Point, *
-};
-use specs::{Join, World, WorldExt, Builder};
+use bracket_terminal::prelude::{render_draw_buffer, BTerm, ColorPair, DrawBatch, Point, *};
+use specs::{Builder, Join, World, WorldExt};
 
 use crate::{
-    components::{Renderable, Blocking, Breakable}, map::render_map, Position, CL_INTERACTABLES, CL_TEXT, CL_WORLD,
+    components::{Breakable, Renderable},
+    map::render_map,
+    Position, CL_INTERACTABLES, CL_TEXT, CL_WORLD,
 };
 
 pub fn draw_sprites(ecs: &World, draw_batch: &mut DrawBatch) {
@@ -48,7 +48,15 @@ pub fn draw_all_layers(ecs: &World, ctx: &mut BTerm) {
     render_draw_buffer(ctx).expect("Render error??");
 }
 
-const COLORS: [&'static (u8, u8, u8); 7] = [&ROSYBROWN, &DARKSALMON, &BURLYWOOD, &CADETBLUE4, &ANTIQUEWHITE, &DARKGOLDENROD1, &CORNFLOWER_BLUE];
+const COLORS: [&'static (u8, u8, u8); 7] = [
+    &ROSYBROWN,
+    &DARKSALMON,
+    &BURLYWOOD,
+    &CADETBLUE4,
+    &ANTIQUEWHITE,
+    &DARKGOLDENROD1,
+    &CORNFLOWER_BLUE,
+];
 
 pub fn debug_rocks(world: &mut World) {
     for i in 0..COLORS.len() {
@@ -59,7 +67,6 @@ pub fn debug_rocks(world: &mut World) {
                 ColorPair::new(*COLORS[i], BLACK),
                 xy_to_idx(1, 4, 16),
             ))
-            .with(Blocking)
             .with(Breakable::new(2, 0))
             .build();
     }

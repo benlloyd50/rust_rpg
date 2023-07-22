@@ -1,5 +1,5 @@
 use bracket_terminal::prelude::ColorPair;
-use specs::{Component, VecStorage};
+use specs::{Component, VecStorage, Entity};
 
 #[derive(Debug, Component)]
 #[storage(VecStorage)]
@@ -26,23 +26,51 @@ pub struct Position {
 }
 
 impl Position {
-    pub fn new(x: usize, y: usize) -> Self { Self { x, y } }
+    pub fn new(x: usize, y: usize) -> Self {
+        Self { x, y }
+    }
 }
 
+/// TODO: This is temporary for testing out breaking things and will be replaced by a more comprehensive stat
+#[derive(Debug, Component)]
+#[storage(VecStorage)]
+pub struct Strength {
+    pub amt: u32,
+}
+
+/// Prevents gameobjects from passing through it
 #[derive(Debug, Component)]
 #[storage(VecStorage)]
 pub struct Blocking;
 
 /// Defines how breakable an object is, should be used with blocking component to prevent walking through it
+/// TODO: seperate health from this component reason: easier to clean up dead entities.
 #[derive(Debug, Component)]
 #[storage(VecStorage)]
 pub struct Breakable {
-    hp: usize,
-    max_hp: usize,
-    defense: usize,
+    pub hp: u32,
+    max_hp: u32,
+    defense: u32,
 }
 
 impl Breakable {
-    pub fn new(max_hp: usize, defense: usize) -> Self { Self { hp: max_hp, max_hp, defense } }
+    pub fn new(max_hp: u32, defense: u32) -> Self {
+        Self {
+            hp: max_hp,
+            max_hp,
+            defense,
+        }
+    }
 }
 
+#[derive(Debug, Component)]
+#[storage(VecStorage)]
+pub struct BreakAction {
+    pub target: Entity,
+}
+
+#[derive(Debug, Component)]
+#[storage(VecStorage)]
+pub struct SufferDamage {
+    pub amount: Vec<u32>,
+}

@@ -1,4 +1,7 @@
-use crate::{Position, State, DISPLAY_HEIGHT, DISPLAY_WIDTH, map::Map};
+use crate::{
+    map::{Map, TileEntity},
+    Position, State, DISPLAY_HEIGHT, DISPLAY_WIDTH, components::BreakAction,
+};
 use bracket_terminal::prelude::{BTerm, Point, VirtualKeyCode};
 use specs::{prelude::*, Component};
 use std::process::exit;
@@ -25,8 +28,10 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
     let mut positions = ecs.write_storage::<Position>();
     let players = ecs.read_storage::<Player>();
     let map = ecs.fetch::<Map>();
+    let entities = ecs.entities();
+    let mut break_actions = ecs.write_storage::<BreakAction>();
 
-    for (pos, _) in (&mut positions, &players).join() {
+    for (entity, pos, _) in (&entities, &mut positions, &players).join() {
         let target_pos = Point::new(pos.x as i32 + delta_x, pos.y as i32 + delta_y);
 
         // check target_pos is a valid position to move into (in map bounds, not blocked by another entity or tile)
@@ -38,14 +43,26 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
             return;
         }
 
-        let target_idx = map.xy_to_idx(target_pos.x as usize, target_pos.y as usize); 
-        if map.blocked[target_idx] {
-            println!("Map is blocked at {}, {}", target_pos.x, target_pos.y);
-            return;
+        let target_idx = map.xy_to_idx(target_pos.x as usize, target_pos.y as usize);
+        match map.tile_entity[target_idx] {
+            TileEntity::Blocking => {
+                println!("Map is blocked at {}, {}", target_pos.x, target_pos.y);
+                return;
+            }
+            TileEntity::Breakable(id) => {
+                println!(
+                    "Map is breakable at {}, {} : id: {}",
+                    target_pos.x,
+                    target_pos.y,
+                    id.gen().id()
+                );
+                break_actions.insert(entity, BreakAction{target: id}).expect("Player couldn't break");
+                return;
+            }
+            TileEntity::Empty => {
+                pos.x = target_pos.x as usize;
+                pos.y = target_pos.y as usize;
+            }
         }
-
-
-        pos.x = target_pos.x as usize;
-        pos.y = target_pos.y as usize;
     }
 }

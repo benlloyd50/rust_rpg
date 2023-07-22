@@ -4,13 +4,18 @@ use specs::prelude::*;
 
 mod draw_sprites;
 mod player;
+mod mining;
 use player::manage_player_input;
 mod map;
-use map::{Map, MapIndexingSystem};
+use map::{IndexBlockedTiles, IndexBreakableTiles, Map, IndexReset};
 mod components;
 use components::Position;
 
-use crate::{components::{Renderable, Blocking, Breakable}, draw_sprites::debug_rocks, player::Player};
+use crate::{
+    components::{Blocking, Breakable, Renderable, BreakAction, SufferDamage},
+    draw_sprites::debug_rocks,
+    player::Player,
+};
 
 // Size of the terminal window
 pub const DISPLAY_WIDTH: u32 = 40;
@@ -27,8 +32,15 @@ pub struct State {
 
 impl State {
     fn run_systems(&mut self) {
-        let mut mapindex = MapIndexingSystem;
-        mapindex.run_now(&self.ecs);
+        // Indexing systems, NOTE: probably dont have to run every frame
+        let mut indexreset = IndexReset;
+        indexreset.run_now(&self.ecs);
+        let mut indexblocking = IndexBlockedTiles;
+        indexblocking.run_now(&self.ecs);
+        let mut indexbreaking = IndexBreakableTiles;
+        indexbreaking.run_now(&self.ecs);
+
+        self.ecs.maintain();
     }
 }
 
@@ -36,7 +48,6 @@ impl GameState for State {
     fn tick(&mut self, ctx: &mut BTerm) {
         manage_player_input(self, ctx);
         self.run_systems();
-
         draw_all_layers(&self.ecs, ctx);
     }
 }
@@ -70,6 +81,8 @@ fn main() -> BError {
     world.register::<Renderable>();
     world.register::<Blocking>();
     world.register::<Breakable>();
+    world.register::<BreakAction>();
+    world.register::<SufferDamage>();
 
     // A very plain map
     let map = Map::new(DISPLAY_WIDTH as usize, DISPLAY_HEIGHT as usize);
