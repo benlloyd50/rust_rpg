@@ -31,7 +31,7 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
     let entities = ecs.entities();
     let mut break_actions = ecs.write_storage::<BreakAction>();
 
-    for (entity, pos, _) in (&entities, &mut positions, &players).join() {
+    for (player_entity, pos, _) in (&entities, &mut positions, &players).join() {
         let target_pos = Point::new(pos.x as i32 + delta_x, pos.y as i32 + delta_y);
 
         // check target_pos is a valid position to move into (in map bounds, not blocked by another entity or tile)
@@ -49,14 +49,15 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
                 println!("Map is blocked at {}, {}", target_pos.x, target_pos.y);
                 return;
             }
-            TileEntity::Breakable(id) => {
+            TileEntity::Breakable(entity) => {
                 println!(
                     "Map is breakable at {}, {} : id: {}",
                     target_pos.x,
                     target_pos.y,
-                    id.gen().id()
+                    entity.id()
                 );
-                break_actions.insert(entity, BreakAction{target: id}).expect("Player couldn't break");
+                break_actions.insert(player_entity, BreakAction{target: entity})
+                             .expect("Break action could not be added to target entity");
                 return;
             }
             TileEntity::Empty => {

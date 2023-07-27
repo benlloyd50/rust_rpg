@@ -1,5 +1,6 @@
 use bracket_terminal::prelude::*;
 use draw_sprites::draw_all_layers;
+use mining::{MiningSystem, DamageSystem};
 use specs::prelude::*;
 
 mod draw_sprites;
@@ -12,7 +13,7 @@ mod components;
 use components::Position;
 
 use crate::{
-    components::{Blocking, Breakable, Renderable, BreakAction, SufferDamage},
+    components::{Blocking, Breakable, Renderable, BreakAction, SufferDamage, Strength},
     draw_sprites::debug_rocks,
     player::Player,
 };
@@ -39,6 +40,11 @@ impl State {
         indexblocking.run_now(&self.ecs);
         let mut indexbreaking = IndexBreakableTiles;
         indexbreaking.run_now(&self.ecs);
+
+        let mut mining_sys = MiningSystem;
+        mining_sys.run_now(&self.ecs);
+        let mut damage_sys = DamageSystem;
+        damage_sys.run_now(&self.ecs);
 
         self.ecs.maintain();
     }
@@ -83,6 +89,7 @@ fn main() -> BError {
     world.register::<Breakable>();
     world.register::<BreakAction>();
     world.register::<SufferDamage>();
+    world.register::<Strength>();
 
     // A very plain map
     let map = Map::new(DISPLAY_WIDTH as usize, DISPLAY_HEIGHT as usize);
@@ -92,6 +99,7 @@ fn main() -> BError {
         .create_entity()
         .with(Position::new(17, 20))
         .with(Player {})
+        .with(Strength {amt: 1})
         .with(Renderable::new(ColorPair::new(WHITE, BLACK), 2))
         .with(Blocking)
         .build();

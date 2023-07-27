@@ -47,10 +47,11 @@ pub struct Blocking;
 /// TODO: seperate health from this component reason: easier to clean up dead entities.
 #[derive(Debug, Component)]
 #[storage(VecStorage)]
+#[allow(dead_code)]
 pub struct Breakable {
     pub hp: u32,
     max_hp: u32,
-    defense: u32,
+    pub defense: u32,
 }
 
 impl Breakable {
@@ -72,5 +73,5 @@ pub struct BreakAction {
 #[derive(Debug, Component)]
 #[storage(VecStorage)]
 pub struct SufferDamage {
-    pub amount: Vec<u32>,
+    pub amount: Vec<i32>,
 }
