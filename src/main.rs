@@ -1,6 +1,6 @@
 use bracket_terminal::prelude::*;
 use draw_sprites::draw_all_layers;
-use mining::{MiningSystem, DamageSystem};
+use mining::{MiningSystem, DamageSystem, RemoveDeadTiles};
 use specs::prelude::*;
 
 mod draw_sprites;
@@ -45,6 +45,9 @@ impl State {
         mining_sys.run_now(&self.ecs);
         let mut damage_sys = DamageSystem;
         damage_sys.run_now(&self.ecs);
+
+        let mut remove_dead_tiles = RemoveDeadTiles;
+        remove_dead_tiles.run_now(&self.ecs);
 
         self.ecs.maintain();
     }

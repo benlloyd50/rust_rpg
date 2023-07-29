@@ -1,5 +1,5 @@
 use bracket_terminal::prelude::ColorPair;
-use specs::{Component, VecStorage, Entity};
+use specs::{Component, VecStorage, Entity, NullStorage};
 
 #[derive(Debug, Component)]
 #[storage(VecStorage)]
@@ -39,8 +39,8 @@ pub struct Strength {
 }
 
 /// Prevents gameobjects from passing through it
-#[derive(Debug, Component)]
-#[storage(VecStorage)]
+#[derive(Debug, Component, Default)]
+#[storage(NullStorage)]
 pub struct Blocking;
 
 /// Defines how breakable an object is, should be used with blocking component to prevent walking through it

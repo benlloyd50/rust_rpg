@@ -1,4 +1,4 @@
-use specs::{ReadStorage, System, Join, WriteStorage, Entity};
+use specs::{ReadStorage, System, Join, WriteStorage, Entity, Entities};
 use crate::components::{Strength, BreakAction, Breakable, SufferDamage};
 
 
@@ -59,5 +59,25 @@ impl<'a> System<'a> for DamageSystem {
         }
 
         damage.clear();
+    }
+}
+
+pub struct RemoveDeadTiles;
+
+impl<'a> System<'a> for RemoveDeadTiles {
+    type SystemData = (ReadStorage<'a, Breakable>,
+                        Entities<'a>);
+
+    fn run(&mut self, (breakable, entities): Self::SystemData) {
+        for (stats, e) in (&breakable, &entities).join() {
+            if stats.hp == 0 {
+                match entities.delete(e) {
+                    Ok(..) => {},
+                    Err(err) => {
+                        println!("Failed to clean up {} : {}", e.id(), err);
+                    }
+                }
+            }
+        }
     }
 }
