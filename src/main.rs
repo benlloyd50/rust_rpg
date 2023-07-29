@@ -1,19 +1,21 @@
 use bracket_terminal::prelude::*;
 use draw_sprites::draw_all_layers;
-use mining::{MiningSystem, DamageSystem, RemoveDeadTiles};
+use mining::{DamageSystem, RemoveDeadTiles, TileDestructionSystem};
 use specs::prelude::*;
 
 mod draw_sprites;
-mod player;
 mod mining;
+mod player;
 use player::manage_player_input;
 mod map;
-use map::{IndexBlockedTiles, IndexBreakableTiles, Map, IndexReset};
+use map::{IndexBlockedTiles, IndexBreakableTiles, IndexReset, Map};
 mod components;
 use components::Position;
 
 use crate::{
-    components::{Blocking, Breakable, Renderable, BreakAction, SufferDamage, Strength},
+    components::{
+        Blocking, BreakAction, Breakable, HealthStats, Renderable, Strength, SufferDamage,
+    },
     draw_sprites::debug_rocks,
     player::Player,
 };
@@ -41,7 +43,7 @@ impl State {
         let mut indexbreaking = IndexBreakableTiles;
         indexbreaking.run_now(&self.ecs);
 
-        let mut mining_sys = MiningSystem;
+        let mut mining_sys = TileDestructionSystem;
         mining_sys.run_now(&self.ecs);
         let mut damage_sys = DamageSystem;
         damage_sys.run_now(&self.ecs);
@@ -89,8 +91,9 @@ fn main() -> BError {
     world.register::<Player>();
     world.register::<Renderable>();
     world.register::<Blocking>();
-    world.register::<Breakable>();
+    world.register::<HealthStats>();
     world.register::<BreakAction>();
+    world.register::<Breakable>();
     world.register::<SufferDamage>();
     world.register::<Strength>();
 
@@ -102,7 +105,7 @@ fn main() -> BError {
         .create_entity()
         .with(Position::new(17, 20))
         .with(Player {})
-        .with(Strength {amt: 1})
+        .with(Strength { amt: 1 })
         .with(Renderable::new(ColorPair::new(WHITE, BLACK), 2))
         .with(Blocking)
         .build();

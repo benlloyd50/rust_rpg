@@ -2,7 +2,7 @@ use bracket_terminal::prelude::{render_draw_buffer, BTerm, ColorPair, DrawBatch,
 use specs::{Builder, Join, World, WorldExt};
 
 use crate::{
-    components::{Breakable, Renderable},
+    components::{Breakable, HealthStats, Renderable, ToolType},
     map::render_map,
     Position, CL_INTERACTABLES, CL_TEXT, CL_WORLD,
 };
@@ -67,7 +67,8 @@ pub fn debug_rocks(world: &mut World) {
                 ColorPair::new(*COLORS[i], BLACK),
                 xy_to_idx(1, 4, 16),
             ))
-            .with(Breakable::new(2, 0))
+            .with(Breakable::new(ToolType::Hand))
+            .with(HealthStats::new(2, 0))
             .build();
     }
 }

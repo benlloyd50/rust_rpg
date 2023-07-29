@@ -1,7 +1,7 @@
 use bracket_terminal::prelude::{ColorPair, DrawBatch, Point, BLACK, WHITE};
 use specs::{Entities, Entity, Join, ReadStorage, System, World, WriteExpect};
 
-use crate::components::{Blocking, Breakable, Position};
+use crate::components::{Blocking, HealthStats, Position};
 
 pub struct Map {
     tiles: Vec<WorldTile>,
@@ -65,7 +65,7 @@ pub struct IndexReset;
 impl<'a> System<'a> for IndexReset {
     type SystemData = (WriteExpect<'a, Map>,);
 
-    fn run(&mut self, (mut map, ): Self::SystemData) {
+    fn run(&mut self, (mut map,): Self::SystemData) {
         map.tile_entity.fill(TileEntity::Empty);
     }
 }
@@ -93,7 +93,7 @@ impl<'a> System<'a> for IndexBreakableTiles {
     type SystemData = (
         WriteExpect<'a, Map>,
         ReadStorage<'a, Position>,
-        ReadStorage<'a, Breakable>,
+        ReadStorage<'a, HealthStats>,
         Entities<'a>,
     );
 

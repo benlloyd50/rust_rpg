@@ -1,32 +1,52 @@
-use specs::{ReadStorage, System, Join, WriteStorage, Entity, Entities};
-use crate::components::{Strength, BreakAction, Breakable, SufferDamage};
+use crate::components::{BreakAction, Breakable, HealthStats, Strength, SufferDamage, ToolType};
+use specs::{Entities, Entity, Join, ReadStorage, System, WriteStorage};
 
+/// Allows tile to be breakable. The tile must contain a breakable and health stats component.
+/// The attacker must contain a strength and have breakactions queued up in their system.
+/// This checks the tile is breakable by the entity given certain conditions
+pub struct TileDestructionSystem;
 
-pub struct MiningSystem;
-
-impl<'a> System<'a> for MiningSystem {
+impl<'a> System<'a> for TileDestructionSystem {
     type SystemData = (
         ReadStorage<'a, Strength>,
         WriteStorage<'a, BreakAction>,
         WriteStorage<'a, SufferDamage>,
         ReadStorage<'a, Breakable>,
+        ReadStorage<'a, HealthStats>,
     );
 
-    fn run(&mut self, (strength, mut break_actions, mut suffer_damage, breakable): Self::SystemData) {
+    fn run(
+        &mut self,
+        (strength, mut break_actions, mut suffer_damage, breakable, health_stats): Self::SystemData,
+    ) {
         for (strength, action) in (&strength, &break_actions).join() {
-            let target_stats = breakable.get(action.target).unwrap();
-            if target_stats.defense > strength.amt {
-                println!("Took no damage because defense is greater");
-                continue;
+            if let Some(target_breakable) = breakable.get(action.target) {
+                if !inventory_contains_tool(&target_breakable.by) {
+                    continue;
+                }
             }
 
-            let damage = strength.amt - target_stats.defense;
-            println!("Dealt {} damage to {}", damage, action.target.id());
-            SufferDamage::new_damage(&mut suffer_damage, action.target, -(damage as i32));
+            if let Some(target_stats) = health_stats.get(action.target) {
+                if target_stats.defense > strength.amt {
+                    println!("Took no damage because defense is greater");
+                    continue;
+                }
+
+                let damage = strength.amt - target_stats.defense;
+                println!("Dealt {} damage to {}", damage, action.target.id());
+                SufferDamage::new_damage(&mut suffer_damage, action.target, -(damage as i32));
+            } else {
+                println!("{} entity has no health stats", action.target.id());
+            }
         }
 
         break_actions.clear()
     }
+}
+
+// TODO: when we get the inventory added check that it contains the tool
+fn inventory_contains_tool(_tool_type: &ToolType) -> bool {
+    true
 }
 
 impl SufferDamage {
@@ -34,7 +54,9 @@ impl SufferDamage {
         if let Some(suffering) = store.get_mut(victim) {
             suffering.amount.push(amount);
         } else {
-            let dmg = SufferDamage { amount : vec![amount] };
+            let dmg = SufferDamage {
+                amount: vec![amount],
+            };
             store.insert(victim, dmg).expect("Unable to insert damage");
         }
     }
@@ -43,8 +65,10 @@ impl SufferDamage {
 pub struct DamageSystem;
 
 impl<'a> System<'a> for DamageSystem {
-    type SystemData = (WriteStorage<'a, SufferDamage>,
-                       WriteStorage<'a, Breakable>);
+    type SystemData = (
+        WriteStorage<'a, SufferDamage>,
+        WriteStorage<'a, HealthStats>,
+    );
 
     fn run(&mut self, (mut damage, mut breakable): Self::SystemData) {
         for (mut stats, damage) in (&mut breakable, &mut damage).join() {
@@ -55,7 +79,10 @@ impl<'a> System<'a> for DamageSystem {
             let new_hp = stats.hp as i32 + damage_dealt;
             stats.hp = if new_hp >= 0 { new_hp as u32 } else { 0 };
 
-            println!("Old HP: {} | Damage Dealt: {} | New HP: {}", old_hp, damage_dealt, stats.hp);
+            println!(
+                "Old HP: {} | Damage Dealt: {} | New HP: {}",
+                old_hp, damage_dealt, stats.hp
+            );
         }
 
         damage.clear();
@@ -65,14 +92,13 @@ impl<'a> System<'a> for DamageSystem {
 pub struct RemoveDeadTiles;
 
 impl<'a> System<'a> for RemoveDeadTiles {
-    type SystemData = (ReadStorage<'a, Breakable>,
-                        Entities<'a>);
+    type SystemData = (ReadStorage<'a, HealthStats>, Entities<'a>);
 
     fn run(&mut self, (breakable, entities): Self::SystemData) {
         for (stats, e) in (&breakable, &entities).join() {
             if stats.hp == 0 {
                 match entities.delete(e) {
-                    Ok(..) => {},
+                    Ok(..) => {}
                     Err(err) => {
                         println!("Failed to clean up {} : {}", e.id(), err);
                     }

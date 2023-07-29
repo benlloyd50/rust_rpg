@@ -1,6 +1,7 @@
 use crate::{
+    components::BreakAction,
     map::{Map, TileEntity},
-    Position, State, DISPLAY_HEIGHT, DISPLAY_WIDTH, components::BreakAction,
+    Position, State, DISPLAY_HEIGHT, DISPLAY_WIDTH,
 };
 use bracket_terminal::prelude::{BTerm, Point, VirtualKeyCode};
 use specs::{prelude::*, Component};
@@ -56,8 +57,9 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
                     target_pos.y,
                     entity.id()
                 );
-                break_actions.insert(player_entity, BreakAction{target: entity})
-                             .expect("Break action could not be added to target entity");
+                break_actions
+                    .insert(player_entity, BreakAction { target: entity })
+                    .expect("Break action could not be added to target entity");
                 return;
             }
             TileEntity::Empty => {

@@ -1,5 +1,5 @@
 use bracket_terminal::prelude::ColorPair;
-use specs::{Component, VecStorage, Entity, NullStorage};
+use specs::{Component, Entity, NullStorage, VecStorage};
 
 #[derive(Debug, Component)]
 #[storage(VecStorage)]
@@ -48,13 +48,13 @@ pub struct Blocking;
 #[derive(Debug, Component)]
 #[storage(VecStorage)]
 #[allow(dead_code)]
-pub struct Breakable {
+pub struct HealthStats {
     pub hp: u32,
     max_hp: u32,
     pub defense: u32,
 }
 
-impl Breakable {
+impl HealthStats {
     pub fn new(max_hp: u32, defense: u32) -> Self {
         Self {
             hp: max_hp,
@@ -62,6 +62,27 @@ impl Breakable {
             defense,
         }
     }
+}
+
+#[derive(Debug, Component)]
+#[storage(VecStorage)]
+pub struct Breakable {
+    pub by: ToolType,
+}
+
+impl Breakable {
+    pub fn new(by: ToolType) -> Self {
+        Self { by }
+    }
+}
+
+#[derive(Debug)]
+#[allow(dead_code)]
+pub enum ToolType {
+    Hand,
+    Pickaxe,
+    Axe,
+    Shovel,
 }
 
 #[derive(Debug, Component)]
