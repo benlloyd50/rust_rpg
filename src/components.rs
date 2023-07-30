@@ -43,6 +43,11 @@ pub struct Strength {
 #[storage(NullStorage)]
 pub struct Blocking;
 
+
+#[derive(Debug, Component, Default)]
+#[storage(NullStorage)]
+pub struct Fishable;
+
 /// Defines how breakable an object is, should be used with blocking component to prevent walking through it
 /// TODO: seperate health from this component reason: easier to clean up dead entities.
 #[derive(Debug, Component)]

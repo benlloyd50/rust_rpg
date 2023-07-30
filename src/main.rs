@@ -11,6 +11,7 @@ mod map;
 use map::{IndexBlockedTiles, IndexBreakableTiles, IndexReset, Map};
 mod components;
 use components::Position;
+mod fishing;
 
 use crate::{
     components::{
