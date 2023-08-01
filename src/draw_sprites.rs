@@ -12,10 +12,7 @@ pub fn draw_sprites(ecs: &World, draw_batch: &mut DrawBatch) {
     let renderables = ecs.read_storage::<Renderable>();
 
     let data = (&positions, &renderables).join().collect::<Vec<_>>();
-    // data.sort_by(|&a, &b| b.1.render_order.cmp(&a.1.render_order) );
     for (pos, render) in data.iter() {
-        // let idx = map.xy_idx(pos.x, pos.y);
-        // if map.visible_tiles[idx] { ctx.set(pos.x, pos.y, render.fg, render.bg, render.glyph) }
         draw_batch.set(
             Point::new(pos.x, pos.y),
             render.color_pair,
@@ -29,8 +26,12 @@ pub fn draw_all_layers(ecs: &World, ctx: &mut BTerm) {
 
     draw_batch.target(CL_INTERACTABLES);
     draw_batch.cls();
+    // draw_batch.target(CL_WORLD);
+    // draw_batch.cls();
+
     draw_sprites(&ecs, &mut draw_batch);
     draw_batch.submit(CL_INTERACTABLES).expect("Batch error??");
+    // draw_batch.submit(CL_WORLD).expect("Batch error??");
 
     draw_batch.target(CL_TEXT).cls().print_color_with_z(
         Point::new(1, 2),

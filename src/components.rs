@@ -48,8 +48,13 @@ pub struct Blocking;
 #[storage(NullStorage)]
 pub struct Fishable;
 
-/// Defines how breakable an object is, should be used with blocking component to prevent walking through it
-/// TODO: seperate health from this component reason: easier to clean up dead entities.
+#[derive(Component)]
+#[storage(VecStorage)]
+pub struct FishAction {
+    pub target: Entity,
+}
+
+
 #[derive(Debug, Component)]
 #[storage(VecStorage)]
 #[allow(dead_code)]

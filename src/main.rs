@@ -6,19 +6,22 @@ use specs::prelude::*;
 mod draw_sprites;
 mod mining;
 mod player;
+mod indexing;
 use player::manage_player_input;
 mod map;
-use map::{IndexBlockedTiles, IndexBreakableTiles, IndexReset, Map};
+use map::Map;
 mod components;
 use components::Position;
 mod fishing;
+use fishing::SetupFishingActions;
+use indexing::{IndexBlockedTiles, IndexBreakableTiles, IndexReset, IndexFishableTiles};
 
 use crate::{
     components::{
-        Blocking, BreakAction, Breakable, HealthStats, Renderable, Strength, SufferDamage,
+        Blocking, BreakAction, Breakable, HealthStats, Renderable, Strength, SufferDamage, Fishable, FishAction, ToolType,
     },
     draw_sprites::debug_rocks,
-    player::Player,
+    player::Player, map::WorldTile,
 };
 
 // Size of the terminal window
@@ -32,6 +35,15 @@ pub const CL_INTERACTABLES: usize = 1; // Used for the few or so moving items/en
 
 pub struct State {
     ecs: World,
+    player_state: PlayerState,
+}
+
+/// Defines the player's state for the game
+pub enum PlayerState {
+    InMenu,
+    WaitingForInput,
+    RespondingToInput,
+    ActivityBound, // can only perform a specific acitivity that is currently happening
 }
 
 impl State {
@@ -43,6 +55,11 @@ impl State {
         indexblocking.run_now(&self.ecs);
         let mut indexbreaking = IndexBreakableTiles;
         indexbreaking.run_now(&self.ecs);
+        let mut indexfishing = IndexFishableTiles;
+        indexfishing.run_now(&self.ecs);
+
+        let mut setupfishingactions = SetupFishingActions;
+        setupfishingactions.run_now(&self.ecs);
 
         let mut mining_sys = TileDestructionSystem;
         mining_sys.run_now(&self.ecs);
@@ -61,6 +78,18 @@ impl GameState for State {
         manage_player_input(self, ctx);
         self.run_systems();
         draw_all_layers(&self.ecs, ctx);
+        // match self.player_state {
+        //     PlayerState::WaitingForInput => {
+        //         manage_player_input(self, ctx);
+        //     }
+        //     PlayerState::RespondingToInput => {
+        //         self.run_systems();
+        //         draw_all_layers(&self.ecs, ctx);
+        //     }
+        //     _ => {
+        //
+        //     }
+        // }
     }
 }
 
@@ -97,9 +126,19 @@ fn main() -> BError {
     world.register::<Breakable>();
     world.register::<SufferDamage>();
     world.register::<Strength>();
+    world.register::<Fishable>();
+    world.register::<FishAction>();
 
     // A very plain map
-    let map = Map::new(DISPLAY_WIDTH as usize, DISPLAY_HEIGHT as usize);
+    let mut map = Map::new(DISPLAY_WIDTH as usize, DISPLAY_HEIGHT as usize);
+
+    let water_idx = map.xy_to_idx(10, 15);
+    map.tiles[water_idx] = WorldTile { atlas_index: 80 };
+    world.create_entity()
+        .with(Position::new(10, 15))
+        .with(Fishable)
+        .with(Blocking)
+        .build();
     world.insert(map);
 
     world
@@ -113,6 +152,6 @@ fn main() -> BError {
 
     debug_rocks(&mut world);
 
-    let game_state: State = State { ecs: world };
+    let game_state: State = State { ecs: world, player_state: PlayerState::WaitingForInput };
     main_loop(context, game_state)
 }
