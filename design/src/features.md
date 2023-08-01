@@ -1,15 +1,7 @@
 # Features
 
-An evergrowing list of features that are to be added into the game. If you are interested in a particular feature you may create an issue on Github (coming soon).
-
-## Implemented
-- None
-
-## Have not been implemented into the game yet
-- [Fishing](./fishing.md)
-- [Mining](./mining.md)
-- [Dungeons](./dungeons.md)
-- [Components](./e_components.md)
-- [Herbalism](./herbalism.md)
-- [Cooking](./cooking.md)
-- More to come...
+Underneath this chapter are features that will be added or are currently a part of the game. Each feature includes information such as:
+- Use cases
+- Gameplay and Design
+- Technical and gameplay limitations
+- Related
