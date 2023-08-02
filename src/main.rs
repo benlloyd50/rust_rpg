@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use bracket_terminal::prelude::*;
 use draw_sprites::draw_all_layers;
 use mining::{DamageSystem, RemoveDeadTiles, TileDestructionSystem};
@@ -7,21 +9,24 @@ mod draw_sprites;
 mod mining;
 mod player;
 mod indexing;
+mod tile_animation;
+mod time;
 use player::manage_player_input;
 mod map;
 use map::Map;
 mod components;
 use components::Position;
 mod fishing;
-use fishing::SetupFishingActions;
+use fishing::{SetupFishingActions, WaitingForFishSystem, CatchFishSystem};
 use indexing::{IndexBlockedTiles, IndexBreakableTiles, IndexReset, IndexFishableTiles};
+use time::delta_time_update;
 
 use crate::{
     components::{
-        Blocking, BreakAction, Breakable, HealthStats, Renderable, Strength, SufferDamage, Fishable, FishAction, ToolType,
+        Blocking, BreakAction, Breakable, HealthStats, Renderable, Strength, SufferDamage, Fishable, FishAction, WaitingForFish, FishOnTheLine,
     },
     draw_sprites::debug_rocks,
-    player::Player, map::WorldTile,
+    player::Player, map::WorldTile, time::DeltaTime,
 };
 
 // Size of the terminal window
@@ -47,7 +52,7 @@ pub enum PlayerState {
 }
 
 impl State {
-    fn run_systems(&mut self) {
+    fn run_systems(&mut self, ctx: &mut BTerm) {
         // Indexing systems, NOTE: probably dont have to run every frame
         let mut indexreset = IndexReset;
         indexreset.run_now(&self.ecs);
@@ -60,6 +65,10 @@ impl State {
 
         let mut setupfishingactions = SetupFishingActions;
         setupfishingactions.run_now(&self.ecs);
+        let mut waitingforfishsystem = WaitingForFishSystem;
+        waitingforfishsystem.run_now(&self.ecs);
+        let mut catchfishsystem = CatchFishSystem;
+        catchfishsystem.run_now(&self.ecs);
 
         let mut mining_sys = TileDestructionSystem;
         mining_sys.run_now(&self.ecs);
@@ -76,20 +85,9 @@ impl State {
 impl GameState for State {
     fn tick(&mut self, ctx: &mut BTerm) {
         manage_player_input(self, ctx);
-        self.run_systems();
+        self.run_systems(ctx);
+        delta_time_update(&mut self.ecs, ctx);
         draw_all_layers(&self.ecs, ctx);
-        // match self.player_state {
-        //     PlayerState::WaitingForInput => {
-        //         manage_player_input(self, ctx);
-        //     }
-        //     PlayerState::RespondingToInput => {
-        //         self.run_systems();
-        //         draw_all_layers(&self.ecs, ctx);
-        //     }
-        //     _ => {
-        //
-        //     }
-        // }
     }
 }
 
@@ -128,6 +126,10 @@ fn main() -> BError {
     world.register::<Strength>();
     world.register::<Fishable>();
     world.register::<FishAction>();
+    world.register::<WaitingForFish>();
+    world.register::<FishOnTheLine>();
+
+    world.insert(DeltaTime(Duration::ZERO));
 
     // A very plain map
     let mut map = Map::new(DISPLAY_WIDTH as usize, DISPLAY_HEIGHT as usize);

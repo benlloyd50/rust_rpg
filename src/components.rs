@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use bracket_terminal::prelude::ColorPair;
 use specs::{Component, Entity, NullStorage, VecStorage};
 
@@ -53,6 +55,27 @@ pub struct Fishable;
 pub struct FishAction {
     pub target: Entity,
 }
+
+#[derive(Component)]
+#[storage(VecStorage)]
+pub struct WaitingForFish {
+    pub attempts: usize,
+    pub time_since_last_attempt: Duration,
+}
+
+impl WaitingForFish {
+    pub fn new(attempts: usize) -> Self {
+        Self {
+            attempts,
+            time_since_last_attempt: Duration::new(0, 0),
+        }
+    }
+}
+
+#[derive(Component, Default)]
+#[storage(NullStorage)]
+pub struct FishOnTheLine;
+
 
 
 #[derive(Debug, Component)]
