@@ -71,7 +71,7 @@ impl<'a> System<'a> for DamageSystem {
     );
 
     fn run(&mut self, (mut damage, mut breakable): Self::SystemData) {
-        for (mut stats, damage) in (&mut breakable, &mut damage).join() {
+        for (stats, damage) in (&mut breakable, &mut damage).join() {
             let old_hp = stats.hp;
             let damage_dealt = damage.amount.iter().sum::<i32>();
 

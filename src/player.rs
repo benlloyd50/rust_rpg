@@ -9,7 +9,13 @@ use std::process::exit;
 
 #[derive(Default, Component)]
 #[storage(NullStorage)]
-pub struct Player {}
+pub struct Player;
+
+pub enum PlayerResponse {
+    StateChange,
+    TurnAdvance,
+    Waiting,
+}
 
 pub fn manage_player_input(state: &mut State, ctx: &BTerm) {
     match ctx.key {
@@ -62,10 +68,10 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
             TileEntity::Blocking => {
                 println!("Map is blocked at {}, {}", target_pos.x, target_pos.y);
             }
-            TileEntity::Fishable(entity) => {
+            TileEntity::Fishable(_entity) => {
                 println!("Attempting to fish at {}, {}", target_pos.x, target_pos.y);
                 fish_actions 
-                    .insert(player_entity, FishAction { target: entity })
+                    .insert(player_entity, FishAction { target: target_pos.into()})
                     .expect("Fish action could not be added to player entity");
             }
             TileEntity::Breakable(entity) => {

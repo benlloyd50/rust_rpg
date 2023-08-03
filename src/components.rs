@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use bracket_terminal::prelude::ColorPair;
+use bracket_terminal::prelude::{ColorPair, Point};
 use specs::{Component, Entity, NullStorage, VecStorage};
 
 #[derive(Debug, Component)]
@@ -20,7 +20,7 @@ impl Renderable {
 }
 
 /// Represents a position of anything that exists physically in the game world
-#[derive(Debug, Component)]
+#[derive(Debug, Component, Copy, Clone)]
 #[storage(VecStorage)]
 pub struct Position {
     pub x: usize,
@@ -30,6 +30,14 @@ pub struct Position {
 impl Position {
     pub fn new(x: usize, y: usize) -> Self {
         Self { x, y }
+    }
+}
+
+impl From<Point> for Position {
+    /// May panic if either of the coords of `value` are negative but that should rarely be the case when used in the
+    /// proper context. i.e. dont use this when dealing with delta point values (-1, -1)
+    fn from(value: Point) -> Self {
+        Self::new(value.x as usize, value.y as usize)
     }
 }
 
@@ -45,7 +53,6 @@ pub struct Strength {
 #[storage(NullStorage)]
 pub struct Blocking;
 
-
 #[derive(Debug, Component, Default)]
 #[storage(NullStorage)]
 pub struct Fishable;
@@ -53,7 +60,7 @@ pub struct Fishable;
 #[derive(Component)]
 #[storage(VecStorage)]
 pub struct FishAction {
-    pub target: Entity,
+    pub target: Position,  // mainly just for finding where the fishing rod will be spawned
 }
 
 #[derive(Component)]
@@ -75,8 +82,6 @@ impl WaitingForFish {
 #[derive(Component, Default)]
 #[storage(NullStorage)]
 pub struct FishOnTheLine;
-
-
 
 #[derive(Debug, Component)]
 #[storage(VecStorage)]
@@ -128,4 +133,19 @@ pub struct BreakAction {
 #[storage(VecStorage)]
 pub struct SufferDamage {
     pub amount: Vec<i32>,
+}
+
+/// Used to delete an entity when a condition is satisfied
+#[derive(Component, Clone, Copy)]
+#[storage(VecStorage)]
+pub enum DeleteCondition {
+    Timed(Duration),  // Condition is based on deleting after a specificed amount of time
+    Event(Entity),    // Condition is based on when the entity finishes their activity
+}
+
+/// Used to signal to other systems that an entity finished their activity
+#[derive(Component)]
+#[storage(VecStorage)]
+pub enum FinishedActivity { 
+    Fishing, 
 }

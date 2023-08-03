@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use activity_finishing::ActivityFinishSystem;
 use bracket_terminal::prelude::*;
 use draw_sprites::draw_all_layers;
 use mining::{DamageSystem, RemoveDeadTiles, TileDestructionSystem};
@@ -11,6 +12,7 @@ mod player;
 mod indexing;
 mod tile_animation;
 mod time;
+mod activity_finishing;
 use player::manage_player_input;
 mod map;
 use map::Map;
@@ -19,14 +21,15 @@ use components::Position;
 mod fishing;
 use fishing::{SetupFishingActions, WaitingForFishSystem, CatchFishSystem};
 use indexing::{IndexBlockedTiles, IndexBreakableTiles, IndexReset, IndexFishableTiles};
+use tile_animation::TileAnimationSpawner;
 use time::delta_time_update;
 
 use crate::{
     components::{
-        Blocking, BreakAction, Breakable, HealthStats, Renderable, Strength, SufferDamage, Fishable, FishAction, WaitingForFish, FishOnTheLine,
+        Blocking, BreakAction, Breakable, HealthStats, Renderable, Strength, SufferDamage, Fishable, FishAction, WaitingForFish, FishOnTheLine, DeleteCondition, FinishedActivity,
     },
     draw_sprites::debug_rocks,
-    player::Player, map::WorldTile, time::DeltaTime,
+    player::Player, map::WorldTile, time::DeltaTime, tile_animation::TileAnimationBuilder,
 };
 
 // Size of the terminal window
@@ -40,7 +43,7 @@ pub const CL_INTERACTABLES: usize = 1; // Used for the few or so moving items/en
 
 pub struct State {
     ecs: World,
-    player_state: PlayerState,
+    _player_state: PlayerState,
 }
 
 /// Defines the player's state for the game
@@ -52,8 +55,8 @@ pub enum PlayerState {
 }
 
 impl State {
-    fn run_systems(&mut self, ctx: &mut BTerm) {
-        // Indexing systems, NOTE: probably dont have to run every frame
+    fn run_systems(&mut self, _ctx: &mut BTerm) {
+        // Indexing systems
         let mut indexreset = IndexReset;
         indexreset.run_now(&self.ecs);
         let mut indexblocking = IndexBlockedTiles;
@@ -74,6 +77,13 @@ impl State {
         mining_sys.run_now(&self.ecs);
         let mut damage_sys = DamageSystem;
         damage_sys.run_now(&self.ecs);
+
+        // Request based system run as late as possible in the loop
+        let mut tile_anim_spawner = TileAnimationSpawner {world: &self.ecs};
+        tile_anim_spawner.run_now(&self.ecs);
+
+        let mut activity_finish_system = ActivityFinishSystem;
+        activity_finish_system.run_now(&self.ecs);
 
         let mut remove_dead_tiles = RemoveDeadTiles;
         remove_dead_tiles.run_now(&self.ecs);
@@ -100,7 +110,7 @@ fn main() -> BError {
     bracket_terminal::link_resource!(CHAR_FONT, "resources/terminal8x8.png");
     bracket_terminal::link_resource!(TERRAIN_FOREST, "resources/terrain_forest.png");
 
-    // Setup Terminal (incl Window, Input)
+    // Setup Terminal (incl Window, Input, Font Loading)
     let context = BTermBuilder::new()
         .with_title("Tile RPG")
         .with_fps_cap(60.0)
@@ -115,6 +125,7 @@ fn main() -> BError {
 
     // Setup ECS
     let mut world = World::new();
+    // Component Registration, the ECS needs to have every type of component registered
     world.register::<Position>();
     world.register::<Player>();
     world.register::<Renderable>();
@@ -128,12 +139,15 @@ fn main() -> BError {
     world.register::<FishAction>();
     world.register::<WaitingForFish>();
     world.register::<FishOnTheLine>();
+    world.register::<DeleteCondition>();
+    world.register::<FinishedActivity>();
 
+    // Resource Initialization, the ECS needs a basic definition of every resource
     world.insert(DeltaTime(Duration::ZERO));
+    world.insert(TileAnimationBuilder::new());
 
     // A very plain map
     let mut map = Map::new(DISPLAY_WIDTH as usize, DISPLAY_HEIGHT as usize);
-
     let water_idx = map.xy_to_idx(10, 15);
     map.tiles[water_idx] = WorldTile { atlas_index: 80 };
     world.create_entity()
@@ -141,6 +155,7 @@ fn main() -> BError {
         .with(Fishable)
         .with(Blocking)
         .build();
+
     world.insert(map);
 
     world
@@ -154,6 +169,6 @@ fn main() -> BError {
 
     debug_rocks(&mut world);
 
-    let game_state: State = State { ecs: world, player_state: PlayerState::WaitingForInput };
+    let game_state: State = State { ecs: world, _player_state: PlayerState::WaitingForInput };
     main_loop(context, game_state)
 }

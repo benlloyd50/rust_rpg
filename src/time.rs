@@ -3,6 +3,7 @@ use std::time::Duration;
 use bracket_terminal::prelude::BTerm;
 use specs::{World, WorldExt};
 
+/// The time since the last frame
 #[derive(Default)]
 pub struct DeltaTime(pub Duration);
 

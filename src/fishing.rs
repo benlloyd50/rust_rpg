@@ -1,8 +1,9 @@
 use std::time::Duration;
 
-use specs::{System, WriteStorage, Entities, Join, Read};
+use bracket_terminal::prelude::{BLACK, WHITE};
+use specs::{System, WriteStorage, Entities, Join, Read, Write, World, WorldExt};
 use bracket_random::prelude::*;
-use crate::{components::{FishAction, Position, WaitingForFish, FishOnTheLine}, time::DeltaTime};
+use crate::{components::{FishAction, WaitingForFish, FishOnTheLine, DeleteCondition, FinishedActivity}, time::DeltaTime, tile_animation::TileAnimationBuilder};
 
 
 pub struct SetupFishingActions;
@@ -11,15 +12,15 @@ impl<'a> System<'a> for SetupFishingActions {
     type SystemData = (
         Entities<'a>,
         WriteStorage<'a, FishAction>,
-        WriteStorage<'a, Position>,
         WriteStorage<'a, WaitingForFish>,
+        Write<'a, TileAnimationBuilder>,
         );
 
-    fn run(&mut self, (entities, mut fishactions, positions, mut fish_waiters): Self::SystemData) {
-        for (e, _fish_action, _pos) in (&entities, &mut fishactions, &positions).join() {
+    fn run(&mut self, (entities, mut fish_actions, mut fish_waiters, mut anim_builder): Self::SystemData) {
+        for (e, fish_action) in (&entities, &mut fish_actions).join() {
             let mut rng = RandomNumberGenerator::new();
-            // TODO: Create request for a tile animation 
-
+            anim_builder.request(112, fish_action.target.x, fish_action.target.y, WHITE.into(), BLACK.into(), DeleteCondition::Event(e));
+            
             let attempts = rng.range(2, 6); // this could be affected by a fishing skill level?
             match fish_waiters.insert(e, WaitingForFish::new(attempts)) {
                 Ok(fishy) => {
@@ -34,7 +35,7 @@ impl<'a> System<'a> for SetupFishingActions {
             }
         }
 
-        fishactions.clear();  // All fish actions in the current frame should be dealt with
+        fish_actions.clear();  // All fish actions in the current frame should be dealt with, so long gay browsa
     }
 }
 
@@ -46,10 +47,11 @@ impl <'a> System<'a> for WaitingForFishSystem {
         Entities<'a>,
         WriteStorage<'a, WaitingForFish>,
         WriteStorage<'a, FishOnTheLine>,
+        WriteStorage<'a, FinishedActivity>,
         Read<'a, DeltaTime>,
         );
 
-    fn run(&mut self, (entities, mut waiters, mut fishing_lines, dt): Self::SystemData) {
+    fn run(&mut self, (entities, mut waiters, mut fishing_lines, mut finished_activities, dt): Self::SystemData) {
         let mut rng = RandomNumberGenerator::new();
         let mut finished_fishers = Vec::new();
 
@@ -92,6 +94,7 @@ impl <'a> System<'a> for WaitingForFishSystem {
 
         for finished in finished_fishers.iter() {
             waiters.remove(*finished);
+            let _ = finished_activities.insert(*finished, FinishedActivity::Fishing);
         }
     }
 }
@@ -102,12 +105,14 @@ impl<'a> System<'a> for CatchFishSystem {
     type SystemData = (
         Entities<'a>,
         WriteStorage<'a, FishOnTheLine>,
+        WriteStorage<'a, FinishedActivity>,
         );
 
-    fn run(&mut self, (entities, mut hooks): Self::SystemData) {
+    fn run(&mut self, (entities, mut hooks, mut finished_activities): Self::SystemData) {
         let mut remove_mes = Vec::new();
         for (e, _) in (&entities, &hooks).join() {
             remove_mes.push(e);
+            let _ = finished_activities.insert(e, FinishedActivity::Fishing);
         }
         for me in remove_mes.iter() {
             println!("entity {} caught a really big fish!", me.id());
