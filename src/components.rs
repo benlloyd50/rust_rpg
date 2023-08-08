@@ -139,13 +139,11 @@ pub struct SufferDamage {
 #[derive(Component, Clone, Copy)]
 #[storage(VecStorage)]
 pub enum DeleteCondition {
-    Timed(Duration),  // Condition is based on deleting after a specificed amount of time
-    Event(Entity),    // Condition is based on when the entity finishes their activity
+    _Timed(Duration),          // Condition is based on deleting after a specificed amount of time
+    ActivityFinish(Entity),    // Condition is based on when the entity finishes their activity
 }
 
 /// Used to signal to other systems that an entity finished their activity
-#[derive(Component)]
-#[storage(VecStorage)]
-pub enum FinishedActivity { 
-    Fishing, 
-}
+#[derive(Component, Default)]
+#[storage(NullStorage)]
+pub struct FinishedActivity;

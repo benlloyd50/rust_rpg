@@ -1,7 +1,7 @@
 use bracket_terminal::prelude::{ColorPair, RGB};
-use specs::{System, Write, WriteStorage, Entities, World};
+use specs::{System, Write, WriteStorage, Entities, World, ReadStorage, Join};
 
-use crate::components::{Position, Renderable, DeleteCondition};
+use crate::components::{Position, Renderable, DeleteCondition, FinishedActivity};
 
 
 #[derive(Default)]
@@ -50,5 +50,28 @@ impl<'a> System<'a> for TileAnimationSpawner<'a> {
         }
 
         anim_builder.requests.clear();  // Clear all requests since we just cleared them ^
+    }
+}
+
+pub struct TileAnimationCleanUpSystem;
+
+impl<'a> System<'a> for TileAnimationCleanUpSystem {
+    type SystemData = (
+        Entities<'a>,
+        ReadStorage<'a, FinishedActivity>,
+        ReadStorage<'a, DeleteCondition>,
+        );
+
+    fn run(&mut self, (entities, finished_activities, delete_conditions): Self::SystemData) {
+        for (e, condition) in (&entities, &delete_conditions).join() {
+            match condition {
+                DeleteCondition::ActivityFinish(spawner) => {
+                    if finished_activities.contains(*spawner) {
+                        let _ = entities.delete(e);
+                    }
+                }
+                DeleteCondition::_Timed(_) => {}
+            }
+        }
     }
 }

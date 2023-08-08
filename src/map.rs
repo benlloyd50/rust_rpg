@@ -4,8 +4,8 @@ use specs::{Entity, World};
 pub struct Map {
     pub tiles: Vec<WorldTile>,
     pub tile_entities: Vec<Vec<TileEntity>>,
-    width: usize,
-    height: usize,
+    pub width: usize,
+    pub height: usize,
 }
 
 #[derive(Clone)]

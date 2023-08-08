@@ -1,7 +1,7 @@
 use crate::{
-    components::{BreakAction, FishAction},
+    components::{BreakAction, FishAction, FinishedActivity},
     map::{Map, TileEntity},
-    Position, State, DISPLAY_HEIGHT, DISPLAY_WIDTH,
+    Position, State, AppState,
 };
 use bracket_terminal::prelude::{BTerm, Point, VirtualKeyCode};
 use specs::{prelude::*, Component};
@@ -12,26 +12,30 @@ use std::process::exit;
 pub struct Player;
 
 pub enum PlayerResponse {
-    StateChange,
+    StateChange(AppState),
     TurnAdvance,
     Waiting,
 }
 
-pub fn manage_player_input(state: &mut State, ctx: &BTerm) {
+pub fn manage_player_input(state: &mut State, ctx: &BTerm) -> PlayerResponse {
     match ctx.key {
-        None => {}
-        Some(key) => match key {
-            VirtualKeyCode::W | VirtualKeyCode::Up => try_move_player(0, -1, &mut state.ecs),
-            VirtualKeyCode::S | VirtualKeyCode::Down => try_move_player(0, 1, &mut state.ecs),
-            VirtualKeyCode::A | VirtualKeyCode::Left => try_move_player(-1, 0, &mut state.ecs),
-            VirtualKeyCode::D | VirtualKeyCode::Right => try_move_player(1, 0, &mut state.ecs),
-            VirtualKeyCode::Escape => exit(0),
-            _ => {}
+        None => {
+            PlayerResponse::Waiting
+        }
+        Some(key) => {
+            match key {
+                VirtualKeyCode::W | VirtualKeyCode::Up => try_move_player(0, -1, &mut state.ecs),
+                VirtualKeyCode::S | VirtualKeyCode::Down => try_move_player(0, 1, &mut state.ecs),
+                VirtualKeyCode::A | VirtualKeyCode::Left => try_move_player(-1, 0, &mut state.ecs),
+                VirtualKeyCode::D | VirtualKeyCode::Right => try_move_player(1, 0, &mut state.ecs),
+                VirtualKeyCode::Escape => exit(0),
+                _ => { PlayerResponse::Waiting } // Unbound keypress so just ignore it
+            }
         },
     }
 }
 
-fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
+fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) -> PlayerResponse { 
     let mut positions = ecs.write_storage::<Position>();
     let players = ecs.read_storage::<Player>();
     let map = ecs.fetch::<Map>();
@@ -45,10 +49,10 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
         // check target_pos is in map bounds
         if target_pos.x < 0
             || target_pos.y < 0
-            || target_pos.x >= DISPLAY_WIDTH as i32
-            || target_pos.y >= DISPLAY_HEIGHT as i32
+            || target_pos.x >= map.width as i32
+            || target_pos.y >= map.height as i32
         {
-            return;
+            return PlayerResponse::Waiting;
         }
 
         let target_idx = map.xy_to_idx(target_pos.x as usize, target_pos.y as usize);
@@ -56,7 +60,7 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
         if map.tile_entities[target_idx].is_empty() {
                 pos.x = target_pos.x as usize;
                 pos.y = target_pos.y as usize;
-                return;
+                return PlayerResponse::TurnAdvance;
         } 
 
         // if there is entities handle it according to highest priority
@@ -67,12 +71,14 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
         match target_entities[0] {
             TileEntity::Blocking => {
                 println!("Map is blocked at {}, {}", target_pos.x, target_pos.y);
+                return PlayerResponse::Waiting;
             }
             TileEntity::Fishable(_entity) => {
                 println!("Attempting to fish at {}, {}", target_pos.x, target_pos.y);
                 fish_actions 
                     .insert(player_entity, FishAction { target: target_pos.into()})
                     .expect("Fish action could not be added to player entity");
+                return PlayerResponse::StateChange(AppState::ActivityBound);
             }
             TileEntity::Breakable(entity) => {
                 println!(
@@ -84,7 +90,23 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
                 break_actions
                     .insert(player_entity, BreakAction { target: entity })
                     .expect("Break action could not be added to player entity");
+                return PlayerResponse::TurnAdvance;
             }
         }
     }
+
+    PlayerResponse::Waiting
+}
+
+/// Checks if the main player entity has a FinishedActivity component on it so we can return to
+/// InGame state. Will not work nicely if we have multiple player entities, which we shouldn't ever
+pub fn check_player_activity(ecs: &mut World) -> bool {
+    let players = ecs.read_storage::<Player>();
+    let mut finished_activities = ecs.write_storage::<FinishedActivity>();
+
+    for _ in (&players, &mut finished_activities).join() {
+        return true;
+    }
+
+    false
 }

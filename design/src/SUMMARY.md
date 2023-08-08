@@ -9,6 +9,7 @@
     - [Objective](./objective.md)
     - [Challenges](./challenges.md)
         - [Map, Tiles, Entities](./maptileentities.md)
+        - [Tile Animations](./tileanims.md)
 - [Features](./features.md)
     - [Skills](./skills.md)
         - [Fishing](./fishing.md)

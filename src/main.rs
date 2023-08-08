@@ -1,6 +1,5 @@
 use std::time::Duration;
 
-use activity_finishing::ActivityFinishSystem;
 use bracket_terminal::prelude::*;
 use draw_sprites::draw_all_layers;
 use mining::{DamageSystem, RemoveDeadTiles, TileDestructionSystem};
@@ -11,9 +10,9 @@ mod mining;
 mod player;
 mod indexing;
 mod tile_animation;
+use tile_animation::TileAnimationCleanUpSystem;
 mod time;
-mod activity_finishing;
-use player::manage_player_input;
+use player::{manage_player_input, PlayerResponse, check_player_activity};
 mod map;
 use map::Map;
 mod components;
@@ -43,19 +42,16 @@ pub const CL_INTERACTABLES: usize = 1; // Used for the few or so moving items/en
 
 pub struct State {
     ecs: World,
-    _player_state: PlayerState,
-}
-
-/// Defines the player's state for the game
-pub enum PlayerState {
-    InMenu,
-    WaitingForInput,
-    RespondingToInput,
-    ActivityBound, // can only perform a specific acitivity that is currently happening
 }
 
 impl State {
-    fn run_systems(&mut self, _ctx: &mut BTerm) {
+    fn run_response_systems(&mut self) {
+        // println!("Response Systems are now running.");
+        // println!("Response Systems are now finished.");
+    }
+
+    fn run_continuous_systems(&mut self, _ctx: &mut BTerm) {
+        // println!("Continuous Systems are now running.");
         // Indexing systems
         let mut indexreset = IndexReset;
         indexreset.run_now(&self.ecs);
@@ -82,22 +78,76 @@ impl State {
         let mut tile_anim_spawner = TileAnimationSpawner {world: &self.ecs};
         tile_anim_spawner.run_now(&self.ecs);
 
-        let mut activity_finish_system = ActivityFinishSystem;
-        activity_finish_system.run_now(&self.ecs);
+        let mut tile_anim_cleanup_system = TileAnimationCleanUpSystem;
+        tile_anim_cleanup_system.run_now(&self.ecs);
 
         let mut remove_dead_tiles = RemoveDeadTiles;
         remove_dead_tiles.run_now(&self.ecs);
 
-        self.ecs.maintain();
+        // println!("Continuous Systems are now finished.");
     }
+
+    /// Systems that need to be ran after most other systems are finished EOF - end of frame
+    fn run_eof_systems(&mut self) {
+        self.ecs.write_storage::<FinishedActivity>().clear();
+    }
+}
+
+
+/// Defines the app's state for the game
+#[derive(Clone, Copy)]
+pub enum AppState {
+    InMenu,
+    InGame,
+    ActivityBound, // can only perform a specific acitivity that is currently happening
 }
 
 impl GameState for State {
     fn tick(&mut self, ctx: &mut BTerm) {
-        manage_player_input(self, ctx);
-        self.run_systems(ctx);
-        delta_time_update(&mut self.ecs, ctx);
+        let mut new_state: AppState;
+        {  // this is in a new scope because we need to mutate self (the ecs) later in the fn
+            let current_state = self.ecs.fetch::<AppState>();
+            new_state = *current_state;
+        }
+
+        match new_state {
+            AppState::InMenu => {
+                todo!("player input will control the menu, when menus are implemented")
+            }
+            AppState::InGame => {
+                // if we have to run something before player put it here >>>
+                match manage_player_input(self, ctx) {
+                    PlayerResponse::Waiting => {
+                        // Player hasn't done anything yet so only run essential systems
+                    }
+                    PlayerResponse::TurnAdvance => {
+                        self.run_response_systems();
+                    }
+                    PlayerResponse::StateChange(delta_state) => {
+                        new_state = delta_state;
+                    }
+                }
+                self.run_continuous_systems(ctx);
+                self.run_eof_systems();
+                delta_time_update(&mut self.ecs, ctx);
+            }
+            AppState::ActivityBound => { 
+                self.run_continuous_systems(ctx);
+                if check_player_activity(&mut self.ecs) {
+                    new_state = AppState::InGame;
+                }
+                self.run_response_systems();
+                self.run_eof_systems();
+                delta_time_update(&mut self.ecs, ctx);
+            }
+        }
+
+        self.ecs.maintain();
         draw_all_layers(&self.ecs, ctx);
+
+        // Insert the state resource to overwrite it's existing and update the state of the app
+        let mut state_writer = self.ecs.write_resource::<AppState>();
+        *state_writer = new_state;
     }
 }
 
@@ -142,9 +192,10 @@ fn main() -> BError {
     world.register::<DeleteCondition>();
     world.register::<FinishedActivity>();
 
-    // Resource Initialization, the ECS needs a basic definition of every resource
+    // Resource Initialization, the ECS needs a basic definition of every resource that will be in the game
     world.insert(DeltaTime(Duration::ZERO));
     world.insert(TileAnimationBuilder::new());
+    world.insert(AppState::InGame);
 
     // A very plain map
     let mut map = Map::new(DISPLAY_WIDTH as usize, DISPLAY_HEIGHT as usize);
@@ -169,6 +220,6 @@ fn main() -> BError {
 
     debug_rocks(&mut world);
 
-    let game_state: State = State { ecs: world, _player_state: PlayerState::WaitingForInput };
+    let game_state: State = State { ecs: world };
     main_loop(context, game_state)
 }

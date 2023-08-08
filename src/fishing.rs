@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use bracket_terminal::prelude::{BLACK, WHITE};
-use specs::{System, WriteStorage, Entities, Join, Read, Write, World, WorldExt};
+use specs::{System, WriteStorage, Entities, Join, Read, Write};
 use bracket_random::prelude::*;
 use crate::{components::{FishAction, WaitingForFish, FishOnTheLine, DeleteCondition, FinishedActivity}, time::DeltaTime, tile_animation::TileAnimationBuilder};
 
@@ -19,7 +19,7 @@ impl<'a> System<'a> for SetupFishingActions {
     fn run(&mut self, (entities, mut fish_actions, mut fish_waiters, mut anim_builder): Self::SystemData) {
         for (e, fish_action) in (&entities, &mut fish_actions).join() {
             let mut rng = RandomNumberGenerator::new();
-            anim_builder.request(112, fish_action.target.x, fish_action.target.y, WHITE.into(), BLACK.into(), DeleteCondition::Event(e));
+            anim_builder.request(112, fish_action.target.x, fish_action.target.y, WHITE.into(), BLACK.into(), DeleteCondition::ActivityFinish(e));
             
             let attempts = rng.range(2, 6); // this could be affected by a fishing skill level?
             match fish_waiters.insert(e, WaitingForFish::new(attempts)) {
@@ -94,7 +94,7 @@ impl <'a> System<'a> for WaitingForFishSystem {
 
         for finished in finished_fishers.iter() {
             waiters.remove(*finished);
-            let _ = finished_activities.insert(*finished, FinishedActivity::Fishing);
+            let _ = finished_activities.insert(*finished, FinishedActivity);
         }
     }
 }
@@ -112,12 +112,11 @@ impl<'a> System<'a> for CatchFishSystem {
         let mut remove_mes = Vec::new();
         for (e, _) in (&entities, &hooks).join() {
             remove_mes.push(e);
-            let _ = finished_activities.insert(e, FinishedActivity::Fishing);
+            let _ = finished_activities.insert(e, FinishedActivity);
         }
         for me in remove_mes.iter() {
             println!("entity {} caught a really big fish!", me.id());
             hooks.remove(*me);
         }
-        //clean up tile anim
     }
 }
