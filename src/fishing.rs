@@ -1,10 +1,13 @@
 use std::time::Duration;
 
-use bracket_terminal::prelude::{BLACK, WHITE};
-use specs::{System, WriteStorage, Entities, Join, Read, Write};
+use crate::{
+    components::{DeleteCondition, FinishedActivity, FishAction, FishOnTheLine, WaitingForFish},
+    tile_animation::TileAnimationBuilder,
+    time::DeltaTime,
+};
 use bracket_random::prelude::*;
-use crate::{components::{FishAction, WaitingForFish, FishOnTheLine, DeleteCondition, FinishedActivity}, time::DeltaTime, tile_animation::TileAnimationBuilder};
-
+use bracket_terminal::prelude::{BLACK, WHITE};
+use specs::{Entities, Join, Read, System, Write, WriteStorage};
 
 pub struct SetupFishingActions;
 
@@ -14,13 +17,23 @@ impl<'a> System<'a> for SetupFishingActions {
         WriteStorage<'a, FishAction>,
         WriteStorage<'a, WaitingForFish>,
         Write<'a, TileAnimationBuilder>,
-        );
+    );
 
-    fn run(&mut self, (entities, mut fish_actions, mut fish_waiters, mut anim_builder): Self::SystemData) {
+    fn run(
+        &mut self,
+        (entities, mut fish_actions, mut fish_waiters, mut anim_builder): Self::SystemData,
+    ) {
         for (e, fish_action) in (&entities, &mut fish_actions).join() {
             let mut rng = RandomNumberGenerator::new();
-            anim_builder.request(112, fish_action.target.x, fish_action.target.y, WHITE.into(), BLACK.into(), DeleteCondition::ActivityFinish(e));
-            
+            anim_builder.request(
+                112,
+                fish_action.target.x,
+                fish_action.target.y,
+                WHITE.into(),
+                BLACK.into(),
+                DeleteCondition::ActivityFinish(e),
+            );
+
             let attempts = rng.range(2, 6); // this could be affected by a fishing skill level?
             match fish_waiters.insert(e, WaitingForFish::new(attempts)) {
                 Ok(fishy) => {
@@ -35,23 +48,26 @@ impl<'a> System<'a> for SetupFishingActions {
             }
         }
 
-        fish_actions.clear();  // All fish actions in the current frame should be dealt with, so long gay browsa
+        fish_actions.clear(); // All fish actions in the current frame should be dealt with, so long gay browsa
     }
 }
 
-pub struct WaitingForFishSystem; 
+pub struct WaitingForFishSystem;
 const FISH_DELAY_TIME: Duration = Duration::new(1, 0);
 
-impl <'a> System<'a> for WaitingForFishSystem {
+impl<'a> System<'a> for WaitingForFishSystem {
     type SystemData = (
         Entities<'a>,
         WriteStorage<'a, WaitingForFish>,
         WriteStorage<'a, FishOnTheLine>,
         WriteStorage<'a, FinishedActivity>,
         Read<'a, DeltaTime>,
-        );
+    );
 
-    fn run(&mut self, (entities, mut waiters, mut fishing_lines, mut finished_activities, dt): Self::SystemData) {
+    fn run(
+        &mut self,
+        (entities, mut waiters, mut fishing_lines, mut finished_activities, dt): Self::SystemData,
+    ) {
         let mut rng = RandomNumberGenerator::new();
         let mut finished_fishers = Vec::new();
 
@@ -66,7 +82,7 @@ impl <'a> System<'a> for WaitingForFishSystem {
             waiter.time_since_last_attempt += dt.0;
             if waiter.time_since_last_attempt <= FISH_DELAY_TIME {
                 continue;
-            } 
+            }
             waiter.time_since_last_attempt = Duration::ZERO;
             waiter.attempts -= 1;
 
@@ -75,22 +91,29 @@ impl <'a> System<'a> for WaitingForFishSystem {
 
             if roll > 80 {
                 finished_fishers.push(e);
-                println!("you caught a fish wow with {} attempts remaining", waiter.attempts);
+                println!(
+                    "you caught a fish wow with {} attempts remaining",
+                    waiter.attempts
+                );
 
                 // To prevent a fisher who is already catching from potentially catching again without waiting properly
                 if fishing_lines.contains(e) {
                     println!("ERROR: entity {} already had a fish on their line, cannot add a second fish ABORTING fish", e.id());
-                    fishing_lines.remove(e); 
+                    fishing_lines.remove(e);
                     continue;
                 }
                 match fishing_lines.insert(e, FishOnTheLine) {
                     Ok(_) => {}
                     Err(err) => {
-                        println!("ERROR: entity: {} failed to add fish on the line: {}", e.id(), err);
+                        println!(
+                            "ERROR: entity: {} failed to add fish on the line: {}",
+                            e.id(),
+                            err
+                        );
                     }
                 }
-            } 
-        } 
+            }
+        }
 
         for finished in finished_fishers.iter() {
             waiters.remove(*finished);
@@ -106,7 +129,7 @@ impl<'a> System<'a> for CatchFishSystem {
         Entities<'a>,
         WriteStorage<'a, FishOnTheLine>,
         WriteStorage<'a, FinishedActivity>,
-        );
+    );
 
     fn run(&mut self, (entities, mut hooks, mut finished_activities): Self::SystemData) {
         let mut remove_mes = Vec::new();

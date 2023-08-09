@@ -60,7 +60,7 @@ pub struct Fishable;
 #[derive(Component)]
 #[storage(VecStorage)]
 pub struct FishAction {
-    pub target: Position,  // mainly just for finding where the fishing rod will be spawned
+    pub target: Position, // mainly just for finding where the fishing rod will be spawned
 }
 
 #[derive(Component)]
@@ -158,8 +158,8 @@ pub struct SufferDamage {
 #[derive(Component, Clone, Copy)]
 #[storage(VecStorage)]
 pub enum DeleteCondition {
-    _Timed(Duration),          // Condition is based on deleting after a specificed amount of time
-    ActivityFinish(Entity),    // Condition is based on when the entity finishes their activity
+    _Timed(Duration), // Condition is based on deleting after a specificed amount of time
+    ActivityFinish(Entity), // Condition is based on when the entity finishes their activity
 }
 
 /// Used to signal to other systems that an entity finished their activity

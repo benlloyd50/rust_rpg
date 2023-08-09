@@ -1,23 +1,35 @@
 use bracket_terminal::prelude::{ColorPair, RGB};
-use specs::{System, Write, WriteStorage, Entities, World, ReadStorage, Join};
+use specs::{Entities, Join, ReadStorage, System, World, Write, WriteStorage};
 
-use crate::components::{Position, Renderable, DeleteCondition, FinishedActivity};
-
+use crate::components::{DeleteCondition, FinishedActivity, Position, Renderable};
 
 #[derive(Default)]
 pub struct TileAnimationBuilder {
-    requests: Vec<TileAnimationRequest>
+    requests: Vec<TileAnimationRequest>,
 }
 
 impl TileAnimationBuilder {
     pub fn new() -> Self {
         Self {
-            requests: Vec::new()
+            requests: Vec::new(),
         }
     }
 
-    pub fn request(&mut self, atlas_index: usize, x: usize, y: usize, fg: RGB, bg: RGB, delete_condition: DeleteCondition) {
-        self.requests.push(TileAnimationRequest { atlas_index , at: Position::new(x, y), fgbg: ColorPair::new(fg, bg), delete_condition });
+    pub fn request(
+        &mut self,
+        atlas_index: usize,
+        x: usize,
+        y: usize,
+        fg: RGB,
+        bg: RGB,
+        delete_condition: DeleteCondition,
+    ) {
+        self.requests.push(TileAnimationRequest {
+            atlas_index,
+            at: Position::new(x, y),
+            fgbg: ColorPair::new(fg, bg),
+            delete_condition,
+        });
     }
 }
 
@@ -39,17 +51,32 @@ impl<'a> System<'a> for TileAnimationSpawner<'a> {
         WriteStorage<'a, Position>,
         WriteStorage<'a, Renderable>,
         WriteStorage<'a, DeleteCondition>,
-        );
+    );
 
-    fn run(&mut self, (entities, mut anim_builder, mut positions, mut renderables, mut delete_conditions): Self::SystemData) {
-        for TileAnimationRequest { atlas_index, at, fgbg, delete_condition } in anim_builder.requests.iter() {
+    fn run(
+        &mut self,
+        (entities, mut anim_builder, mut positions, mut renderables, mut delete_conditions): Self::SystemData,
+    ) {
+        for TileAnimationRequest {
+            atlas_index,
+            at,
+            fgbg,
+            delete_condition,
+        } in anim_builder.requests.iter()
+        {
             let new_anim = entities.create();
             let _ = positions.insert(new_anim, *at);
-            let _ = renderables.insert(new_anim, Renderable { color_pair: *fgbg, atlas_index: *atlas_index });
+            let _ = renderables.insert(
+                new_anim,
+                Renderable {
+                    color_pair: *fgbg,
+                    atlas_index: *atlas_index,
+                },
+            );
             let _ = delete_conditions.insert(new_anim, *delete_condition);
         }
 
-        anim_builder.requests.clear();  // Clear all requests since we just cleared them ^
+        anim_builder.requests.clear(); // Clear all requests since we just cleared them ^
     }
 }
 
@@ -60,7 +87,7 @@ impl<'a> System<'a> for TileAnimationCleanUpSystem {
         Entities<'a>,
         ReadStorage<'a, FinishedActivity>,
         ReadStorage<'a, DeleteCondition>,
-        );
+    );
 
     fn run(&mut self, (entities, finished_activities, delete_conditions): Self::SystemData) {
         for (e, condition) in (&entities, &delete_conditions).join() {

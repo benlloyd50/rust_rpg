@@ -11,7 +11,6 @@ pub struct Map {
 #[derive(Clone)]
 pub struct WorldTile {
     pub atlas_index: usize,
-
 }
 
 /// Defines the type of entity existing in a tile for quick lookup and action handling

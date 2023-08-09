@@ -21,18 +21,6 @@ pub fn draw_sprites(ecs: &World, draw_batch: &mut DrawBatch) {
     }
 }
 
-pub fn draw_ui_layers(ecs: &World, ctx: &mut BTerm) {
-    let mut draw_batch = DrawBatch::new();
-    draw_batch.target(CL_TEXT).cls().print_color_with_z(
-        Point::new(1, 2),
-        &format!("FPS: {}", ctx.fps),
-        ColorPair::new(PINK, BLACK),
-        1000,
-    );
-    draw_batch.submit(CL_TEXT).expect("Batch error??");
-    render_draw_buffer(ctx).expect("Render error??");
-}
-
 /// Draws the CL_INTERACTABLES and CL_WORLD sprites to the screen
 pub fn draw_sprite_layers(ecs: &World, ctx: &mut BTerm) {
     let mut draw_batch = DrawBatch::new();

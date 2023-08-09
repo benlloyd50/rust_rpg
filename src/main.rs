@@ -1,36 +1,43 @@
 use std::time::Duration;
 
 use bracket_terminal::prelude::*;
-use draw_sprites::{draw_sprite_layers, draw_ui_layers};
+use draw_sprites::draw_sprite_layers;
 use mining::{DamageSystem, RemoveDeadTiles, TileDestructionSystem};
-use monster::{RandomMonsterMovementSystem, check_monster_delay};
+use monster::{check_monster_delay, RandomMonsterMovementSystem};
 use specs::prelude::*;
 
-mod monster;
 mod draw_sprites;
-mod mining;
-mod player;
 mod indexing;
+mod mining;
+mod monster;
+mod player;
 mod tile_animation;
+mod user_interface;
 use tile_animation::TileAnimationCleanUpSystem;
 mod time;
-use player::{manage_player_input, PlayerResponse, check_player_activity};
+use player::{check_player_activity, manage_player_input, PlayerResponse};
 mod map;
 use map::Map;
 mod components;
 use components::Position;
 mod fishing;
-use fishing::{SetupFishingActions, WaitingForFishSystem, CatchFishSystem};
-use indexing::{IndexBlockedTiles, IndexBreakableTiles, IndexReset, IndexFishableTiles};
+use fishing::{CatchFishSystem, SetupFishingActions, WaitingForFishSystem};
+use indexing::{IndexBlockedTiles, IndexBreakableTiles, IndexFishableTiles, IndexReset};
 use tile_animation::TileAnimationSpawner;
 use time::delta_time_update;
+use user_interface::draw_ui_layers;
 
 use crate::{
     components::{
-        Blocking, BreakAction, Breakable, HealthStats, Renderable, Strength, SufferDamage, Fishable, FishAction, WaitingForFish, FishOnTheLine, DeleteCondition, FinishedActivity, Name, Monster, RandomWalkerAI,
+        Blocking, BreakAction, Breakable, DeleteCondition, FinishedActivity, FishAction,
+        FishOnTheLine, Fishable, HealthStats, Monster, Name, RandomWalkerAI, Renderable, Strength,
+        SufferDamage, WaitingForFish,
     },
     draw_sprites::debug_rocks,
-    player::Player, map::WorldTile, time::DeltaTime, tile_animation::TileAnimationBuilder,
+    map::WorldTile,
+    player::Player,
+    tile_animation::TileAnimationBuilder,
+    time::DeltaTime,
 };
 
 // Size of the terminal window
@@ -79,7 +86,7 @@ impl State {
         damage_sys.run_now(&self.ecs);
 
         // Request based system run as late as possible in the loop
-        let mut tile_anim_spawner = TileAnimationSpawner {world: &self.ecs};
+        let mut tile_anim_spawner = TileAnimationSpawner { world: &self.ecs };
         tile_anim_spawner.run_now(&self.ecs);
 
         let mut tile_anim_cleanup_system = TileAnimationCleanUpSystem;
@@ -97,7 +104,6 @@ impl State {
     }
 }
 
-
 /// Defines the app's state for the game
 #[derive(Clone, Copy)]
 pub enum AppState {
@@ -109,14 +115,17 @@ pub enum AppState {
 impl AppState {
     /// Creates the enum variant ActivityBound with zero duration
     pub fn activity_bound() -> Self {
-        Self::ActivityBound { response_delay: Duration::ZERO }
+        Self::ActivityBound {
+            response_delay: Duration::ZERO,
+        }
     }
 }
 
 impl GameState for State {
     fn tick(&mut self, ctx: &mut BTerm) {
         let mut new_state: AppState;
-        {  // this is in a new scope because we need to mutate self (the ecs) later in the fn
+        {
+            // this is in a new scope because we need to mutate self (the ecs) later in the fn
             let current_state = self.ecs.fetch::<AppState>();
             new_state = *current_state;
         }
@@ -142,13 +151,12 @@ impl GameState for State {
                 self.run_eof_systems();
                 delta_time_update(&mut self.ecs, ctx);
             }
-            AppState::ActivityBound{ mut response_delay } => { 
+            AppState::ActivityBound { mut response_delay } => {
                 // if the player finishes we run final systems and change state
                 self.run_continuous_systems(ctx);
                 new_state = if check_player_activity(&mut self.ecs) {
                     AppState::InGame
-                }
-                else if check_monster_delay(&self.ecs, &mut response_delay) {
+                } else if check_monster_delay(&self.ecs, &mut response_delay) {
                     // if the monster delay timer is past its due then monsters do their thing
                     self.run_response_systems();
                     AppState::activity_bound()
@@ -162,7 +170,7 @@ impl GameState for State {
         }
 
         self.ecs.maintain();
-        draw_ui_layers(&self.ecs, ctx);
+        draw_ui_layers(ctx);
         draw_sprite_layers(&self.ecs, ctx);
 
         // Insert the state resource to overwrite it's existing and update the state of the app
@@ -224,7 +232,8 @@ fn main() -> BError {
     let mut map = Map::new(DISPLAY_WIDTH as usize, DISPLAY_HEIGHT as usize);
     let water_idx = map.xy_to_idx(10, 15);
     map.tiles[water_idx] = WorldTile { atlas_index: 80 };
-    world.create_entity()
+    world
+        .create_entity()
         .with(Position::new(10, 15))
         .with(Fishable)
         .with(Blocking)

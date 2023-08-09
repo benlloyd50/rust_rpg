@@ -3,9 +3,12 @@
  *   needed.
  * */
 
-use specs::{Join, System, WriteExpect, ReadStorage, Entities};
+use specs::{Entities, Join, ReadStorage, System, WriteExpect};
 
-use crate::{components::{Fishable, Position, Breakable, Blocking}, map::{Map, TileEntity}};
+use crate::{
+    components::{Blocking, Breakable, Fishable, Position},
+    map::{Map, TileEntity},
+};
 
 /// Clears the entity contents of every tile in the map
 pub struct IndexReset;
@@ -72,4 +75,3 @@ impl<'a> System<'a> for IndexFishableTiles {
         }
     }
 }
-
