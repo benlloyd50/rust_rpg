@@ -83,6 +83,25 @@ impl WaitingForFish {
 #[storage(NullStorage)]
 pub struct FishOnTheLine;
 
+#[derive(Component)]
+#[storage(VecStorage)]
+pub struct Name(pub String);
+
+impl Name {
+    pub fn new(t: impl ToString) -> Self {
+        Self(t.to_string())
+    }
+}
+
+#[derive(Component, Default)]
+#[storage(NullStorage)]
+pub struct Monster;
+
+/// Makes the entity walk around in a random cardinal direction
+#[derive(Component, Default)]
+#[storage(NullStorage)]
+pub struct RandomWalkerAI;
+
 #[derive(Debug, Component)]
 #[storage(VecStorage)]
 #[allow(dead_code)]

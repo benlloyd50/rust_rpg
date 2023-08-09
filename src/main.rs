@@ -1,10 +1,12 @@
 use std::time::Duration;
 
 use bracket_terminal::prelude::*;
-use draw_sprites::draw_all_layers;
+use draw_sprites::{draw_sprite_layers, draw_ui_layers};
 use mining::{DamageSystem, RemoveDeadTiles, TileDestructionSystem};
+use monster::{RandomMonsterMovementSystem, check_monster_delay};
 use specs::prelude::*;
 
+mod monster;
 mod draw_sprites;
 mod mining;
 mod player;
@@ -25,7 +27,7 @@ use time::delta_time_update;
 
 use crate::{
     components::{
-        Blocking, BreakAction, Breakable, HealthStats, Renderable, Strength, SufferDamage, Fishable, FishAction, WaitingForFish, FishOnTheLine, DeleteCondition, FinishedActivity,
+        Blocking, BreakAction, Breakable, HealthStats, Renderable, Strength, SufferDamage, Fishable, FishAction, WaitingForFish, FishOnTheLine, DeleteCondition, FinishedActivity, Name, Monster, RandomWalkerAI,
     },
     draw_sprites::debug_rocks,
     player::Player, map::WorldTile, time::DeltaTime, tile_animation::TileAnimationBuilder,
@@ -47,6 +49,8 @@ pub struct State {
 impl State {
     fn run_response_systems(&mut self) {
         // println!("Response Systems are now running.");
+        let mut randomwalker = RandomMonsterMovementSystem;
+        randomwalker.run_now(&self.ecs);
         // println!("Response Systems are now finished.");
     }
 
@@ -99,7 +103,14 @@ impl State {
 pub enum AppState {
     InMenu,
     InGame,
-    ActivityBound, // can only perform a specific acitivity that is currently happening
+    ActivityBound { response_delay: Duration }, // can only perform a specific acitivity that is currently happening
+}
+
+impl AppState {
+    /// Creates the enum variant ActivityBound with zero duration
+    pub fn activity_bound() -> Self {
+        Self::ActivityBound { response_delay: Duration::ZERO }
+    }
 }
 
 impl GameState for State {
@@ -131,19 +142,28 @@ impl GameState for State {
                 self.run_eof_systems();
                 delta_time_update(&mut self.ecs, ctx);
             }
-            AppState::ActivityBound => { 
+            AppState::ActivityBound{ mut response_delay } => { 
+                // if the player finishes we run final systems and change state
                 self.run_continuous_systems(ctx);
-                if check_player_activity(&mut self.ecs) {
-                    new_state = AppState::InGame;
+                new_state = if check_player_activity(&mut self.ecs) {
+                    AppState::InGame
                 }
-                self.run_response_systems();
+                else if check_monster_delay(&self.ecs, &mut response_delay) {
+                    // if the monster delay timer is past its due then monsters do their thing
+                    self.run_response_systems();
+                    AppState::activity_bound()
+                } else {
+                    AppState::ActivityBound { response_delay }
+                };
+
                 self.run_eof_systems();
                 delta_time_update(&mut self.ecs, ctx);
             }
         }
 
         self.ecs.maintain();
-        draw_all_layers(&self.ecs, ctx);
+        draw_ui_layers(&self.ecs, ctx);
+        draw_sprite_layers(&self.ecs, ctx);
 
         // Insert the state resource to overwrite it's existing and update the state of the app
         let mut state_writer = self.ecs.write_resource::<AppState>();
@@ -191,6 +211,9 @@ fn main() -> BError {
     world.register::<FishOnTheLine>();
     world.register::<DeleteCondition>();
     world.register::<FinishedActivity>();
+    world.register::<Name>();
+    world.register::<Monster>();
+    world.register::<RandomWalkerAI>();
 
     // Resource Initialization, the ECS needs a basic definition of every resource that will be in the game
     world.insert(DeltaTime(Duration::ZERO));
@@ -212,9 +235,19 @@ fn main() -> BError {
     world
         .create_entity()
         .with(Position::new(17, 20))
-        .with(Player {})
+        .with(Player)
         .with(Strength { amt: 1 })
         .with(Renderable::new(ColorPair::new(WHITE, BLACK), 2))
+        .with(Blocking)
+        .build();
+
+    world
+        .create_entity()
+        .with(Position::new(5, 15))
+        .with(Monster)
+        .with(Name::new("Bahhhby"))
+        .with(RandomWalkerAI)
+        .with(Renderable::new(ColorPair::new(WHITE, BLACK), 16))
         .with(Blocking)
         .build();
 
