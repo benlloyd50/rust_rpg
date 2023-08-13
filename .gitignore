@@ -7,3 +7,5 @@ interface_tiles.*
 .vscode
 
 book/
+
+*.ldtk
