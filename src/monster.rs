@@ -1,10 +1,11 @@
 use std::time::Duration;
 
 use bracket_random::prelude::RandomNumberGenerator;
-use specs::{Join, ReadStorage, System, World, WorldExt, WriteStorage};
+use specs::{Join, ReadStorage, System, World, WorldExt, WriteExpect, WriteStorage};
 
 use crate::{
     components::{Monster, Name, Position, RandomWalkerAI},
+    message_log::MessageLog,
     time::DeltaTime,
 };
 
@@ -18,9 +19,10 @@ impl<'a> System<'a> for RandomMonsterMovementSystem {
         ReadStorage<'a, Monster>,
         ReadStorage<'a, Name>,
         ReadStorage<'a, RandomWalkerAI>,
+        WriteExpect<'a, MessageLog>,
     );
 
-    fn run(&mut self, (mut positions, mons, names, randwalks): Self::SystemData) {
+    fn run(&mut self, (mut positions, mons, names, randwalks, mut log): Self::SystemData) {
         let mut rng = RandomNumberGenerator::new();
         for (pos, _, name, _) in (&mut positions, &mons, &names, &randwalks).join() {
             match rng.range(0, 5) {
@@ -37,7 +39,7 @@ impl<'a> System<'a> for RandomMonsterMovementSystem {
                     pos.x = pos.x.saturating_sub(1);
                 }
                 4 => {
-                    println!("{} eats some grass from the ground.", name.0);
+                    log.enhance(format!("{} eats some grass from the ground.", name.0));
                 }
                 _ => unreachable!("the range is [0, 3]"),
             }
@@ -51,7 +53,6 @@ const MONSTER_ACTION_DELAY: Duration = Duration::from_secs(1);
 pub fn check_monster_delay(ecs: &World, monster_delay: &mut Duration) -> bool {
     let delta_time = ecs.read_resource::<DeltaTime>();
     *monster_delay = monster_delay.checked_add(delta_time.0).unwrap();
-    println!("monster delay is {:?}", monster_delay);
 
     if *monster_delay >= MONSTER_ACTION_DELAY {
         true

@@ -2,12 +2,13 @@ use std::time::Duration;
 
 use crate::{
     components::{DeleteCondition, FinishedActivity, FishAction, FishOnTheLine, WaitingForFish},
+    message_log::MessageLog,
     tile_animation::TileAnimationBuilder,
     time::DeltaTime,
 };
 use bracket_random::prelude::*;
 use bracket_terminal::prelude::{BLACK, WHITE};
-use specs::{Entities, Join, Read, System, Write, WriteStorage};
+use specs::{Entities, Join, Read, System, Write, WriteExpect, WriteStorage};
 
 pub struct SetupFishingActions;
 
@@ -38,11 +39,12 @@ impl<'a> System<'a> for SetupFishingActions {
             match fish_waiters.insert(e, WaitingForFish::new(attempts)) {
                 Ok(fishy) => {
                     if let Some(_) = fishy {
-                        println!("INFO: entity: {} was already waiting for fish, they should not have performed the action again", e.id());
+                        // TODO: Add these to the message_log
+                        // println!("INFO: entity: {} was already waiting for fish, they should not have performed the action again", e.id());
                     }
                 }
                 Err(..) => {
-                    println!("Failed to start fishing for entity: {}", e.id());
+                    // println!("Failed to start fishing for entity: {}", e.id());
                     continue;
                 }
             }
@@ -62,11 +64,12 @@ impl<'a> System<'a> for WaitingForFishSystem {
         WriteStorage<'a, FishOnTheLine>,
         WriteStorage<'a, FinishedActivity>,
         Read<'a, DeltaTime>,
+        WriteExpect<'a, MessageLog>,
     );
 
     fn run(
         &mut self,
-        (entities, mut waiters, mut fishing_lines, mut finished_activities, dt): Self::SystemData,
+        (entities, mut waiters, mut fishing_lines, mut finished_activities, dt, mut log): Self::SystemData,
     ) {
         let mut rng = RandomNumberGenerator::new();
         let mut finished_fishers = Vec::new();
@@ -74,7 +77,10 @@ impl<'a> System<'a> for WaitingForFishSystem {
         for (e, waiter) in (&entities, &mut waiters).join() {
             if waiter.attempts == 0 {
                 finished_fishers.push(e);
-                println!("entity: {} ran out of attempts to catch a fish", e.id());
+                log.enhance(format!(
+                    "entity: {} ran out of attempts to catch a fish",
+                    e.id()
+                ));
                 continue;
             }
 
@@ -87,29 +93,32 @@ impl<'a> System<'a> for WaitingForFishSystem {
             waiter.attempts -= 1;
 
             let roll = rng.range(1, 100);
-            println!("Attempts left: {} | Rolled: {} ", waiter.attempts, roll);
+            log.enhance(format!(
+                "Attempts left: {} | Rolled: {} ",
+                waiter.attempts, roll
+            ));
 
             if roll > 80 {
                 finished_fishers.push(e);
-                println!(
+                log.log(format!(
                     "you caught a fish wow with {} attempts remaining",
                     waiter.attempts
-                );
+                ));
 
                 // To prevent a fisher who is already catching from potentially catching again without waiting properly
                 if fishing_lines.contains(e) {
-                    println!("ERROR: entity {} already had a fish on their line, cannot add a second fish ABORTING fish", e.id());
+                    log.debug(format!("ERROR: entity {} already had a fish on their line, cannot add a second fish ABORTING fish", e.id()));
                     fishing_lines.remove(e);
                     continue;
                 }
                 match fishing_lines.insert(e, FishOnTheLine) {
                     Ok(_) => {}
                     Err(err) => {
-                        println!(
+                        log.debug(format!(
                             "ERROR: entity: {} failed to add fish on the line: {}",
                             e.id(),
                             err
-                        );
+                        ));
                     }
                 }
             }
@@ -138,7 +147,8 @@ impl<'a> System<'a> for CatchFishSystem {
             let _ = finished_activities.insert(e, FinishedActivity);
         }
         for me in remove_mes.iter() {
-            println!("entity {} caught a really big fish!", me.id());
+            // TODO: convert to log
+            // println!("entity {} caught a really big fish!", me.id());
             hooks.remove(*me);
         }
     }

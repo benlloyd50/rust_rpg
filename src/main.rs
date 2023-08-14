@@ -2,12 +2,14 @@ use std::time::Duration;
 
 use bracket_terminal::prelude::*;
 use draw_sprites::draw_sprite_layers;
+use ldtk_map::prelude::*;
 use mining::{DamageSystem, RemoveDeadTiles, TileDestructionSystem};
 use monster::{check_monster_delay, RandomMonsterMovementSystem};
 use specs::prelude::*;
 
 mod draw_sprites;
 mod indexing;
+mod message_log;
 mod mining;
 mod monster;
 mod player;
@@ -25,7 +27,7 @@ use fishing::{CatchFishSystem, SetupFishingActions, WaitingForFishSystem};
 use indexing::{IndexBlockedTiles, IndexBreakableTiles, IndexFishableTiles, IndexReset};
 use tile_animation::TileAnimationSpawner;
 use time::delta_time_update;
-use user_interface::draw_ui_layers;
+use user_interface::draw_ui;
 
 use crate::{
     components::{
@@ -35,14 +37,15 @@ use crate::{
     },
     draw_sprites::debug_rocks,
     map::WorldTile,
+    message_log::MessageLog,
     player::Player,
     tile_animation::TileAnimationBuilder,
     time::DeltaTime,
 };
 
 // Size of the terminal window
-pub const DISPLAY_WIDTH: u32 = 40;
-pub const DISPLAY_HEIGHT: u32 = 30;
+pub const DISPLAY_WIDTH: usize = 40;
+pub const DISPLAY_HEIGHT: usize = 30;
 
 // CL - Console layer, represents the indices for each console
 pub const CL_TEXT: usize = 2; // Used for UI
@@ -170,7 +173,7 @@ impl GameState for State {
         }
 
         self.ecs.maintain();
-        draw_ui_layers(ctx);
+        draw_ui(&self.ecs, ctx);
         draw_sprite_layers(&self.ecs, ctx);
 
         // Insert the state resource to overwrite it's existing and update the state of the app
@@ -195,11 +198,13 @@ fn main() -> BError {
         .with_font("terminal8x8.png", 8u32, 8u32)
         .with_font("interactable_tiles.png", 8u32, 8u32)
         .with_font("terrain_forest.png", 8u32, 8u32)
-        .with_dimensions(DISPLAY_WIDTH * 3, DISPLAY_HEIGHT * 3)
+        .with_dimensions(DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2)
         .with_simple_console(DISPLAY_WIDTH, DISPLAY_HEIGHT, "terrain_forest.png")
         .with_fancy_console(DISPLAY_WIDTH, DISPLAY_HEIGHT, "interactable_tiles.png")
-        .with_simple_console_no_bg(DISPLAY_WIDTH, DISPLAY_HEIGHT, "terminal8x8.png")
+        .with_sparse_console(DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2, "terminal8x8.png")
         .build()?;
+
+    register_palette_color("pink", RGB::named(MAGENTA));
 
     // Setup ECS
     let mut world = World::new();
@@ -227,9 +232,10 @@ fn main() -> BError {
     world.insert(DeltaTime(Duration::ZERO));
     world.insert(TileAnimationBuilder::new());
     world.insert(AppState::InGame);
+    world.insert(MessageLog::new());
 
     // A very plain map
-    let mut map = Map::new(DISPLAY_WIDTH as usize, DISPLAY_HEIGHT as usize);
+    let mut map = Map::new(DISPLAY_WIDTH, DISPLAY_HEIGHT - 3);
     let water_idx = map.xy_to_idx(10, 15);
     map.tiles[water_idx] = WorldTile { atlas_index: 80 };
     world

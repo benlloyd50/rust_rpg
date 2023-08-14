@@ -10,3 +10,5 @@ bracket-terminal = "0.8.7"
 bracket-rex = "0.8.7"
 bracket-random = "0.8.7"
 specs = {version = "0.19.0", features = ["specs-derive"] }
+serde = {version = "1.0", features = ["derive"] }
+ldtk_map = { path = "../ldtk_map" }
