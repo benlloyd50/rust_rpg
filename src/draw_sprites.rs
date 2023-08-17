@@ -1,10 +1,10 @@
-use bracket_terminal::prelude::{render_draw_buffer, BTerm, ColorPair, DrawBatch, Point, *};
+use bracket_terminal::prelude::{render_draw_buffer, BTerm, DrawBatch, Point, *};
 use specs::{Builder, Join, World, WorldExt};
 
 use crate::{
     components::{Breakable, HealthStats, Renderable, ToolType},
     map::render_map,
-    Position, CL_INTERACTABLES, CL_TEXT, CL_WORLD,
+    Position, CL_INTERACTABLES, CL_WORLD,
 };
 
 pub fn draw_sprites(ecs: &World, draw_batch: &mut DrawBatch) {
@@ -55,7 +55,8 @@ pub fn debug_rocks(world: &mut World) {
             .create_entity()
             .with(Position { x: 13 + i, y: 10 })
             .with(Renderable::new(
-                ColorPair::new(*COLORS[i], BLACK),
+                *COLORS[i],
+                BLACK.into(),
                 xy_to_idx(1, 4, 16),
             ))
             .with(Breakable::new(ToolType::Hand))

@@ -11,9 +11,9 @@ pub struct Renderable {
 }
 
 impl Renderable {
-    pub fn new(color_pair: ColorPair, atlas_index: usize) -> Self {
+    pub fn new(fg: (u8, u8, u8), bg: (u8, u8, u8), atlas_index: usize) -> Self {
         Self {
-            color_pair,
+            color_pair: ColorPair::new(fg, bg),
             atlas_index,
         }
     }

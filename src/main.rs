@@ -2,12 +2,13 @@ use std::time::Duration;
 
 use bracket_terminal::prelude::*;
 use draw_sprites::draw_sprite_layers;
-use ldtk_map::prelude::*;
+use game_init::initialize_game_world;
 use mining::{DamageSystem, RemoveDeadTiles, TileDestructionSystem};
 use monster::{check_monster_delay, RandomMonsterMovementSystem};
 use specs::prelude::*;
 
 mod draw_sprites;
+mod game_init;
 mod indexing;
 mod message_log;
 mod mining;
@@ -27,7 +28,7 @@ use fishing::{CatchFishSystem, SetupFishingActions, WaitingForFishSystem};
 use indexing::{IndexBlockedTiles, IndexBreakableTiles, IndexFishableTiles, IndexReset};
 use tile_animation::TileAnimationSpawner;
 use time::delta_time_update;
-use user_interface::draw_ui;
+use user_interface::{draw_ui, initialize_layout, layout_ui_components, UICreationRequests};
 
 use crate::{
     components::{
@@ -35,17 +36,17 @@ use crate::{
         FishOnTheLine, Fishable, HealthStats, Monster, Name, RandomWalkerAI, Renderable, Strength,
         SufferDamage, WaitingForFish,
     },
-    draw_sprites::debug_rocks,
-    map::WorldTile,
     message_log::MessageLog,
     player::Player,
     tile_animation::TileAnimationBuilder,
     time::DeltaTime,
+    user_interface::UILayout,
 };
 
 // Size of the terminal window
 pub const DISPLAY_WIDTH: usize = 40;
 pub const DISPLAY_HEIGHT: usize = 30;
+// Double for size of ui since it's scaled down
 
 // CL - Console layer, represents the indices for each console
 pub const CL_TEXT: usize = 2; // Used for UI
@@ -113,6 +114,7 @@ pub enum AppState {
     InMenu,
     InGame,
     ActivityBound { response_delay: Duration }, // can only perform a specific acitivity that is currently happening
+    GameStartup,
 }
 
 impl AppState {
@@ -134,6 +136,12 @@ impl GameState for State {
         }
 
         match new_state {
+            AppState::GameStartup => {
+                initialize_game_world(&mut self.ecs);
+                let mut ui_requests = self.ecs.fetch_mut::<UICreationRequests>();
+                initialize_layout(&mut ui_requests);
+                new_state = AppState::InGame;
+            }
             AppState::InMenu => {
                 todo!("player input will control the menu, when menus are implemented")
             }
@@ -173,6 +181,7 @@ impl GameState for State {
         }
 
         self.ecs.maintain();
+        layout_ui_components(&self.ecs);
         draw_ui(&self.ecs, ctx);
         draw_sprite_layers(&self.ecs, ctx);
 
@@ -185,11 +194,13 @@ impl GameState for State {
 bracket_terminal::embedded_resource!(TILE_FONT, "../resources/interactable_tiles.png");
 bracket_terminal::embedded_resource!(CHAR_FONT, "../resources/terminal8x8.png");
 bracket_terminal::embedded_resource!(TERRAIN_FOREST, "../resources/terrain_forest.png");
+bracket_terminal::embedded_resource!(MAP_BAR, "../resources/rex/map_bar.xp");
 
 fn main() -> BError {
     bracket_terminal::link_resource!(TILE_FONT, "resources/interactable_tiles.png");
     bracket_terminal::link_resource!(CHAR_FONT, "resources/terminal8x8.png");
     bracket_terminal::link_resource!(TERRAIN_FOREST, "resources/terrain_forest.png");
+    bracket_terminal::link_resource!(MAP_BAR, "../resources/rex/map_bar.xp");
 
     // Setup Terminal (incl Window, Input, Font Loading)
     let context = BTermBuilder::new()
@@ -198,13 +209,17 @@ fn main() -> BError {
         .with_font("terminal8x8.png", 8u32, 8u32)
         .with_font("interactable_tiles.png", 8u32, 8u32)
         .with_font("terrain_forest.png", 8u32, 8u32)
-        .with_dimensions(DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2)
+        // TODO: turn this into a setting
+        // Tiny    Small     Medium    Large       Huge
+        // 4, 3 = 40, 30 = 80, 60 = 160, 120 = 320, 240
+        .with_dimensions(160, 120)
         .with_simple_console(DISPLAY_WIDTH, DISPLAY_HEIGHT, "terrain_forest.png")
         .with_fancy_console(DISPLAY_WIDTH, DISPLAY_HEIGHT, "interactable_tiles.png")
-        .with_sparse_console(DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2, "terminal8x8.png")
+        .with_simple_console_no_bg(DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2, "terminal8x8.png")
         .build()?;
 
     register_palette_color("pink", RGB::named(MAGENTA));
+    register_palette_color("blue", RGB::named(BLUE3));
 
     // Setup ECS
     let mut world = World::new();
@@ -231,42 +246,11 @@ fn main() -> BError {
     // Resource Initialization, the ECS needs a basic definition of every resource that will be in the game
     world.insert(DeltaTime(Duration::ZERO));
     world.insert(TileAnimationBuilder::new());
-    world.insert(AppState::InGame);
+    world.insert(AppState::GameStartup);
     world.insert(MessageLog::new());
-
-    // A very plain map
-    let mut map = Map::new(DISPLAY_WIDTH, DISPLAY_HEIGHT - 3);
-    let water_idx = map.xy_to_idx(10, 15);
-    map.tiles[water_idx] = WorldTile { atlas_index: 80 };
-    world
-        .create_entity()
-        .with(Position::new(10, 15))
-        .with(Fishable)
-        .with(Blocking)
-        .build();
-
-    world.insert(map);
-
-    world
-        .create_entity()
-        .with(Position::new(17, 20))
-        .with(Player)
-        .with(Strength { amt: 1 })
-        .with(Renderable::new(ColorPair::new(WHITE, BLACK), 2))
-        .with(Blocking)
-        .build();
-
-    world
-        .create_entity()
-        .with(Position::new(5, 15))
-        .with(Monster)
-        .with(Name::new("Bahhhby"))
-        .with(RandomWalkerAI)
-        .with(Renderable::new(ColorPair::new(WHITE, BLACK), 16))
-        .with(Blocking)
-        .build();
-
-    debug_rocks(&mut world);
+    world.insert(Map::empty());
+    world.insert(UICreationRequests::default());
+    world.insert(UILayout::new(DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2));
 
     let game_state: State = State { ecs: world };
     main_loop(context, game_state)

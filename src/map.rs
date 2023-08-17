@@ -30,6 +30,15 @@ impl WorldTile {
 }
 
 impl Map {
+    pub fn empty() -> Self {
+        Self {
+            tiles: vec![],
+            tile_entities: vec![],
+            width: 0,
+            height: 0,
+        }
+    }
+
     pub fn new(width: usize, height: usize) -> Self {
         Map {
             tiles: vec![WorldTile::default(); width * height],
