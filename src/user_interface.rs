@@ -5,7 +5,7 @@ use bracket_rex::prelude::*;
 use bracket_terminal::{prelude::{
     render_draw_buffer, BTerm, ColorPair, DrawBatch, Point, TextAlign, BLACK, RGBA,
 }, rex::xp_to_draw_batch};
-use specs::World;
+use specs::{World, System, WriteStorage, WriteExpect};
 
 use crate::CL_TEXT;
 
@@ -257,10 +257,15 @@ impl UIComponentRequest {
 
 pub fn initialize_layout(ui: &mut UICreationRequests) {
     ui.add(UIComponentRequest::fps_counter(0))
-        .add(UIComponentRequest::test_long_word())
-        .add(UIComponentRequest::test_rex_image("map_bar"));
+        // .add(UIComponentRequest::test_long_word())
+        .add(UIComponentRequest::test_rex_image("ui"));
     // .add(String::from("Menu"), UIComponent::nice_box(Point::new(5, 5), (80, 40), "Menu 1", 1, ColorPair::new(WHITE, BLACK)));
 }
 
-// /// For creation of new ui components similar to tile anims
-// struct InterfaceRequest;
+pub fn fps_counter_update(ecs: &World, fps: f32) {
+    let mut ui_requests = ecs.fetch_mut::<UILayout>();
+
+    if let Some(fps_counter) = ui_requests.components.get_mut("FPS") {
+        fps_counter.text = format!("#[pink]FPS: {}", fps);
+    }
+}

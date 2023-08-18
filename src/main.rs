@@ -28,7 +28,7 @@ use fishing::{CatchFishSystem, SetupFishingActions, WaitingForFishSystem};
 use indexing::{IndexBlockedTiles, IndexBreakableTiles, IndexFishableTiles, IndexReset};
 use tile_animation::TileAnimationSpawner;
 use time::delta_time_update;
-use user_interface::{draw_ui, initialize_layout, layout_ui_components, UICreationRequests};
+use user_interface::{draw_ui, initialize_layout, layout_ui_components, UICreationRequests, fps_counter_update};
 
 use crate::{
     components::{
@@ -180,8 +180,10 @@ impl GameState for State {
             }
         }
 
-        self.ecs.maintain();
+        fps_counter_update(&self.ecs, ctx.fps);
         layout_ui_components(&self.ecs);
+        self.ecs.maintain();
+
         draw_ui(&self.ecs, ctx);
         draw_sprite_layers(&self.ecs, ctx);
 
@@ -194,13 +196,13 @@ impl GameState for State {
 bracket_terminal::embedded_resource!(TILE_FONT, "../resources/interactable_tiles.png");
 bracket_terminal::embedded_resource!(CHAR_FONT, "../resources/terminal8x8.png");
 bracket_terminal::embedded_resource!(TERRAIN_FOREST, "../resources/terrain_forest.png");
-bracket_terminal::embedded_resource!(MAP_BAR, "../resources/rex/map_bar.xp");
+bracket_terminal::embedded_resource!(WORLD_UI, "../resources/rex/ui.xp");
 
 fn main() -> BError {
     bracket_terminal::link_resource!(TILE_FONT, "resources/interactable_tiles.png");
     bracket_terminal::link_resource!(CHAR_FONT, "resources/terminal8x8.png");
     bracket_terminal::link_resource!(TERRAIN_FOREST, "resources/terrain_forest.png");
-    bracket_terminal::link_resource!(MAP_BAR, "../resources/rex/map_bar.xp");
+    bracket_terminal::link_resource!(WORLD_UI, "../resources/rex/ui.xp");
 
     // Setup Terminal (incl Window, Input, Font Loading)
     let context = BTermBuilder::new()
