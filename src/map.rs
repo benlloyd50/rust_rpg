@@ -1,6 +1,8 @@
 use bracket_terminal::prelude::{ColorPair, DrawBatch, Point, BLACK, WHITE};
 use specs::{Entity, World};
 
+use crate::camera::get_bounding_box;
+
 pub struct Map {
     pub tiles: Vec<WorldTile>,
     pub tile_entities: Vec<Vec<TileEntity>>,
@@ -57,13 +59,36 @@ impl Map {
 pub fn render_map(ecs: &World, batch: &mut DrawBatch) {
     let map = ecs.fetch::<Map>();
 
-    for x in 0..map.width {
-        for y in 0..map.height {
+    let bounding_box = get_bounding_box(ecs);
+
+    for x in bounding_box.x1..bounding_box.x2 {
+        for y in bounding_box.y1..bounding_box.y2 {
+            let atlas_index = if x < map.width as i32 && y < map.height as i32 && x >= 0 && y >= 0 {
+                map.tiles[map.xy_to_idx(x as usize, y as usize)].atlas_index
+            } else {
+                xy_to_idx_given_width(0, 2, 16)
+            };
+
+            let batch_x = if x > 0 {
+                x + (-bounding_box.x1)
+            } else {
+                x - bounding_box.x1
+            };
+            let batch_y = if y > 0 {
+                y + (-bounding_box.y1)
+            } else {
+                y - bounding_box.y1
+            };
+
             batch.set(
-                Point::new(x, y),
+                Point::new(batch_x, batch_y),
                 ColorPair::new(WHITE, BLACK),
-                map.tiles[map.xy_to_idx(x, y)].atlas_index,
+                atlas_index,
             );
         }
     }
+}
+
+fn xy_to_idx_given_width(x: usize, y: usize, width: usize) -> usize {
+    x + y * width
 }

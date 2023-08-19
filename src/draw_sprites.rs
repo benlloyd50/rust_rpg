@@ -2,6 +2,7 @@ use bracket_terminal::prelude::{render_draw_buffer, BTerm, DrawBatch, Point, *};
 use specs::{Builder, Join, World, WorldExt};
 
 use crate::{
+    camera::get_bounding_box,
     components::{Breakable, HealthStats, Renderable, ToolType},
     map::render_map,
     Position, CL_INTERACTABLES, CL_WORLD,
@@ -11,10 +12,22 @@ pub fn draw_sprites(ecs: &World, draw_batch: &mut DrawBatch) {
     let positions = ecs.read_storage::<Position>();
     let renderables = ecs.read_storage::<Renderable>();
 
+    let bounding_box = get_bounding_box(ecs);
+
     let data = (&positions, &renderables).join().collect::<Vec<_>>();
     for (pos, render) in data.iter() {
+        if !(pos.x as i32 >= bounding_box.x1
+            && bounding_box.x2 > pos.x as i32
+            && pos.y as i32 >= bounding_box.y1
+            && bounding_box.y2 > pos.y as i32)
+        {
+            continue;
+        }
         draw_batch.set(
-            Point::new(pos.x, pos.y),
+            Point::new(
+                pos.x as i32 - bounding_box.x1,
+                pos.y as i32 - bounding_box.y1,
+            ),
             render.color_pair,
             render.atlas_index,
         );

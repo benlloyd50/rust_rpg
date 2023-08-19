@@ -7,6 +7,7 @@ use mining::{DamageSystem, RemoveDeadTiles, TileDestructionSystem};
 use monster::{check_monster_delay, RandomMonsterMovementSystem};
 use specs::prelude::*;
 
+mod camera;
 mod draw_sprites;
 mod game_init;
 mod indexing;
@@ -28,7 +29,9 @@ use fishing::{CatchFishSystem, SetupFishingActions, WaitingForFishSystem};
 use indexing::{IndexBlockedTiles, IndexBreakableTiles, IndexFishableTiles, IndexReset};
 use tile_animation::TileAnimationSpawner;
 use time::delta_time_update;
-use user_interface::{draw_ui, initialize_layout, layout_ui_components, UICreationRequests, fps_counter_update};
+use user_interface::{
+    draw_ui, fps_counter_update, initialize_layout, layout_ui_components, UICreationRequests,
+};
 
 use crate::{
     components::{
@@ -222,6 +225,7 @@ fn main() -> BError {
 
     register_palette_color("pink", RGB::named(MAGENTA));
     register_palette_color("blue", RGB::named(BLUE3));
+    register_palette_color("white", RGB::named(WHITESMOKE));
 
     // Setup ECS
     let mut world = World::new();

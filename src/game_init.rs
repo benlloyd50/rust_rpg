@@ -13,7 +13,7 @@ use crate::{
 
 pub fn initialize_game_world(ecs: &mut World) {
     // A very plain map
-    let mut map = Map::new(DISPLAY_WIDTH, DISPLAY_HEIGHT - 3);
+    let mut map = Map::new(DISPLAY_WIDTH + 22, DISPLAY_HEIGHT + 30);
     let water_idx = map.xy_to_idx(10, 15);
     map.tiles[water_idx] = WorldTile { atlas_index: 80 };
     ecs.create_entity()

@@ -2,10 +2,11 @@ use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 
 use bracket_rex::prelude::*;
-use bracket_terminal::{prelude::{
-    render_draw_buffer, BTerm, ColorPair, DrawBatch, Point, TextAlign, BLACK, RGBA,
-}, rex::xp_to_draw_batch};
-use specs::{World, System, WriteStorage, WriteExpect};
+use bracket_terminal::{
+    prelude::{render_draw_buffer, BTerm, ColorPair, DrawBatch, Point, TextAlign, BLACK, RGBA},
+    rex::xp_to_draw_batch,
+};
+use specs::World;
 
 use crate::CL_TEXT;
 
@@ -125,8 +126,8 @@ impl UIComponent {
     /// Draws the UIComponent onto the batch respective to the `component_type`
     pub fn draw_in_batch(&self, draw_batch: &mut DrawBatch) {
         match &self.component_type {
-            UIComponentType::Label { background } => {
-                draw_batch.printer_with_z(self.absolute_pos, &self.text, TextAlign::Left, *background, self.z_priority);
+            UIComponentType::Label { background, align } => {
+                draw_batch.printer_with_z(self.absolute_pos, &self.text, *align, *background, self.z_priority);
             }
             UIComponentType::RexDrawing { file } => {
                 xp_to_draw_batch(file, draw_batch, 0, 0);
@@ -166,6 +167,7 @@ impl UICreationRequests {
 /// Defines the different types of ui elements
 /// `z_priority` is only utilized between ui components not game objects
 #[derive(Clone)]
+#[allow(dead_code)]
 pub enum UIComponentType {
     ProgressBar {
         label_bg: Option<RGBA>,
@@ -182,11 +184,13 @@ pub enum UIComponentType {
         buffer: String,
     },
     Box {
-        size_percent: (usize, usize), // 1 - 100%, (width, height)
+        // The width and height of the box in percent 1 - 100%, (width, height)
+        dimensions_percent: (usize, usize),
         color: ColorPair,
     },
     Label {
         background: Option<RGBA>,
+        align: TextAlign,
     },
     RexDrawing {
         file: XpFile,
@@ -198,7 +202,7 @@ pub enum UIComponentType {
 }
 
 #[derive(Clone)]
-struct Choice {
+pub struct Choice {
     label: String,
     is_active: bool,
 }
@@ -210,11 +214,15 @@ impl UIComponentRequest {
             relative_pos_percent: (90, 2),
             text: format!("#[pink]FPS: {}", fps),
             z_priority: 1,
-            component_type: UIComponentType::Label { background: None },
+            component_type: UIComponentType::Label {
+                background: None,
+                align: TextAlign::Left,
+            },
             parent: None,
         }
     }
 
+    #[allow(dead_code)]
     pub fn test_long_word() -> UIComponentRequest {
         UIComponentRequest {
             identifier: "TestLongWord".to_string(),
@@ -224,6 +232,7 @@ impl UIComponentRequest {
             z_priority: 1,
             component_type: UIComponentType::Label {
                 background: Some(BLACK.into()),
+                align: TextAlign::Left,
             },
             parent: None,
         }
@@ -243,6 +252,20 @@ impl UIComponentRequest {
         }
     }
 
+    pub fn town_name_component(town_name: impl ToString) -> Self {
+        Self {
+            identifier: "Town Name".to_string(),
+            text: format!("#[white]{}#[]", town_name.to_string()),
+            relative_pos_percent: (30, 5),
+            z_priority: 3,
+            parent: None,
+            component_type: UIComponentType::Label {
+                background: Some(BLACK.into()),
+                align: TextAlign::Center,
+            },
+        }
+    }
+
     // pub fn nice_box(origin: Point, size_percent: (usize, usize), label: impl ToString, z_priority: u32, color: ColorPair) -> Self {
     //     UIComponent {
     //         label: label.to_string(),
@@ -258,7 +281,8 @@ impl UIComponentRequest {
 pub fn initialize_layout(ui: &mut UICreationRequests) {
     ui.add(UIComponentRequest::fps_counter(0))
         // .add(UIComponentRequest::test_long_word())
-        .add(UIComponentRequest::test_rex_image("ui"));
+        .add(UIComponentRequest::test_rex_image("ui"))
+        .add(UIComponentRequest::town_name_component("The "));
     // .add(String::from("Menu"), UIComponent::nice_box(Point::new(5, 5), (80, 40), "Menu 1", 1, ColorPair::new(WHITE, BLACK)));
 }
 
