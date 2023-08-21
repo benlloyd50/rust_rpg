@@ -48,8 +48,6 @@ pub fn draw_sprite_layers(ecs: &World, ctx: &mut BTerm) {
     draw_batch.cls();
     render_map(&ecs, &mut draw_batch);
     draw_batch.submit(CL_WORLD).expect("Batch error??");
-
-    render_draw_buffer(ctx).expect("Render error??");
 }
 
 const COLORS: [&'static (u8, u8, u8); 7] = [

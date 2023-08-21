@@ -187,8 +187,9 @@ impl GameState for State {
         layout_ui_components(&self.ecs);
         self.ecs.maintain();
 
-        draw_ui(&self.ecs, ctx);
+        draw_ui(&self.ecs);
         draw_sprite_layers(&self.ecs, ctx);
+        render_draw_buffer(ctx).expect("Render error??");
 
         // Insert the state resource to overwrite it's existing and update the state of the app
         let mut state_writer = self.ecs.write_resource::<AppState>();
@@ -220,7 +221,7 @@ fn main() -> BError {
         .with_dimensions(160, 120)
         .with_simple_console(DISPLAY_WIDTH, DISPLAY_HEIGHT, "terrain_forest.png")
         .with_fancy_console(DISPLAY_WIDTH, DISPLAY_HEIGHT, "interactable_tiles.png")
-        .with_simple_console_no_bg(DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2, "terminal8x8.png")
+        .with_sparse_console(DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2, "terminal8x8.png")
         .build()?;
 
     register_palette_color("pink", RGB::named(MAGENTA));

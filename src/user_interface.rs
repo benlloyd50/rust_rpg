@@ -1,16 +1,13 @@
-use std::collections::hash_map::Entry;
-use std::collections::HashMap;
-
 use bracket_rex::prelude::*;
 use bracket_terminal::{
-    prelude::{render_draw_buffer, BTerm, ColorPair, DrawBatch, Point, TextAlign, BLACK, RGBA},
+    prelude::{ColorPair, DrawBatch, Point, TextAlign, BLACK, RGBA},
     rex::xp_to_draw_batch,
 };
 use specs::World;
 
-use crate::CL_TEXT;
+use crate::{CL_TEXT, DISPLAY_WIDTH};
 
-pub fn draw_ui(ecs: &World, ctx: &mut BTerm) {
+pub fn draw_ui(ecs: &World) {
     let ui_layout = ecs.fetch::<UILayout>();
     let mut draw_batch = DrawBatch::new();
     draw_batch.target(CL_TEXT).cls();
@@ -18,11 +15,10 @@ pub fn draw_ui(ecs: &World, ctx: &mut BTerm) {
     render_ui(&ui_layout, &mut draw_batch);
 
     draw_batch.submit(CL_TEXT).expect("Batch error??");
-    render_draw_buffer(ctx).expect("Render error??");
 }
 
 fn render_ui(layout: &UILayout, batch: &mut DrawBatch) {
-    for element in layout.components.values() {
+    for element in layout.components.iter() {
         if !element.is_visible {
             continue;
         }
@@ -36,87 +32,75 @@ pub fn layout_ui_components(ecs: &World) {
     let mut layout = ecs.fetch_mut::<UILayout>();
 
     for request in ui_requests.requests.iter() {
-        let mut parent_pos = Point::new(0, 0);
+        println!("Init {:?}: pos: {:?}", request.identifier, request.position);
 
-        if let Some(parent) = &request.parent {
-            parent_pos = layout.components[parent].absolute_pos;
-            match layout.components.entry(parent.to_string()) {
-                Entry::Occupied(mut o) => {
-                    o.get_mut().children.push(request.identifier.clone());
-                }
-                Entry::Vacant(_) => {
-                    panic!(
-                        "Can not create child: {} because parent: {} does not exsit!",
-                        request.identifier, parent
-                    )
-                }
-            }
-        }
-
-        parent_pos = calc_absolute_point(&parent_pos, &request, &layout);
-
-        layout.components.insert(
-            request.identifier.clone(),
+        layout.checked_add(
             UIComponent {
-                absolute_pos: parent_pos,
+                identifier: request.identifier.clone(),
+                absolute_pos: request.position,
                 text: request.text.clone(),
                 z_priority: request.z_priority,
-                children: vec![],
                 is_visible: true,
                 component_type: request.component_type.clone(),
             },
         );
     }
 
-    ui_requests.requests.clear();
-}
-
-fn calc_absolute_point(
-    parent_pos: &Point,
-    request: &UIComponentRequest,
-    layout: &UILayout,
-) -> Point {
-    let absolute_x = parent_pos.x
-        + (request.relative_pos_percent.0 as f32 / 100.0 * layout.c_width as f32).trunc() as i32;
-    let absolute_y = parent_pos.y
-        + (request.relative_pos_percent.1 as f32 / 100.0 * layout.c_height as f32).trunc() as i32;
-
-    if absolute_x < 0
-        || absolute_x > layout.c_width as i32
-        || absolute_y < 0
-        || absolute_y > layout.c_height as i32
-    {
-        panic!(
-            "ERROR: Calculation out of bounds. {} with position {} {}",
-            request.identifier, absolute_x, absolute_y
-        );
+    if ui_requests.requests.len() > 0 {
+        layout.sort();
     }
 
-    Point::new(absolute_x, absolute_y)
+    ui_requests.requests.clear();
 }
 
 #[derive(Default)]
 pub struct UILayout {
-    c_width: usize,
-    c_height: usize,
-    components: HashMap<String, UIComponent>,
+    _c_width: usize,
+    _c_height: usize,
+    /// Components is a weird requirement because it needs two things
+    /// - when i insert a value if one exists with the same name we get rid of it
+    /// - i want to keep the collection sorted so i can iter it when drawing, need to sort only
+    /// after adding new things
+    components: Vec<UIComponent>,
 }
 
 impl UILayout {
     pub fn new(c_width: usize, c_height: usize) -> Self {
         Self {
-            c_width,
-            c_height,
-            components: HashMap::new(),
+            _c_width: c_width,
+            _c_height: c_height,
+            components: Vec::new(),
         }
     }
+
+    fn checked_add(&mut self, component: UIComponent) {
+        if let Some(index) = self.components.binary_search_by(|v| v.identifier.cmp(&component.identifier)).ok() {
+            self.components.remove(index);
+        }
+        self.components.push(component);
+    }
+
+    fn sort(&mut self) {
+        self.components.sort_by(|lhs, rhs| lhs.z_priority.cmp(&rhs.z_priority));
+        println!("First: {:?}", self.components[0].identifier);
+    }
+
+    fn get_mut<'a>(&'a mut self, identifier: &str) -> Option<&'a mut UIComponent> {
+        for component in self.components.iter_mut() {
+            if component.identifier == identifier {
+                return Some(component);
+            }
+        }
+        None
+    }
+
 }
 
 struct UIComponent {
+    identifier: String,
     absolute_pos: Point,
     text: String,
     z_priority: u32,
-    children: Vec<String>,
     is_visible: bool,
     component_type: UIComponentType,
 }
@@ -127,7 +111,7 @@ impl UIComponent {
     pub fn draw_in_batch(&self, draw_batch: &mut DrawBatch) {
         match &self.component_type {
             UIComponentType::Label { background, align } => {
-                draw_batch.printer_with_z(self.absolute_pos, &self.text, *align, *background, self.z_priority);
+                draw_batch.printer(self.absolute_pos, &self.text, *align, *background);
             }
             UIComponentType::RexDrawing { file } => {
                 xp_to_draw_batch(file, draw_batch, 0, 0);
@@ -143,11 +127,9 @@ pub struct UIComponentRequest {
     /// The text that gets printed to the screen
     text: String,
     /// Relative to the screen or parent depending on if this has a parent
-    relative_pos_percent: (usize, usize),
+    position: Point,
     /// Order in which to be drawn
     z_priority: u32,
-    /// The owner of the component for relative screen calculation and teardown
-    parent: Option<String>,
     /// The type of component being drawn
     component_type: UIComponentType,
 }
@@ -201,24 +183,39 @@ pub enum UIComponentType {
     },
 }
 
+#[allow(dead_code)]
 #[derive(Clone)]
 pub struct Choice {
     label: String,
     is_active: bool,
 }
 
+const CLEAR: RGBA = RGBA {r: 0.0, g: 0.0, b: 0.0, a: 0.0};
+
 impl UIComponentRequest {
-    pub fn fps_counter(fps: usize) -> UIComponentRequest {
+    pub fn log_message(contents: String, order: usize) -> UIComponentRequest {
         UIComponentRequest {
-            identifier: "FPS".to_string(),
-            relative_pos_percent: (90, 2),
-            text: format!("#[pink]FPS: {}", fps),
-            z_priority: 1,
+            identifier: format!("log_{}", order),
+            text: format!("#[white]{}: {}#[]", order, contents),
+            position: Point::new(2, 47 + order),
+            z_priority: 3,
             component_type: UIComponentType::Label {
                 background: None,
                 align: TextAlign::Left,
             },
-            parent: None,
+        }
+    }
+
+    pub fn fps_counter(fps: usize) -> UIComponentRequest {
+        UIComponentRequest {
+            identifier: "FPS".to_string(),
+            position: Point::new(DISPLAY_WIDTH * 2 - 8, 2),
+            text: format!("#[pink]FPS: {}", fps),
+            z_priority: 1,
+            component_type: UIComponentType::Label {
+                background: Some(CLEAR),
+                align: TextAlign::Left,
+            },
         }
     }
 
@@ -226,7 +223,7 @@ impl UIComponentRequest {
     pub fn test_long_word() -> UIComponentRequest {
         UIComponentRequest {
             identifier: "TestLongWord".to_string(),
-            relative_pos_percent: (2, 4),
+            position: Point::new(2, 4),
             text: "#[white]This is a really long sentence to test formatting, I love lauren! <3#[]"
                 .to_string(),
             z_priority: 1,
@@ -234,18 +231,16 @@ impl UIComponentRequest {
                 background: Some(BLACK.into()),
                 align: TextAlign::Left,
             },
-            parent: None,
         }
     }
 
     pub fn test_rex_image(image_name: &str) -> UIComponentRequest {
         match XpFile::from_resource(format!("../resources/rex/{}.xp", image_name).as_str()).ok() {
             Some(file) => UIComponentRequest {
-                identifier: "Map Bar".to_string(),
+                identifier: "BaseGameUi".to_string(),
                 text: String::new(),
-                relative_pos_percent: (50, 5),
-                z_priority: 3,
-                parent: None,
+                position: Point::new(50, 5),
+                z_priority: 10,
                 component_type: UIComponentType::RexDrawing { file },
             },
             None => panic!("Error trying to load resource path for xp files"),
@@ -256,40 +251,36 @@ impl UIComponentRequest {
         Self {
             identifier: "Town Name".to_string(),
             text: format!("#[white]{}#[]", town_name.to_string()),
-            relative_pos_percent: (30, 5),
+            position: Point::new(25, 3),
             z_priority: 3,
-            parent: None,
             component_type: UIComponentType::Label {
                 background: Some(BLACK.into()),
                 align: TextAlign::Center,
             },
         }
     }
-
-    // pub fn nice_box(origin: Point, size_percent: (usize, usize), label: impl ToString, z_priority: u32, color: ColorPair) -> Self {
-    //     UIComponent {
-    //         label: label.to_string(),
-    //         z_priority,
-    //         pos: origin,
-    //         children: vec![],
-    //         component_type: UIComponentType::Box { size_percent, color},
-    //     }
-    // }
-    //
 }
 
 pub fn initialize_layout(ui: &mut UICreationRequests) {
     ui.add(UIComponentRequest::fps_counter(0))
-        // .add(UIComponentRequest::test_long_word())
         .add(UIComponentRequest::test_rex_image("ui"))
-        .add(UIComponentRequest::town_name_component("The "));
-    // .add(String::from("Menu"), UIComponent::nice_box(Point::new(5, 5), (80, 40), "Menu 1", 1, ColorPair::new(WHITE, BLACK)));
+        .add(UIComponentRequest::log_message("Hi".to_string(), 1))
+        .add(UIComponentRequest::log_message("Hello".to_string(), 2))
+        .add(UIComponentRequest::log_message("Yo".to_string(), 3))
+        .add(UIComponentRequest::log_message("We're back".to_string(), 4))
+        .add(UIComponentRequest::log_message("Sup".to_string(), 5))
+        .add(UIComponentRequest::log_message("Why is this sentence on the weird line".to_string(), 6))
+        .add(UIComponentRequest::log_message("Sup".to_string(), 7))
+        .add(UIComponentRequest::log_message("The most exciting eureka moment I've had was when I realized.".to_string(), 8))
+        .add(UIComponentRequest::log_message("Sup".to_string(), 9))
+        .add(UIComponentRequest::log_message("Oh wowzers".to_string(), 10))
+        .add(UIComponentRequest::town_name_component("The Forest of Testing"));
 }
 
 pub fn fps_counter_update(ecs: &World, fps: f32) {
     let mut ui_requests = ecs.fetch_mut::<UILayout>();
 
-    if let Some(fps_counter) = ui_requests.components.get_mut("FPS") {
+    if let Some(fps_counter) = ui_requests.get_mut("FPS") {
         fps_counter.text = format!("#[pink]FPS: {}", fps);
     }
 }
