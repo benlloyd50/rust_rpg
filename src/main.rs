@@ -29,9 +29,7 @@ use fishing::{CatchFishSystem, SetupFishingActions, WaitingForFishSystem};
 use indexing::{IndexBlockedTiles, IndexBreakableTiles, IndexFishableTiles, IndexReset};
 use tile_animation::TileAnimationSpawner;
 use time::delta_time_update;
-use user_interface::{
-    draw_ui, fps_counter_update, initialize_layout, layout_ui_components, UICreationRequests,
-};
+use user_interface::draw_ui;
 
 use crate::{
     components::{
@@ -43,7 +41,6 @@ use crate::{
     player::Player,
     tile_animation::TileAnimationBuilder,
     time::DeltaTime,
-    user_interface::UILayout,
 };
 
 // Size of the terminal window
@@ -141,8 +138,6 @@ impl GameState for State {
         match new_state {
             AppState::GameStartup => {
                 initialize_game_world(&mut self.ecs);
-                let mut ui_requests = self.ecs.fetch_mut::<UICreationRequests>();
-                initialize_layout(&mut ui_requests);
                 new_state = AppState::InGame;
             }
             AppState::InMenu => {
@@ -183,8 +178,6 @@ impl GameState for State {
             }
         }
 
-        fps_counter_update(&self.ecs, ctx.fps);
-        layout_ui_components(&self.ecs);
         self.ecs.maintain();
 
         draw_ui(&self.ecs);
@@ -221,7 +214,7 @@ fn main() -> BError {
         .with_dimensions(160, 120)
         .with_simple_console(DISPLAY_WIDTH, DISPLAY_HEIGHT, "terrain_forest.png")
         .with_fancy_console(DISPLAY_WIDTH, DISPLAY_HEIGHT, "interactable_tiles.png")
-        .with_sparse_console(DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2, "terminal8x8.png")
+        .with_fancy_console(DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2, "terminal8x8.png")
         .build()?;
 
     register_palette_color("pink", RGB::named(MAGENTA));
@@ -256,8 +249,6 @@ fn main() -> BError {
     world.insert(AppState::GameStartup);
     world.insert(MessageLog::new());
     world.insert(Map::empty());
-    world.insert(UICreationRequests::default());
-    world.insert(UILayout::new(DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2));
 
     let game_state: State = State { ecs: world };
     main_loop(context, game_state)
