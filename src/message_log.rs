@@ -11,14 +11,10 @@ impl MessageLog {
     pub fn new() -> Self {
         Self {
             messages: vec![Message::new(
-                "Welcome to the world of rust_rpg, and just one".to_string(),
-                MessageType::FLAVOR,
-            )],
+                "Welcome to the world of rust_rpg!".to_string(),
+                MessageType::INFO,
+            ),],
         }
-    }
-
-    pub fn len(&self) -> usize {
-        self.messages.len()
     }
 
     pub fn log(&mut self, contents: impl ToString) {
@@ -44,14 +40,14 @@ impl Default for MessageLog {
 }
 
 pub struct Message {
-    message_type: MessageType,
+    pub kind: MessageType,
     pub contents: String,
 }
 
 impl Message {
     fn new(contents: String, message_type: MessageType) -> Self {
         Self {
-            message_type,
+            kind: message_type,
             contents,
         }
     }
@@ -63,7 +59,7 @@ impl Display for Message {
     }
 }
 
-enum MessageType {
+pub enum MessageType {
     FLAVOR, // conversations, flavor text
     INFO,   // game info ie Fishing attempts remaining
     DEBUG,  // only shown if debug is enabled
