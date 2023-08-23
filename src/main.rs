@@ -181,7 +181,7 @@ impl GameState for State {
         self.ecs.maintain();
 
         draw_ui(&self.ecs);
-        draw_sprite_layers(&self.ecs, ctx);
+        draw_sprite_layers(&self.ecs);
         render_draw_buffer(ctx).expect("Render error??");
 
         // Insert the state resource to overwrite it's existing and update the state of the app

@@ -1,4 +1,4 @@
-use bracket_terminal::prelude::{render_draw_buffer, BTerm, DrawBatch, Point, *};
+use bracket_terminal::prelude::{DrawBatch, Point, *};
 use specs::{Builder, Join, World, WorldExt};
 
 use crate::{
@@ -35,7 +35,7 @@ pub fn draw_sprites(ecs: &World, draw_batch: &mut DrawBatch) {
 }
 
 /// Draws the CL_INTERACTABLES and CL_WORLD sprites to the screen
-pub fn draw_sprite_layers(ecs: &World, ctx: &mut BTerm) {
+pub fn draw_sprite_layers(ecs: &World) {
     let mut draw_batch = DrawBatch::new();
 
     draw_batch.target(CL_INTERACTABLES);

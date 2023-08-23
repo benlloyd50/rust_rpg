@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{fmt::Display, time::Duration};
 
 use bracket_terminal::prelude::{ColorPair, Point};
 use specs::{Component, Entity, NullStorage, VecStorage};
@@ -90,6 +90,12 @@ pub struct Name(pub String);
 impl Name {
     pub fn new(t: impl ToString) -> Self {
         Self(t.to_string())
+    }
+}
+
+impl Display for Name {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 

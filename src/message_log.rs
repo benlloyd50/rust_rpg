@@ -13,7 +13,7 @@ impl MessageLog {
             messages: vec![Message::new(
                 "Welcome to the world of rust_rpg!".to_string(),
                 MessageType::INFO,
-            ),],
+            )],
         }
     }
 

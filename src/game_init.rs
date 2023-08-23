@@ -30,6 +30,7 @@ pub fn initialize_game_world(ecs: &mut World) {
         .with(Strength { amt: 1 })
         .with(Renderable::new(WHITE, BLACK, 2))
         .with(Blocking)
+        .with(Name("Tester".to_string()))
         .build();
 
     ecs.create_entity()
