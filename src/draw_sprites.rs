@@ -3,7 +3,7 @@ use specs::{Builder, Join, World, WorldExt};
 
 use crate::{
     camera::get_bounding_box,
-    components::{Breakable, HealthStats, Renderable, ToolType, DeathDrop},
+    components::{Breakable, DeathDrop, HealthStats, Renderable, ToolType},
     map::render_map,
     Position, CL_INTERACTABLES, CL_WORLD,
 };

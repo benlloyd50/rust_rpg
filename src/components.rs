@@ -125,9 +125,7 @@ pub struct DeathDrop {
 
 impl DeathDrop {
     pub fn new(item_id: usize) -> Self {
-        Self {
-            item_id
-        }
+        Self { item_id }
     }
 }
 

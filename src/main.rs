@@ -9,17 +9,17 @@ use monster::{check_monster_delay, RandomMonsterMovementSystem};
 use specs::prelude::*;
 
 mod camera;
+mod data_read;
 mod draw_sprites;
 mod game_init;
 mod indexing;
+mod items;
 mod message_log;
 mod mining;
 mod monster;
 mod player;
 mod tile_animation;
 mod user_interface;
-mod items;
-mod data_read;
 use tile_animation::TileAnimationCleanUpSystem;
 mod time;
 use player::{check_player_activity, manage_player_input, PlayerResponse};
@@ -36,14 +36,16 @@ use user_interface::draw_ui;
 
 use crate::{
     components::{
-        Blocking, BreakAction, Breakable, DeleteCondition, FinishedActivity, FishAction,
-        FishOnTheLine, Fishable, HealthStats, Monster, Name, RandomWalkerAI, Renderable, Strength,
-        SufferDamage, WaitingForFish, DeathDrop, InBackpack, Item,
+        Blocking, BreakAction, Breakable, DeathDrop, DeleteCondition, FinishedActivity, FishAction,
+        FishOnTheLine, Fishable, HealthStats, InBackpack, Item, Monster, Name, RandomWalkerAI,
+        Renderable, Strength, SufferDamage, WaitingForFish,
     },
+    data_read::initialize_game_databases,
+    items::ItemSpawner,
     message_log::MessageLog,
     player::Player,
     tile_animation::TileAnimationBuilder,
-    time::DeltaTime, items::ItemSpawner, data_read::initialize_game_databases,
+    time::DeltaTime,
 };
 
 // Size of the terminal window

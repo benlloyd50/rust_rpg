@@ -3,7 +3,7 @@ pub use items::ItemID;
 
 use lazy_static::lazy_static;
 use serde_json::from_str;
-use std::{sync::Mutex, fs,};
+use std::{fs, sync::Mutex};
 
 use self::items::ItemDatabase;
 
@@ -31,11 +31,10 @@ impl GameData {
 pub fn initialize_game_databases() {
     let mut game_db = GameData::new();
 
-    let contents: String = fs::read_to_string("raws/items.json").expect("Unable to find items.json at `raws/items.json`");
+    let contents: String = fs::read_to_string("raws/items.json")
+        .expect("Unable to find items.json at `raws/items.json`");
     let items: ItemDatabase = from_str(&contents).expect("Bad JSON in items.json fix it");
     game_db.items = items;
-
-
 
     ENTITY_DB.lock().unwrap().load(game_db);
 }

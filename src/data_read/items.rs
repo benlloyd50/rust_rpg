@@ -1,5 +1,4 @@
-
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
 pub struct ItemDatabase {
@@ -8,11 +7,9 @@ pub struct ItemDatabase {
 
 impl ItemDatabase {
     pub(crate) fn empty() -> Self {
-        Self {
-            data: Vec::new(),
-        }
+        Self { data: Vec::new() }
     }
-    
+
     pub fn get(&self, id: u32) -> Option<&ItemInfo> {
         self.data.iter().find(|i| i.identifier.0 == id)
     }
