@@ -210,8 +210,6 @@ fn main() -> BError {
     bracket_terminal::link_resource!(TERRAIN_FOREST, "resources/terrain_forest.png");
     bracket_terminal::link_resource!(WORLD_UI, "../resources/rex/ui.xp");
 
-    load_simple_ldtk_level();
-
     initialize_game_databases();
 
     // Setup Terminal (incl Window, Input, Font Loading)

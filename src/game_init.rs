@@ -5,10 +5,11 @@ use crate::{
     components::{
         Blocking, Fishable, Monster, Name, Position, RandomWalkerAI, Renderable, Strength,
     },
+    data_read::prelude::load_simple_ldtk_level,
     draw_sprites::debug_rocks,
     map::{Map, WorldTile},
     player::Player,
-    DISPLAY_HEIGHT, DISPLAY_WIDTH, data_read::prelude::load_simple_ldtk_level,
+    DISPLAY_HEIGHT, DISPLAY_WIDTH,
 };
 
 pub fn initialize_game_world(ecs: &mut World) {
@@ -21,7 +22,7 @@ pub fn initialize_game_world(ecs: &mut World) {
     //     .with(Fishable)
     //     .with(Blocking)
     //     .build();
-    let map = load_simple_ldtk_level();
+    let map = load_simple_ldtk_level(ecs);
     ecs.insert(map);
 
     ecs.create_entity()

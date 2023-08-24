@@ -3,6 +3,7 @@
  *   needed.
  * */
 
+use bracket_terminal::prelude::Point;
 use specs::{Entities, Join, ReadStorage, System, WriteExpect};
 
 use crate::{
@@ -35,7 +36,11 @@ impl<'a> System<'a> for IndexBlockedTiles {
     fn run(&mut self, (mut map, pos, blocking): Self::SystemData) {
         for (pos, _) in (&pos, &blocking).join() {
             let idx = map.xy_to_idx(pos.x, pos.y);
-            map.tile_entities[idx].push(TileEntity::Blocking);
+            match map.tile_entities.get_mut(idx) {
+                Some(elem) => { elem.push(TileEntity::Blocking) }
+                None => eprintln!("Idx: {} was out of bounds, Position: {:#?}", idx, pos)
+            }
+            // map.tile_entities[idx].push(TileEntity::Blocking);
         }
     }
 }
@@ -74,4 +79,11 @@ impl<'a> System<'a> for IndexFishableTiles {
             map.tile_entities[idx].push(TileEntity::Fishable(entity));
         }
     }
+}
+
+pub fn idx_to_xy(idx: usize, width: usize) -> Point {
+    let x = idx % width;
+    let y = idx / width;
+
+    Point::new(x, y)
 }

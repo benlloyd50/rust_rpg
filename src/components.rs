@@ -3,6 +3,8 @@ use std::{fmt::Display, time::Duration};
 use bracket_terminal::prelude::{ColorPair, Point};
 use specs::{Component, Entity, NullStorage, VecStorage};
 
+use crate::indexing::idx_to_xy;
+
 #[derive(Debug, Component)]
 #[storage(VecStorage)]
 pub struct Renderable {
@@ -30,6 +32,10 @@ pub struct Position {
 impl Position {
     pub fn new(x: usize, y: usize) -> Self {
         Self { x, y }
+    }
+
+    pub fn from_idx(idx: usize, width: usize) -> Self {
+        idx_to_xy(idx, width).into()
     }
 }
 
