@@ -40,7 +40,6 @@ impl<'a> System<'a> for IndexBlockedTiles {
                 Some(elem) => { elem.push(TileEntity::Blocking) }
                 None => eprintln!("Idx: {} was out of bounds, Position: {:#?}", idx, pos)
             }
-            // map.tile_entities[idx].push(TileEntity::Blocking);
         }
     }
 }
