@@ -8,20 +8,20 @@ use crate::{
     draw_sprites::debug_rocks,
     map::{Map, WorldTile},
     player::Player,
-    DISPLAY_HEIGHT, DISPLAY_WIDTH,
+    DISPLAY_HEIGHT, DISPLAY_WIDTH, data_read::prelude::load_simple_ldtk_level,
 };
 
 pub fn initialize_game_world(ecs: &mut World) {
     // A very plain map
-    let mut map = Map::new(DISPLAY_WIDTH + 22, DISPLAY_HEIGHT + 30);
-    let water_idx = map.xy_to_idx(10, 15);
-    map.tiles[water_idx] = WorldTile { atlas_index: 80 };
-    ecs.create_entity()
-        .with(Position::new(10, 15))
-        .with(Fishable)
-        .with(Blocking)
-        .build();
-
+    // let mut map = Map::new(DISPLAY_WIDTH + 22, DISPLAY_HEIGHT + 30);
+    // let water_idx = map.xy_to_idx(10, 15);
+    // map.tiles[water_idx] = WorldTile { atlas_index: 80 };
+    // ecs.create_entity()
+    //     .with(Position::new(10, 15))
+    //     .with(Fishable)
+    //     .with(Blocking)
+    //     .build();
+    let map = load_simple_ldtk_level();
     ecs.insert(map);
 
     ecs.create_entity()

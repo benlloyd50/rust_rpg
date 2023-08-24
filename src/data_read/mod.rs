@@ -1,5 +1,15 @@
 mod items;
-pub use items::ItemID;
+mod levels;
+
+/// A tight bunch of important data reading stuff such as the databases and json loading
+/// ```rust
+///    use crate::data_read::prelude::*;
+/// ```
+pub mod prelude {
+    pub use crate::data_read::items::ItemID;
+    pub use crate::data_read::levels::load_simple_ldtk_level;
+    pub use crate::data_read::ENTITY_DB;
+}
 
 use lazy_static::lazy_static;
 use serde_json::from_str;

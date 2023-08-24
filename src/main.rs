@@ -1,3 +1,4 @@
+use data_read::prelude::*;
 use std::time::Duration;
 
 use bracket_terminal::prelude::*;
@@ -208,6 +209,8 @@ fn main() -> BError {
     bracket_terminal::link_resource!(CHAR_FONT, "resources/terminal8x8.png");
     bracket_terminal::link_resource!(TERRAIN_FOREST, "resources/terrain_forest.png");
     bracket_terminal::link_resource!(WORLD_UI, "../resources/rex/ui.xp");
+
+    load_simple_ldtk_level();
 
     initialize_game_databases();
 

@@ -10,7 +10,7 @@ use specs::{Entities, System, Write, WriteStorage};
 
 use crate::{
     components::{Item, Name, Position, Renderable},
-    data_read::{ItemID, ENTITY_DB},
+    data_read::prelude::*,
 };
 
 #[derive(Default)]
