@@ -3,7 +3,7 @@ use specs::{Builder, Join, World, WorldExt};
 
 use crate::{
     camera::get_bounding_box,
-    components::{Breakable, HealthStats, Renderable, ToolType},
+    components::{Breakable, HealthStats, Renderable, ToolType, DeathDrop},
     map::render_map,
     Position, CL_INTERACTABLES, CL_WORLD,
 };
@@ -70,6 +70,7 @@ pub fn debug_rocks(world: &mut World) {
                 BLACK.into(),
                 xy_to_idx(1, 4, 16),
             ))
+            .with(DeathDrop::new(0))
             .with(Breakable::new(ToolType::Hand))
             .with(HealthStats::new(2, 0))
             .build();

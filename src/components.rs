@@ -110,11 +110,25 @@ pub struct RandomWalkerAI;
 
 #[derive(Debug, Component)]
 #[storage(VecStorage)]
-#[allow(dead_code)]
 pub struct HealthStats {
     pub hp: u32,
     max_hp: u32,
     pub defense: u32,
+}
+
+/// An item that will be spawned on the associated entity's death
+#[derive(Component)]
+#[storage(VecStorage)]
+pub struct DeathDrop {
+    pub item_id: usize,
+}
+
+impl DeathDrop {
+    pub fn new(item_id: usize) -> Self {
+        Self {
+            item_id
+        }
+    }
 }
 
 impl HealthStats {
@@ -172,3 +186,13 @@ pub enum DeleteCondition {
 #[derive(Component, Default)]
 #[storage(NullStorage)]
 pub struct FinishedActivity;
+
+#[derive(Component, Default)]
+#[storage(NullStorage)]
+pub struct Item;
+
+#[derive(Component)]
+#[storage(VecStorage)]
+pub struct InBackpack {
+    owner: Entity,
+}

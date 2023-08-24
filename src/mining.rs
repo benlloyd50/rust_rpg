@@ -1,5 +1,5 @@
-use crate::components::{BreakAction, Breakable, HealthStats, Strength, SufferDamage, ToolType};
-use specs::{Entities, Entity, Join, ReadStorage, System, WriteStorage};
+use crate::{components::{BreakAction, Breakable, HealthStats, Strength, SufferDamage, ToolType, DeathDrop, Position}, items::ItemSpawner, data_read::ItemID};
+use specs::{Entities, Entity, Join, ReadStorage, System, WriteStorage, Write};
 
 /// Allows tile to be breakable. The tile must contain a breakable and health stats component.
 /// The attacker must contain a strength and have breakactions queued up in their system.
@@ -92,13 +92,17 @@ impl<'a> System<'a> for DamageSystem {
 pub struct RemoveDeadTiles;
 
 impl<'a> System<'a> for RemoveDeadTiles {
-    type SystemData = (ReadStorage<'a, HealthStats>, Entities<'a>);
+    type SystemData = (ReadStorage<'a, HealthStats>, ReadStorage<'a, Position>, Entities<'a>, ReadStorage<'a, DeathDrop>, Write<'a, ItemSpawner>);
 
-    fn run(&mut self, (breakable, entities): Self::SystemData) {
-        for (stats, e) in (&breakable, &entities).join() {
+    fn run(&mut self, (breakable, positions, entities, drops, mut item_spawner): Self::SystemData) {
+        for (stats, pos, e, maybe_item) in (&breakable, &positions, &entities, (&drops).maybe()).join() {
             if stats.hp == 0 {
                 match entities.delete(e) {
-                    Ok(..) => {}
+                    Ok(..) => {
+                        if let Some(_item) = maybe_item {
+                            item_spawner.request(ItemID(0), pos.x, pos.y);
+                        }
+                    }
                     Err(err) => {
                         println!("Failed to clean up {} : {}", e.id(), err);
                     }

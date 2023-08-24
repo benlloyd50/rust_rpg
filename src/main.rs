@@ -3,6 +3,7 @@ use std::time::Duration;
 use bracket_terminal::prelude::*;
 use draw_sprites::draw_sprite_layers;
 use game_init::initialize_game_world;
+use items::ItemSpawnerSystem;
 use mining::{DamageSystem, RemoveDeadTiles, TileDestructionSystem};
 use monster::{check_monster_delay, RandomMonsterMovementSystem};
 use specs::prelude::*;
@@ -17,6 +18,8 @@ mod monster;
 mod player;
 mod tile_animation;
 mod user_interface;
+mod items;
+mod data_read;
 use tile_animation::TileAnimationCleanUpSystem;
 mod time;
 use player::{check_player_activity, manage_player_input, PlayerResponse};
@@ -35,12 +38,12 @@ use crate::{
     components::{
         Blocking, BreakAction, Breakable, DeleteCondition, FinishedActivity, FishAction,
         FishOnTheLine, Fishable, HealthStats, Monster, Name, RandomWalkerAI, Renderable, Strength,
-        SufferDamage, WaitingForFish,
+        SufferDamage, WaitingForFish, DeathDrop, InBackpack, Item,
     },
     message_log::MessageLog,
     player::Player,
     tile_animation::TileAnimationBuilder,
-    time::DeltaTime,
+    time::DeltaTime, items::ItemSpawner, data_read::initialize_game_databases,
 };
 
 // Size of the terminal window
@@ -98,6 +101,9 @@ impl State {
 
         let mut remove_dead_tiles = RemoveDeadTiles;
         remove_dead_tiles.run_now(&self.ecs);
+
+        let mut item_spawner = ItemSpawnerSystem;
+        item_spawner.run_now(&self.ecs);
 
         // println!("Continuous Systems are now finished.");
     }
@@ -201,6 +207,8 @@ fn main() -> BError {
     bracket_terminal::link_resource!(TERRAIN_FOREST, "resources/terrain_forest.png");
     bracket_terminal::link_resource!(WORLD_UI, "../resources/rex/ui.xp");
 
+    initialize_game_databases();
+
     // Setup Terminal (incl Window, Input, Font Loading)
     let context = BTermBuilder::new()
         .with_title("Tile RPG")
@@ -208,18 +216,15 @@ fn main() -> BError {
         .with_font("terminal8x8.png", 8u32, 8u32)
         .with_font("interactable_tiles.png", 8u32, 8u32)
         .with_font("terrain_forest.png", 8u32, 8u32)
-        // TODO: turn this into a setting
-        // Tiny    Small     Medium    Large       Huge
-        // 4, 3 = 40, 30 = 80, 60 = 160, 120 = 320, 240
         .with_dimensions(160, 120)
         .with_simple_console(DISPLAY_WIDTH, DISPLAY_HEIGHT, "terrain_forest.png")
         .with_fancy_console(DISPLAY_WIDTH, DISPLAY_HEIGHT, "interactable_tiles.png")
         .with_fancy_console(DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2, "terminal8x8.png")
         .build()?;
 
-    register_palette_color("pink", RGB::named(MAGENTA));
-    register_palette_color("blue", RGB::named(BLUE3));
-    register_palette_color("white", RGB::named(WHITESMOKE));
+    register_palette_color("orange", RGB::from_u8(209, 95, 38));
+    register_palette_color("white", RGB::from_u8(222, 222, 222));
+    register_palette_color("lightgray", RGB::from_u8(161, 161, 161));
 
     // Setup ECS
     let mut world = World::new();
@@ -242,11 +247,15 @@ fn main() -> BError {
     world.register::<Name>();
     world.register::<Monster>();
     world.register::<RandomWalkerAI>();
+    world.register::<DeathDrop>();
+    world.register::<Item>();
+    world.register::<InBackpack>();
 
     // Resource Initialization, the ECS needs a basic definition of every resource that will be in the game
+    world.insert(AppState::GameStartup);
     world.insert(DeltaTime(Duration::ZERO));
     world.insert(TileAnimationBuilder::new());
-    world.insert(AppState::GameStartup);
+    world.insert(ItemSpawner::new());
     world.insert(MessageLog::new());
     world.insert(Map::empty());
 
