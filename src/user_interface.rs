@@ -1,5 +1,5 @@
 use bracket_terminal::prelude::{
-    to_cp437, ColorPair, DrawBatch, Point, Rect, TextAlign, PURPLE, RGB, RGBA, WHITESMOKE, YELLOW4,
+    to_cp437, ColorPair, DrawBatch, Point, Rect, TextAlign, RGB, RGBA, WHITESMOKE,
 };
 use specs::World;
 

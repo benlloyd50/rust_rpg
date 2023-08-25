@@ -50,7 +50,7 @@ pub fn draw_sprite_layers(ecs: &World) {
     draw_batch.submit(CL_WORLD).expect("Batch error??");
 }
 
-const COLORS: [&'static (u8, u8, u8); 7] = [
+const COLORS: [&'static (u8, u8, u8); 11] = [
     &ROSYBROWN,
     &DARKSALMON,
     &BURLYWOOD,
@@ -58,17 +58,21 @@ const COLORS: [&'static (u8, u8, u8); 7] = [
     &ANTIQUEWHITE,
     &DARKGOLDENROD1,
     &CORNFLOWER_BLUE,
+    &LIGHTPINK,
+    &LIGHTCYAN4,
+    &LIGHTGOLDENRODYELLOW,
+    &LIGHTSALMON,
 ];
 
 pub fn debug_rocks(world: &mut World) {
     for i in 0..COLORS.len() {
         world
             .create_entity()
-            .with(Position { x: 13 + i, y: 10 })
+            .with(Position { x: 10 + i, y: 10 })
             .with(Renderable::new(
                 *COLORS[i],
                 BLACK.into(),
-                xy_to_idx(1, 4, 16),
+                xy_to_idx(0, 2, 16),
             ))
             .with(DeathDrop::new(0))
             .with(Breakable::new(ToolType::Hand))

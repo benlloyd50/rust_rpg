@@ -37,8 +37,8 @@ impl<'a> System<'a> for IndexBlockedTiles {
         for (pos, _) in (&pos, &blocking).join() {
             let idx = map.xy_to_idx(pos.x, pos.y);
             match map.tile_entities.get_mut(idx) {
-                Some(elem) => { elem.push(TileEntity::Blocking) }
-                None => eprintln!("Idx: {} was out of bounds, Position: {:#?}", idx, pos)
+                Some(elem) => elem.push(TileEntity::Blocking),
+                None => eprintln!("Idx: {} was out of bounds, Position: {:#?}", idx, pos),
             }
         }
     }

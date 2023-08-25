@@ -116,6 +116,7 @@ pub struct RandomWalkerAI;
 
 #[derive(Debug, Component)]
 #[storage(VecStorage)]
+#[allow(dead_code)]
 pub struct HealthStats {
     pub hp: u32,
     max_hp: u32,
@@ -197,6 +198,7 @@ pub struct Item;
 
 #[derive(Component)]
 #[storage(VecStorage)]
+#[allow(dead_code)]
 pub struct InBackpack {
     owner: Entity,
 }

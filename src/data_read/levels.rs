@@ -1,6 +1,10 @@
-use crate::{map::{Map, WorldTile}, components::{Position, Blocking}, indexing::idx_to_xy};
+use crate::{
+    components::{Blocking, Fishable, Position},
+    indexing::idx_to_xy,
+    map::{Map, WorldTile},
+};
 use ldtk_map::prelude::*;
-use specs::{World, WorldExt, Builder};
+use specs::{Builder, World, WorldExt};
 
 const LEVEL_ZERO: &'static str = "Level_0";
 
@@ -15,18 +19,33 @@ pub fn load_simple_ldtk_level(ecs: &mut World) -> Map {
 
     let mut idx = 0;
     for tile in simple_level.level() {
-        map.tiles[idx] = WorldTile { atlas_index: tile.atlas_index() };
-
-        match tile.value() {
-            0 | 2 => {}
-            1 => { ecs.create_entity().with(Position::from_idx(idx, simple_level.width())).with(Blocking).build(); }
-            _ => println!("Value not recognized at {:#?}", idx_to_xy(idx, simple_level.width())),
+        map.tiles[idx] = WorldTile {
+            atlas_index: tile.atlas_index(),
         };
 
+        match tile.value() {
+            0 => {}
+            1 => {
+                ecs.create_entity()
+                    .with(Position::from_idx(idx, simple_level.width()))
+                    .with(Blocking)
+                    .build();
+            }
+            2 => {
+                ecs.create_entity()
+                    .with(Position::from_idx(idx, simple_level.width()))
+                    .with(Fishable)
+                    .with(Blocking)
+                    .build();
+            }
+            _ => println!(
+                "Value not recognized at {:#?}",
+                idx_to_xy(idx, simple_level.width())
+            ),
+        };
 
         idx += 1;
     }
 
     map
 }
-

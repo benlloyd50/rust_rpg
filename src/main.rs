@@ -1,4 +1,3 @@
-use data_read::prelude::*;
 use std::time::Duration;
 
 use bracket_terminal::prelude::*;

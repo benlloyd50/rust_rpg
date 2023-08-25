@@ -2,26 +2,13 @@ use bracket_terminal::prelude::{BLACK, WHITE};
 use specs::{Builder, World, WorldExt};
 
 use crate::{
-    components::{
-        Blocking, Fishable, Monster, Name, Position, RandomWalkerAI, Renderable, Strength,
-    },
+    components::{Blocking, Monster, Name, Position, RandomWalkerAI, Renderable, Strength},
     data_read::prelude::load_simple_ldtk_level,
     draw_sprites::debug_rocks,
-    map::{Map, WorldTile},
     player::Player,
-    DISPLAY_HEIGHT, DISPLAY_WIDTH,
 };
 
 pub fn initialize_game_world(ecs: &mut World) {
-    // A very plain map
-    // let mut map = Map::new(DISPLAY_WIDTH + 22, DISPLAY_HEIGHT + 30);
-    // let water_idx = map.xy_to_idx(10, 15);
-    // map.tiles[water_idx] = WorldTile { atlas_index: 80 };
-    // ecs.create_entity()
-    //     .with(Position::new(10, 15))
-    //     .with(Fishable)
-    //     .with(Blocking)
-    //     .build();
     let map = load_simple_ldtk_level(ecs);
     ecs.insert(map);
 
