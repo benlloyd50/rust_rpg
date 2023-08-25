@@ -1,9 +1,9 @@
-use std::{fmt::Display, time::Duration};
+use std::{fmt::Display, str::FromStr, time::Duration};
 
-use bracket_terminal::prelude::{ColorPair, Point};
+use bracket_terminal::prelude::{ColorPair, Point, BLACK};
 use specs::{Component, Entity, NullStorage, VecStorage};
 
-use crate::indexing::idx_to_xy;
+use crate::{data_read::prelude::ItemID, indexing::idx_to_xy};
 
 #[derive(Debug, Component)]
 #[storage(VecStorage)]
@@ -17,6 +17,14 @@ impl Renderable {
         Self {
             color_pair: ColorPair::new(fg, bg),
             atlas_index,
+        }
+    }
+
+    /// Creates a renderable with a white/black fg/bg
+    pub fn default_bg(atlas_index: usize, fg: (u8, u8, u8)) -> Self {
+        Self {
+            color_pair: ColorPair::new(fg, BLACK),
+            atlas_index
         }
     }
 }
@@ -51,7 +59,7 @@ impl From<Point> for Position {
 #[derive(Debug, Component)]
 #[storage(VecStorage)]
 pub struct Strength {
-    pub amt: u32,
+    pub amt: usize,
 }
 
 /// Prevents gameobjects from passing through it
@@ -124,26 +132,26 @@ pub struct RandomWalkerAI;
 #[storage(VecStorage)]
 #[allow(dead_code)]
 pub struct HealthStats {
-    pub hp: u32,
-    max_hp: u32,
-    pub defense: u32,
+    pub hp: usize,
+    max_hp: usize,
+    pub defense: usize,
 }
 
 /// An item that will be spawned on the associated entity's death
 #[derive(Component)]
 #[storage(VecStorage)]
 pub struct DeathDrop {
-    pub item_id: usize,
+    pub item_id: ItemID,
 }
 
 impl DeathDrop {
-    pub fn new(item_id: usize) -> Self {
-        Self { item_id }
+    pub fn new(item_id: &ItemID) -> Self {
+        Self { item_id: *item_id }
     }
 }
 
 impl HealthStats {
-    pub fn new(max_hp: u32, defense: u32) -> Self {
+    pub fn new(max_hp: usize, defense: usize) -> Self {
         Self {
             hp: max_hp,
             max_hp,
@@ -161,6 +169,20 @@ pub struct Breakable {
 impl Breakable {
     pub fn new(by: ToolType) -> Self {
         Self { by }
+    }
+}
+
+impl FromStr for Breakable {
+    type Err = ();
+
+    fn from_str(input: &str) -> Result<Self, Self::Err> {
+        match input {
+            "Hand" => Ok(Breakable::new(ToolType::Hand)),
+            "Axe" => Ok(Breakable::new(ToolType::Axe)),
+            "Pickaxe" => Ok(Breakable::new(ToolType::Pickaxe,)),
+            "Shovel" => Ok(Breakable::new(ToolType::Shovel) ),
+            _ => Err(()),
+        }
     }
 }
 

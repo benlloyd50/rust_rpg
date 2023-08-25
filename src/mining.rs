@@ -83,7 +83,7 @@ impl<'a> System<'a> for DamageSystem {
 
             // Addition is used because damage dealt can be positive or negative
             let new_hp = stats.hp as i32 + damage_dealt;
-            stats.hp = if new_hp >= 0 { new_hp as u32 } else { 0 };
+            stats.hp = if new_hp >= 0 { new_hp as usize } else { 0 };
 
             println!(
                 "Old HP: {} | Damage Dealt: {} | New HP: {}",

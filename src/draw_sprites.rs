@@ -4,6 +4,7 @@ use specs::{Builder, Join, World, WorldExt};
 use crate::{
     camera::get_bounding_box,
     components::{Breakable, DeathDrop, HealthStats, Renderable, ToolType},
+    data_read::prelude::{ItemID, build_obj},
     map::render_map,
     Position, CL_INTERACTABLES, CL_WORLD,
 };
@@ -65,22 +66,5 @@ const COLORS: [&'static (u8, u8, u8); 11] = [
 ];
 
 pub fn debug_rocks(world: &mut World) {
-    for i in 0..COLORS.len() {
-        world
-            .create_entity()
-            .with(Position { x: 10 + i, y: 10 })
-            .with(Renderable::new(
-                *COLORS[i],
-                BLACK.into(),
-                xy_to_idx(0, 2, 16),
-            ))
-            .with(DeathDrop::new(0))
-            .with(Breakable::new(ToolType::Hand))
-            .with(HealthStats::new(2, 0))
-            .build();
-    }
-}
-
-pub fn xy_to_idx(x: usize, y: usize, width: usize) -> usize {
-    y * width + x
+    let _ = build_obj("Regular Rock", Position::new(10, 10), world);
 }

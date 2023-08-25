@@ -1,0 +1,17 @@
+{
+    "data": [
+        {
+            "identifier": 0,
+            "name": "Regular Rock",
+            "atlas_index": 64,
+            "is_blocking": true,
+            "death_drop": "Pebble",
+            "breakable": "Hand",
+            "health_stats": {
+                "max_hp" : 2,
+                "defense": 0
+            },
+            "foreground": [188, 143, 143]
+        }
+    ]
+}

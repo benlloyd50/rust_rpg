@@ -1,7 +1,6 @@
 use crate::{
     components::{BreakAction, FinishedActivity, FishAction, PickupAction},
     map::{Map, TileEntity},
-    message_log::MessageLog,
     AppState, Position, State,
 };
 use bracket_terminal::prelude::{BTerm, Point, VirtualKeyCode};
@@ -55,52 +54,43 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) -> PlayerRespons
             return PlayerResponse::Waiting;
         }
 
-        let target_idx = map.xy_to_idx(target_pos.x as usize, target_pos.y as usize);
-        // check no entity currently exists in the target pos
-        if map.tile_entities[target_idx].is_empty() {
-            pos.x = target_pos.x as usize;
-            pos.y = target_pos.y as usize;
-            return PlayerResponse::TurnAdvance;
-        }
-
-        // if there is entities handle it according to highest priority
-        let mut target_entities = map.tile_entities[target_idx].clone();
-        target_entities.sort();
-        println!(
-            "There were {} entity tiles in that position",
-            target_entities.len()
-        );
-
-        match target_entities[0] {
-            TileEntity::Blocking => {
-                println!("Map is blocked at {}, {}", target_pos.x, target_pos.y);
-                return PlayerResponse::Waiting;
-            }
-            TileEntity::Fishable(_entity) => {
-                println!("Attempting to fish at {}, {}", target_pos.x, target_pos.y);
-                fish_actions
-                    .insert(
-                        player_entity,
-                        FishAction {
-                            target: target_pos.into(),
-                        },
-                    )
-                    .expect("Fish action could not be added to player entity");
-                return PlayerResponse::StateChange(AppState::activity_bound());
-            }
-            TileEntity::Breakable(entity) => {
-                println!(
-                    "Map is breakable at {}, {} : id: {}",
-                    target_pos.x,
-                    target_pos.y,
-                    entity.id()
-                );
-                break_actions
-                    .insert(player_entity, BreakAction { target: entity })
-                    .expect("Break action could not be added to player entity");
-                return PlayerResponse::TurnAdvance;
-            }
-            TileEntity::Item(_) => {
+        match map.first_entity_in_pos(&Position::from(target_pos)) {
+            Some(tile) => match tile {
+                TileEntity::Blocking => {
+                    println!("Map is blocked at {}, {}", target_pos.x, target_pos.y);
+                    return PlayerResponse::Waiting;
+                }
+                TileEntity::Fishable(_entity) => {
+                    println!("Attempting to fish at {}, {}", target_pos.x, target_pos.y);
+                    fish_actions
+                        .insert(
+                            player_entity,
+                            FishAction {
+                                target: target_pos.into(),
+                            },
+                        )
+                        .expect("Fish action could not be added to player entity");
+                    return PlayerResponse::StateChange(AppState::activity_bound());
+                }
+                TileEntity::Breakable(entity) => {
+                    println!(
+                        "Map is breakable at {}, {} : id: {}",
+                        target_pos.x,
+                        target_pos.y,
+                        entity.id()
+                    );
+                    break_actions
+                        .insert(player_entity, BreakAction { target: *entity })
+                        .expect("Break action could not be added to player entity");
+                    return PlayerResponse::TurnAdvance;
+                }
+                TileEntity::Item(_) => {
+                    pos.x = target_pos.x as usize;
+                    pos.y = target_pos.y as usize;
+                    return PlayerResponse::TurnAdvance;
+                }
+            },
+            None => {
                 pos.x = target_pos.x as usize;
                 pos.y = target_pos.y as usize;
                 return PlayerResponse::TurnAdvance;
@@ -120,13 +110,8 @@ fn try_pickup(ecs: &mut World) -> PlayerResponse {
     let entities = ecs.entities();
 
     for (player_entity, pos, _) in (&entities, &positions, &players).join() {
-        let player_idx = map.xy_to_idx(pos.x, pos.y);
-        // grabs the first item entity in the current tile
-        let all_items_in_tile = map.tile_entities[player_idx]
-            .iter()
-            .filter(|te| te.as_item_entity().is_some())
-            .collect::<Vec<&TileEntity>>();
-        if let Some(item_entity) = all_items_in_tile.first() {
+        let mut item_iter = map.all_items_at_pos(&pos);
+        if let Some(item_entity) = item_iter.next() {
             let _ = pickups.insert(
                 player_entity,
                 PickupAction {

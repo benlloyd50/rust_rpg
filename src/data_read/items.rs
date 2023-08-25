@@ -10,7 +10,11 @@ impl ItemDatabase {
         Self { data: Vec::new() }
     }
 
-    pub fn get(&self, id: u32) -> Option<&ItemInfo> {
+    pub fn get_by_name(&self, name: &String) -> Option<&ItemInfo> {
+        self.data.iter().find(|i| i.name.eq(name))
+    }
+
+    pub fn get_by_id(&self, id: u32) -> Option<&ItemInfo> {
         self.data.iter().find(|i| i.identifier.0 == id)
     }
 }
@@ -18,10 +22,10 @@ impl ItemDatabase {
 #[derive(Serialize, Deserialize)]
 pub struct ItemInfo {
     /// Unique id to find the item's static data
-    identifier: ItemID,
-    pub name: String,
-    pub atlas_index: usize,
+    pub(crate) identifier: ItemID,
+    pub(crate) name: String,
+    pub(crate) atlas_index: usize,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Copy, Clone)]
 pub struct ItemID(pub u32);

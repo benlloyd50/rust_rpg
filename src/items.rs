@@ -11,7 +11,7 @@ use specs::{Entities, Join, ReadStorage, System, Write, WriteStorage};
 use crate::{
     components::{InBackpack, Item, Name, PickupAction, Position, Renderable},
     data_read::prelude::*,
-    message_log::{Message, MessageLog},
+    message_log::MessageLog,
 };
 
 #[derive(Default)]
@@ -58,7 +58,7 @@ impl<'a> System<'a> for ItemSpawnerSystem {
         let edb = &ENTITY_DB.lock().unwrap();
 
         for spawn in spawn_requests.requests.iter() {
-            let static_item = match edb.items.get(spawn.item_id) {
+            let static_item = match edb.items.get_by_id(spawn.item_id) {
                 Some(val) => val,
                 None => {
                     eprintln!(

@@ -1,7 +1,7 @@
 use bracket_terminal::prelude::{ColorPair, DrawBatch, Point, BLACK, WHITE};
 use specs::{Entity, World};
 
-use crate::camera::get_bounding_box;
+use crate::{camera::get_bounding_box, components::Position};
 
 pub struct Map {
     pub tiles: Vec<WorldTile>,
@@ -63,6 +63,27 @@ impl Map {
 
     pub fn xy_to_idx(&self, x: usize, y: usize) -> usize {
         y * self.width + x
+    }
+
+    /// Gets all the entities in the tile that are an item.
+    /// It returns an iterator since often only the first value is used.
+    pub fn all_items_at_pos(&self, pos: &Position) -> impl Iterator<Item = &TileEntity> {
+        self.tile_entities[self.xy_to_idx(pos.x, pos.y)]
+            .iter()
+            .filter(|te| te.as_item_entity().is_some())
+    }
+
+    /// Attempts to get the first entity at the pos based on the contents of the tile
+    /// Will return `None` if no entities are present in the tile
+    pub fn first_entity_in_pos(&self, pos: &Position) -> Option<&TileEntity> {
+        self.tile_entities[self.xy_to_idx(pos.x, pos.y)]
+            .iter()
+            .min_by_key(|&tile_entity| match tile_entity {
+                TileEntity::Fishable(_) => 9,
+                TileEntity::Breakable(_) => 15,
+                TileEntity::Item(_) => 19,
+                TileEntity::Blocking => 20,
+            })
     }
 }
 
