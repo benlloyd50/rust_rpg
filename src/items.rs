@@ -10,7 +10,8 @@ use specs::{Entities, Join, ReadStorage, System, Write, WriteStorage};
 
 use crate::{
     components::{InBackpack, Item, Name, PickupAction, Position, Renderable},
-    data_read::prelude::*, message_log::{Message, MessageLog},
+    data_read::prelude::*,
+    message_log::{Message, MessageLog},
 };
 
 #[derive(Default)]
@@ -126,9 +127,14 @@ impl<'a> System<'a> for ItemPickupHandler {
                             item_name, prev_owner_name, picker_name
                         );
                     }
-                    None => {  // Valid pickup from picker
+                    None => {
+                        // Valid pickup from picker
                         positions.remove(item_target);
-                        log.log(format!("{} picked up a {}", picker_name, item_name.0.to_lowercase()));
+                        log.log(format!(
+                            "{} picked up a {}",
+                            picker_name,
+                            item_name.0.to_lowercase()
+                        ));
                     }
                 },
                 Err(err) => eprintln!("{}", err),
