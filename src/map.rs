@@ -22,7 +22,18 @@ pub struct WorldTile {
 pub enum TileEntity {
     Fishable(Entity) = 9,
     Breakable(Entity) = 15,
+    Item(Entity) = 19,
     Blocking = 20,
+}
+
+impl TileEntity {
+    /// Attempts to grab the inner entity if it is an item
+    pub fn as_item_entity(&self) -> Option<&Entity> {
+        match self {
+            TileEntity::Item(item) => Some(item),
+            _ => None,
+        }
+    }
 }
 
 impl WorldTile {

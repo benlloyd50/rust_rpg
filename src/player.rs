@@ -1,6 +1,7 @@
 use crate::{
-    components::{BreakAction, FinishedActivity, FishAction},
+    components::{BreakAction, FinishedActivity, FishAction, PickupAction},
     map::{Map, TileEntity},
+    message_log::MessageLog,
     AppState, Position, State,
 };
 use bracket_terminal::prelude::{BTerm, Point, VirtualKeyCode};
@@ -26,6 +27,7 @@ pub fn manage_player_input(state: &mut State, ctx: &BTerm) -> PlayerResponse {
                 VirtualKeyCode::S | VirtualKeyCode::Down => try_move_player(0, 1, &mut state.ecs),
                 VirtualKeyCode::A | VirtualKeyCode::Left => try_move_player(-1, 0, &mut state.ecs),
                 VirtualKeyCode::D | VirtualKeyCode::Right => try_move_player(1, 0, &mut state.ecs),
+                VirtualKeyCode::P => try_pickup(&mut state.ecs), // p for pickup
                 VirtualKeyCode::Escape => exit(0),
                 _ => PlayerResponse::Waiting, // Unbound keypress so just ignore it
             }
@@ -98,6 +100,39 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) -> PlayerRespons
                     .expect("Break action could not be added to player entity");
                 return PlayerResponse::TurnAdvance;
             }
+            TileEntity::Item(_) => {
+                pos.x = target_pos.x as usize;
+                pos.y = target_pos.y as usize;
+                return PlayerResponse::TurnAdvance;
+            }
+        }
+    }
+
+    PlayerResponse::Waiting
+}
+
+fn try_pickup(ecs: &mut World) -> PlayerResponse {
+    let mut pickups = ecs.write_storage::<PickupAction>();
+
+    let positions = ecs.read_storage::<Position>();
+    let players = ecs.read_storage::<Player>();
+    let map = ecs.fetch::<Map>();
+    let entities = ecs.entities();
+
+    for (player_entity, pos, _) in (&entities, &positions, &players).join() {
+        let player_idx = map.xy_to_idx(pos.x, pos.y);
+        // grabs the first item entity in the current tile
+        let all_items_in_tile = map.tile_entities[player_idx]
+            .iter()
+            .filter(|te| te.as_item_entity().is_some())
+            .collect::<Vec<&TileEntity>>();
+        if let Some(item_entity) = all_items_in_tile.first() {
+            let _ = pickups.insert(
+                player_entity,
+                PickupAction {
+                    item: *item_entity.as_item_entity().unwrap(),
+                },
+            );
         }
     }
 

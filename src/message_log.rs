@@ -17,16 +17,19 @@ impl MessageLog {
         }
     }
 
+    /// Adds info to the log
     pub fn log(&mut self, contents: impl ToString) {
         self.messages
             .push(Message::new(contents.to_string(), MessageType::INFO));
     }
 
+    /// Adds flavor to the log
     pub fn enhance(&mut self, contents: impl ToString) {
         self.messages
             .push(Message::new(contents.to_string(), MessageType::FLAVOR));
     }
 
+    /// Adds debug info to the log
     pub fn debug(&mut self, contents: impl ToString) {
         self.messages
             .push(Message::new(contents.to_string(), MessageType::DEBUG));

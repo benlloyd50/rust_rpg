@@ -1,5 +1,5 @@
 use bracket_terminal::prelude::{ColorPair, RGB};
-use specs::{Entities, Join, ReadStorage, System, World, Write, WriteStorage};
+use specs::{Entities, Join, ReadStorage, System, Write, WriteStorage};
 
 use crate::components::{DeleteCondition, FinishedActivity, Position, Renderable};
 
@@ -40,11 +40,9 @@ struct TileAnimationRequest {
     delete_condition: DeleteCondition,
 }
 
-pub struct TileAnimationSpawner<'a> {
-    pub world: &'a World,
-}
+pub struct TileAnimationSpawner;
 
-impl<'a> System<'a> for TileAnimationSpawner<'a> {
+impl<'a> System<'a> for TileAnimationSpawner {
     type SystemData = (
         Entities<'a>,
         Write<'a, TileAnimationBuilder>,

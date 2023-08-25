@@ -89,13 +89,19 @@ impl WaitingForFish {
 #[storage(NullStorage)]
 pub struct FishOnTheLine;
 
-#[derive(Component)]
+#[derive(Component, Clone)]
 #[storage(VecStorage)]
 pub struct Name(pub String);
 
+const MISSING_ITEM_NAME: &'static str = "Missing Item Name";
+
 impl Name {
-    pub fn new(t: impl ToString) -> Self {
-        Self(t.to_string())
+    pub fn new(name: impl ToString) -> Self {
+        Self(name.to_string())
+    }
+
+    pub fn missing_item_name() -> Self {
+        Name::new(MISSING_ITEM_NAME)
     }
 }
 
@@ -198,7 +204,18 @@ pub struct Item;
 
 #[derive(Component)]
 #[storage(VecStorage)]
-#[allow(dead_code)]
 pub struct InBackpack {
-    owner: Entity,
+    pub owner: Entity,
+}
+
+impl InBackpack {
+    pub fn of(e: Entity) -> Self {
+        Self { owner: e }
+    }
+}
+
+#[derive(Component)]
+#[storage(VecStorage)]
+pub struct PickupAction {
+    pub item: Entity,
 }

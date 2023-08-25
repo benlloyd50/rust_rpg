@@ -3,7 +3,7 @@ use std::time::Duration;
 use bracket_terminal::prelude::*;
 use draw_sprites::draw_sprite_layers;
 use game_init::initialize_game_world;
-use items::ItemSpawnerSystem;
+use items::{ItemPickupHandler, ItemSpawnerSystem};
 use mining::{DamageSystem, RemoveDeadTiles, TileDestructionSystem};
 use monster::{check_monster_delay, RandomMonsterMovementSystem};
 use specs::prelude::*;
@@ -29,7 +29,9 @@ mod components;
 use components::Position;
 mod fishing;
 use fishing::{CatchFishSystem, SetupFishingActions, WaitingForFishSystem};
-use indexing::{IndexBlockedTiles, IndexBreakableTiles, IndexFishableTiles, IndexReset};
+use indexing::{
+    IndexBlockedTiles, IndexBreakableTiles, IndexFishableTiles, IndexItemTiles, IndexReset,
+};
 use tile_animation::TileAnimationSpawner;
 use time::delta_time_update;
 use user_interface::draw_ui;
@@ -37,8 +39,8 @@ use user_interface::draw_ui;
 use crate::{
     components::{
         Blocking, BreakAction, Breakable, DeathDrop, DeleteCondition, FinishedActivity, FishAction,
-        FishOnTheLine, Fishable, HealthStats, InBackpack, Item, Monster, Name, RandomWalkerAI,
-        Renderable, Strength, SufferDamage, WaitingForFish,
+        FishOnTheLine, Fishable, HealthStats, InBackpack, Item, Monster, Name, PickupAction,
+        RandomWalkerAI, Renderable, Strength, SufferDamage, WaitingForFish,
     },
     data_read::initialize_game_databases,
     items::ItemSpawner,
@@ -81,6 +83,8 @@ impl State {
         indexbreaking.run_now(&self.ecs);
         let mut indexfishing = IndexFishableTiles;
         indexfishing.run_now(&self.ecs);
+        let mut indexitems = IndexItemTiles;
+        indexitems.run_now(&self.ecs);
 
         let mut setupfishingactions = SetupFishingActions;
         setupfishingactions.run_now(&self.ecs);
@@ -93,9 +97,11 @@ impl State {
         mining_sys.run_now(&self.ecs);
         let mut damage_sys = DamageSystem;
         damage_sys.run_now(&self.ecs);
+        let mut item_pickup_handler = ItemPickupHandler;
+        item_pickup_handler.run_now(&self.ecs);
 
         // Request based system run as late as possible in the loop
-        let mut tile_anim_spawner = TileAnimationSpawner { world: &self.ecs };
+        let mut tile_anim_spawner = TileAnimationSpawner;
         tile_anim_spawner.run_now(&self.ecs);
 
         let mut tile_anim_cleanup_system = TileAnimationCleanUpSystem;
@@ -201,13 +207,13 @@ impl GameState for State {
 bracket_terminal::embedded_resource!(TILE_FONT, "../resources/interactable_tiles.png");
 bracket_terminal::embedded_resource!(CHAR_FONT, "../resources/terminal8x8.png");
 bracket_terminal::embedded_resource!(TERRAIN_FOREST, "../resources/terrain_forest.png");
-bracket_terminal::embedded_resource!(WORLD_UI, "../resources/rex/ui.xp");
+bracket_terminal::embedded_resource!(LEVEL_0, "../resources/ldtk/rpg_world_v1.ldtk");
 
 fn main() -> BError {
     bracket_terminal::link_resource!(TILE_FONT, "resources/interactable_tiles.png");
     bracket_terminal::link_resource!(CHAR_FONT, "resources/terminal8x8.png");
     bracket_terminal::link_resource!(TERRAIN_FOREST, "resources/terrain_forest.png");
-    bracket_terminal::link_resource!(WORLD_UI, "../resources/rex/ui.xp");
+    bracket_terminal::link_resource!(LEVEL_0, "../resources/ldtk/rpg_world_v1.ldtk");
 
     initialize_game_databases();
 
@@ -237,6 +243,7 @@ fn main() -> BError {
     world.register::<Blocking>();
     world.register::<HealthStats>();
     world.register::<BreakAction>();
+    world.register::<PickupAction>();
     world.register::<Breakable>();
     world.register::<SufferDamage>();
     world.register::<Strength>();

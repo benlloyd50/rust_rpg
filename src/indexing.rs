@@ -7,7 +7,7 @@ use bracket_terminal::prelude::Point;
 use specs::{Entities, Join, ReadStorage, System, WriteExpect};
 
 use crate::{
-    components::{Blocking, Breakable, Fishable, Position},
+    components::{Blocking, Breakable, Fishable, Item, Position},
     map::{Map, TileEntity},
 };
 
@@ -76,6 +76,24 @@ impl<'a> System<'a> for IndexFishableTiles {
         for (entity, pos, _) in (&entities, &pos, &fishable).join() {
             let idx = map.xy_to_idx(pos.x, pos.y);
             map.tile_entities[idx].push(TileEntity::Fishable(entity));
+        }
+    }
+}
+
+pub struct IndexItemTiles;
+
+impl<'a> System<'a> for IndexItemTiles {
+    type SystemData = (
+        WriteExpect<'a, Map>,
+        ReadStorage<'a, Position>,
+        ReadStorage<'a, Item>,
+        Entities<'a>,
+    );
+
+    fn run(&mut self, (mut map, pos, items, entities): Self::SystemData) {
+        for (entity, pos, _) in (&entities, &pos, &items).join() {
+            let idx = map.xy_to_idx(pos.x, pos.y);
+            map.tile_entities[idx].push(TileEntity::Item(entity));
         }
     }
 }
