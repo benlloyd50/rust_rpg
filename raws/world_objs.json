@@ -2,16 +2,42 @@
     "data": [
         {
             "identifier": 0,
-            "name": "Regular Rock",
-            "atlas_index": 64,
+            "name": "Neon Green Boulder",
+            "atlas_index": 65,
             "is_blocking": true,
-            "death_drop": "Pebble",
+            "death_drop": "Fire Flint",
             "breakable": "Hand",
             "health_stats": {
-                "max_hp" : 2,
+                "max_hp" : 3,
                 "defense": 0
             },
-            "foreground": [188, 143, 143]
+            "foreground": [7, 247, 167]
+        },
+        {
+            "identifier": 11,
+            "name": "Boulder",
+            "atlas_index": 65,
+            "is_blocking": true,
+            "death_drop": "Flint",
+            "breakable": "Hand",
+            "health_stats": {
+                "max_hp" : 1,
+                "defense": 0
+            },
+            "foreground": [255, 255, 255]
+        },
+        {
+            "identifier": 10,
+            "name": "Neon Green Boulder",
+            "atlas_index": 65,
+            "is_blocking": true,
+            "death_drop": "Fire Flint",
+            "breakable": "Hand",
+            "health_stats": {
+                "max_hp" : 3,
+                "defense": 0
+            },
+            "foreground": [7, 247, 167]
         }
     ]
 }

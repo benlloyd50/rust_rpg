@@ -2,7 +2,6 @@ use crate::{
     components::{
         BreakAction, Breakable, DeathDrop, HealthStats, Position, Strength, SufferDamage, ToolType,
     },
-    data_read::prelude::*,
     items::ItemSpawner,
 };
 use specs::{Entities, Entity, Join, ReadStorage, System, Write, WriteStorage};
@@ -113,8 +112,8 @@ impl<'a> System<'a> for RemoveDeadTiles {
             if stats.hp == 0 {
                 match entities.delete(e) {
                     Ok(..) => {
-                        if let Some(_item) = maybe_item {
-                            item_spawner.request(ItemID(0), pos.x, pos.y);
+                        if let Some(item) = maybe_item {
+                            item_spawner.request(item.item_id, pos.x, pos.y);
                         }
                     }
                     Err(err) => {

@@ -1,6 +1,6 @@
 use std::{fmt::Display, str::FromStr, time::Duration};
 
-use bracket_terminal::prelude::{ColorPair, Point, BLACK};
+use bracket_terminal::prelude::{ColorPair, Point, WHITE};
 use specs::{Component, Entity, NullStorage, VecStorage};
 
 use crate::{data_read::prelude::ItemID, indexing::idx_to_xy};
@@ -20,11 +20,11 @@ impl Renderable {
         }
     }
 
-    /// Creates a renderable with a white/black fg/bg
+    /// Creates a renderable with a black bg and specified parts
     pub fn default_bg(atlas_index: usize, fg: (u8, u8, u8)) -> Self {
         Self {
-            color_pair: ColorPair::new(fg, BLACK),
-            atlas_index
+            color_pair: ColorPair::new(fg, WHITE),
+            atlas_index,
         }
     }
 }
@@ -179,8 +179,8 @@ impl FromStr for Breakable {
         match input {
             "Hand" => Ok(Breakable::new(ToolType::Hand)),
             "Axe" => Ok(Breakable::new(ToolType::Axe)),
-            "Pickaxe" => Ok(Breakable::new(ToolType::Pickaxe,)),
-            "Shovel" => Ok(Breakable::new(ToolType::Shovel) ),
+            "Pickaxe" => Ok(Breakable::new(ToolType::Pickaxe)),
+            "Shovel" => Ok(Breakable::new(ToolType::Shovel)),
             _ => Err(()),
         }
     }

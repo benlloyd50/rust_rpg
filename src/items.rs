@@ -5,7 +5,6 @@
  * Quest - when finished -> Item in Inventory
  */
 
-use bracket_terminal::prelude::{ColorPair, BLACK, WHITE};
 use specs::{Entities, Join, ReadStorage, System, Write, WriteStorage};
 
 use crate::{
@@ -26,7 +25,7 @@ impl ItemSpawner {
         }
     }
 
-    pub fn request(&mut self, ItemID(item_id): ItemID, x: usize, y: usize) {
+    pub fn request(&mut self, item_id: ItemID, x: usize, y: usize) {
         self.requests.push(ItemSpawnRequest {
             item_id,
             position: Position::new(x, y),
@@ -35,7 +34,7 @@ impl ItemSpawner {
 }
 
 pub struct ItemSpawnRequest {
-    item_id: u32,
+    item_id: ItemID,
     position: Position,
 }
 
@@ -58,11 +57,11 @@ impl<'a> System<'a> for ItemSpawnerSystem {
         let edb = &ENTITY_DB.lock().unwrap();
 
         for spawn in spawn_requests.requests.iter() {
-            let static_item = match edb.items.get_by_id(spawn.item_id) {
+            let static_item = match edb.items.get_by_id(spawn.item_id.0) {
                 Some(val) => val,
                 None => {
                     eprintln!(
-                        "Spawn request failed because {} item id does not exist in database",
+                        "Spawn request failed because {:?} item id does not exist in database",
                         spawn.item_id
                     );
                     continue;
@@ -73,10 +72,7 @@ impl<'a> System<'a> for ItemSpawnerSystem {
             let _ = positions.insert(new_item, spawn.position);
             let _ = renderables.insert(
                 new_item,
-                Renderable {
-                    color_pair: ColorPair::new(WHITE, BLACK),
-                    atlas_index: static_item.atlas_index,
-                },
+                Renderable::default_bg(static_item.atlas_index, static_item.fg),
             );
             let _ = items.insert(new_item, Item);
             let _ = names.insert(new_item, Name(static_item.name.clone()));

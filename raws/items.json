@@ -2,8 +2,15 @@
     "data": [
         {
             "identifier": 0,
-            "name": "Pebble",
-            "atlas_index": 68 
+            "name": "Flint",
+            "atlas_index": 68,
+            "fg": [183, 197, 201]
+        },
+        {
+            "identifier": 1,
+            "name": "Fire Flint",
+            "atlas_index": 68,
+            "fg": [242, 122, 70]
         }
     ]
 }

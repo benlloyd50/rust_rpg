@@ -3,9 +3,11 @@ use std::str::FromStr;
 use serde::{Deserialize, Serialize};
 use specs::{Builder, Entity, World, WorldExt};
 
-use crate::components::{Blocking, Breakable, DeathDrop, Name, HealthStats as HealthStatsComponent, Renderable, Position};
+use crate::components::{
+    Blocking, Breakable, DeathDrop, HealthStats as HealthStatsComponent, Name, Position, Renderable,
+};
 
-use super::ENTITY_DB;
+use super::{EntityBuildError, ENTITY_DB};
 
 #[derive(Deserialize)]
 pub struct WorldObjectDatabase {
@@ -21,15 +23,18 @@ impl WorldObjectDatabase {
         self.data.iter().find(|i| i.name.eq(name))
     }
 
+    #[allow(dead_code)]
     pub fn get_by_id(&self, id: u32) -> Option<&WorldObject> {
         self.data.iter().find(|i| i.identifier.0 == id)
     }
 }
 
-pub struct EntityBuildError;
-
 /// Attempts to create the specified entity directly into the world
-pub fn build_obj(name: impl ToString, pos: Position, world: &mut World) -> Result<Entity, EntityBuildError> {
+pub fn build_obj(
+    name: impl ToString,
+    pos: Position,
+    world: &mut World,
+) -> Result<Entity, EntityBuildError> {
     let edb = &ENTITY_DB.lock().unwrap();
     let raw = match edb.world_objs.get_by_name(&name.to_string()) {
         Some(raw) => raw,
@@ -56,6 +61,12 @@ pub fn build_obj(name: impl ToString, pos: Position, world: &mut World) -> Resul
                 return Err(EntityBuildError);
             }
         };
+        println!(
+            "{} has death drop {} with id {:?}",
+            name.to_string(),
+            drop,
+            drop_id
+        );
         builder = builder.with(DeathDrop::new(drop_id));
     }
 
@@ -75,7 +86,10 @@ pub fn build_obj(name: impl ToString, pos: Position, world: &mut World) -> Resul
     }
 
     if let Some(health_stats) = &raw.health_stats {
-        builder = builder.with(HealthStatsComponent::new(health_stats.max_hp, health_stats.defense));
+        builder = builder.with(HealthStatsComponent::new(
+            health_stats.max_hp,
+            health_stats.defense,
+        ));
     }
 
     Ok(builder.build())
@@ -100,5 +114,5 @@ pub struct HealthStats {
     defense: usize,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ObjectID(pub u32);
