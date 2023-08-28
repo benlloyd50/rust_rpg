@@ -5,6 +5,7 @@ use specs::{Join, ReadStorage, System, World, WorldExt, WriteExpect, WriteStorag
 
 use crate::{
     components::{Monster, Name, Position, RandomWalkerAI},
+    data_read::ENTITY_DB,
     message_log::MessageLog,
     time::DeltaTime,
 };
@@ -25,23 +26,30 @@ impl<'a> System<'a> for RandomMonsterMovementSystem {
     fn run(&mut self, (mut positions, mons, names, randwalks, mut log): Self::SystemData) {
         let mut rng = RandomNumberGenerator::new();
         for (pos, _, name, _) in (&mut positions, &mons, &names, &randwalks).join() {
-            match rng.range(0, 5) {
-                0 => {
+            match rng.range(0, 100) {
+                0..=10 => {
                     pos.x += 1;
                 }
-                1 => {
+                11..=20 => {
                     pos.y += 1;
                 }
-                2 => {
+                21..=30 => {
                     pos.y = pos.y.saturating_sub(1);
                 }
-                3 => {
+                31..=40 => {
                     pos.x = pos.x.saturating_sub(1);
                 }
-                4 => {
-                    log.enhance(format!("{} eats some grass from the ground.", name.0));
+                79 => {
+                    let edb = &ENTITY_DB.lock().unwrap();
+                    if let Some(monster) = edb.beings.get_by_name(&name.0) {
+                        monster
+                            .quips
+                            .as_ref()
+                            .and_then(|quips| quips.first())
+                            .map(|quip| log.enhance(quip));
+                    }
                 }
-                _ => unreachable!("the range is [0, 3]"),
+                _ => {}
             }
         }
     }

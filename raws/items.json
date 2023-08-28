@@ -11,6 +11,13 @@
             "name": "Fire Flint",
             "atlas_index": 68,
             "fg": [242, 122, 70]
+        },
+        {
+            "identifier": 201,
+            "name": "Fishing Rod",
+            "atlas_index": 112,
+            "fg": [255, 255, 255],
+            "pickup_text": "You should try finding some bubbles to use this in."
         }
     ]
 }

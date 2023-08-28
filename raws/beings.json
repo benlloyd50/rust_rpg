@@ -1,0 +1,24 @@
+{
+    "data" : [
+        {
+            "identifier": 0,
+            "name": "Bahhhby",
+            "monster": "",
+            "is_blocking": true,
+            "ai": "random_walk",
+            "atlas_index": 16,
+            "fg": [255, 255, 255],
+            "quips": ["Blissful bahhhby bites down on the bountiful brush."]
+        },
+        {
+            "identifier": 1,
+            "name": "Greg Goat",
+            "monster": "",
+            "is_blocking": true,
+            "ai": "random_walk",
+            "atlas_index": 17,
+            "fg": [255, 255, 255],
+            "quips": ["Good-natured greg gaily grazes upon the grass from the ground."]
+        }
+    ]
+}

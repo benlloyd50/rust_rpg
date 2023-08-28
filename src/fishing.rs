@@ -2,7 +2,8 @@ use std::time::Duration;
 
 use crate::{
     components::{
-        DeleteCondition, FinishedActivity, FishAction, FishOnTheLine, Name, WaitingForFish,
+        DeleteCondition, FinishedActivity, FishAction, FishOnTheLine, Fishable, Name, Renderable,
+        WaitingForFish, Water,
     },
     message_log::MessageLog,
     tile_animation::TileAnimationBuilder,
@@ -154,6 +155,37 @@ impl<'a> System<'a> for CatchFishSystem {
         for (entity, name) in remove_mes.iter() {
             log.enhance(format!("{} caught a really big fish!", name));
             hooks.remove(*entity);
+        }
+    }
+}
+
+pub struct UpdateFishingTiles;
+
+pub const BUBBLE_SPAWN_RATE: usize = 100000;
+impl<'a> System<'a> for UpdateFishingTiles {
+    type SystemData = (
+        WriteStorage<'a, Fishable>,
+        WriteStorage<'a, Renderable>,
+        ReadStorage<'a, Water>,
+        Entities<'a>,
+    );
+
+    fn run(&mut self, (mut fishables, mut renderables, waters, entities): Self::SystemData) {
+        let mut rng = RandomNumberGenerator::new();
+        let mut new_bubbles = Vec::new();
+        for (_, _, entity) in (!(&fishables), &waters, &entities).join() {
+            if rng.range(0, BUBBLE_SPAWN_RATE) < 3 {
+                new_bubbles.push(entity);
+            }
+        }
+        for bubble in new_bubbles {
+            let _ = fishables.insert(
+                bubble,
+                Fishable {
+                    time_left: Duration::from_secs(15),
+                },
+            );
+            let _ = renderables.insert(bubble, Renderable::default_bg(47, WHITE));
         }
     }
 }

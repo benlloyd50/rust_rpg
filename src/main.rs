@@ -28,7 +28,7 @@ use map::Map;
 mod components;
 use components::Position;
 mod fishing;
-use fishing::{CatchFishSystem, SetupFishingActions, WaitingForFishSystem};
+use fishing::{CatchFishSystem, SetupFishingActions, UpdateFishingTiles, WaitingForFishSystem};
 use indexing::{
     IndexBlockedTiles, IndexBreakableTiles, IndexFishableTiles, IndexItemTiles, IndexReset,
 };
@@ -40,7 +40,7 @@ use crate::{
     components::{
         Blocking, BreakAction, Breakable, DeathDrop, DeleteCondition, FinishedActivity, FishAction,
         FishOnTheLine, Fishable, HealthStats, InBackpack, Item, Monster, Name, PickupAction,
-        RandomWalkerAI, Renderable, Strength, SufferDamage, WaitingForFish,
+        RandomWalkerAI, Renderable, Strength, SufferDamage, WaitingForFish, Water,
     },
     data_read::initialize_game_databases,
     items::ItemSpawner,
@@ -75,23 +75,25 @@ impl State {
     fn run_continuous_systems(&mut self, _ctx: &mut BTerm) {
         // println!("Continuous Systems are now running.");
         // Indexing systems
-        let mut indexreset = IndexReset;
-        indexreset.run_now(&self.ecs);
-        let mut indexblocking = IndexBlockedTiles;
-        indexblocking.run_now(&self.ecs);
-        let mut indexbreaking = IndexBreakableTiles;
-        indexbreaking.run_now(&self.ecs);
-        let mut indexfishing = IndexFishableTiles;
-        indexfishing.run_now(&self.ecs);
-        let mut indexitems = IndexItemTiles;
-        indexitems.run_now(&self.ecs);
+        let mut index_reset = IndexReset;
+        index_reset.run_now(&self.ecs);
+        let mut index_blocking = IndexBlockedTiles;
+        index_blocking.run_now(&self.ecs);
+        let mut index_breaking = IndexBreakableTiles;
+        index_breaking.run_now(&self.ecs);
+        let mut index_fishing = IndexFishableTiles;
+        index_fishing.run_now(&self.ecs);
+        let mut index_items = IndexItemTiles;
+        index_items.run_now(&self.ecs);
 
-        let mut setupfishingactions = SetupFishingActions;
-        setupfishingactions.run_now(&self.ecs);
-        let mut waitingforfishsystem = WaitingForFishSystem;
-        waitingforfishsystem.run_now(&self.ecs);
-        let mut catchfishsystem = CatchFishSystem;
-        catchfishsystem.run_now(&self.ecs);
+        let mut update_fishing_tiles = UpdateFishingTiles;
+        update_fishing_tiles.run_now(&self.ecs);
+        let mut setup_fishing_actions = SetupFishingActions;
+        setup_fishing_actions.run_now(&self.ecs);
+        let mut waiting_for_fish = WaitingForFishSystem;
+        waiting_for_fish.run_now(&self.ecs);
+        let mut catch_fish = CatchFishSystem;
+        catch_fish.run_now(&self.ecs);
 
         let mut mining_sys = TileDestructionSystem;
         mining_sys.run_now(&self.ecs);
@@ -259,6 +261,7 @@ fn main() -> BError {
     world.register::<DeathDrop>();
     world.register::<Item>();
     world.register::<InBackpack>();
+    world.register::<Water>();
 
     // Resource Initialization, the ECS needs a basic definition of every resource that will be in the game
     world.insert(AppState::GameStartup);

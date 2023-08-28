@@ -1,5 +1,5 @@
 use crate::{
-    components::{Blocking, Fishable, Position},
+    components::{Blocking, Position, Water},
     indexing::idx_to_xy,
     map::{Map, WorldTile},
 };
@@ -47,7 +47,7 @@ pub fn load_simple_ldtk_level(ecs: &mut World) -> Map {
             2 => {
                 ecs.create_entity()
                     .with(Position::from_idx(idx, simple_level.width()))
-                    .with(Fishable)
+                    .with(Water)
                     .with(Blocking)
                     .build();
             }

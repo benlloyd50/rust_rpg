@@ -68,8 +68,10 @@ pub struct Strength {
 pub struct Blocking;
 
 #[derive(Debug, Component, Default)]
-#[storage(NullStorage)]
-pub struct Fishable;
+#[storage(VecStorage)]
+pub struct Fishable {
+    pub time_left: Duration,
+}
 
 #[derive(Component)]
 #[storage(VecStorage)]
@@ -97,7 +99,7 @@ impl WaitingForFish {
 #[storage(NullStorage)]
 pub struct FishOnTheLine;
 
-#[derive(Component, Clone)]
+#[derive(Component, Clone, PartialEq, Eq)]
 #[storage(VecStorage)]
 pub struct Name(pub String);
 
@@ -241,3 +243,7 @@ impl InBackpack {
 pub struct PickupAction {
     pub item: Entity,
 }
+
+#[derive(Component, Default)]
+#[storage(NullStorage)]
+pub struct Water;

@@ -5,7 +5,7 @@
  * Quest - when finished -> Item in Inventory
  */
 
-use specs::{Entities, Join, ReadStorage, System, Write, WriteStorage};
+use specs::{Entities, Entity, Join, ReadStorage, System, World, WorldExt, Write, WriteStorage};
 
 use crate::{
     components::{InBackpack, Item, Name, PickupAction, Position, Renderable},
@@ -124,6 +124,7 @@ impl<'a> System<'a> for ItemPickupHandler {
                         );
                     }
                     None => {
+                        let edb = &ENTITY_DB.lock().unwrap();
                         // Valid pickup from picker
                         positions.remove(item_target);
                         log.log(format!(
@@ -131,6 +132,11 @@ impl<'a> System<'a> for ItemPickupHandler {
                             picker_name,
                             item_name.0.to_lowercase()
                         ));
+                        if let Some(text) =
+                            &edb.items.get_by_name_unchecked(&item_name.0).pickup_text
+                        {
+                            log.enhance(text);
+                        }
                     }
                 },
                 Err(err) => eprintln!("{}", err),
@@ -139,4 +145,19 @@ impl<'a> System<'a> for ItemPickupHandler {
 
         pickups.clear();
     }
+}
+
+pub fn inventory_contains(name: &Name, inventory_of: &Entity, ecs: &World) -> Option<Entity> {
+    let items = ecs.read_storage::<Item>();
+    let in_pack = ecs.read_storage::<InBackpack>();
+    let names = ecs.read_storage::<Name>();
+    let entities = ecs.entities();
+
+    for (item_entity, _, bag, item_name) in (&entities, &items, &in_pack, &names).join() {
+        if bag.owner.eq(inventory_of) && item_name.eq(name) {
+            return Some(item_entity);
+        }
+    }
+
+    None
 }

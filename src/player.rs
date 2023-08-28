@@ -1,5 +1,6 @@
 use crate::{
-    components::{BreakAction, FinishedActivity, FishAction, PickupAction},
+    components::{BreakAction, FinishedActivity, FishAction, Name, PickupAction},
+    items::inventory_contains,
     map::{Map, TileEntity},
     AppState, Position, State,
 };
@@ -62,15 +63,19 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) -> PlayerRespons
                 }
                 TileEntity::Fishable(_entity) => {
                     println!("Attempting to fish at {}, {}", target_pos.x, target_pos.y);
-                    fish_actions
-                        .insert(
-                            player_entity,
-                            FishAction {
-                                target: target_pos.into(),
-                            },
-                        )
-                        .expect("Fish action could not be added to player entity");
-                    return PlayerResponse::StateChange(AppState::activity_bound());
+                    if let Some(_item) =
+                        inventory_contains(&Name::new("Fishing Rod"), &player_entity, ecs)
+                    {
+                        fish_actions
+                            .insert(
+                                player_entity,
+                                FishAction {
+                                    target: target_pos.into(),
+                                },
+                            )
+                            .expect("Fish action could not be added to player entity");
+                        return PlayerResponse::StateChange(AppState::activity_bound());
+                    }
                 }
                 TileEntity::Breakable(entity) => {
                     println!(

@@ -2,9 +2,8 @@ use bracket_terminal::prelude::{BLACK, WHITE};
 use specs::{Builder, World, WorldExt};
 
 use crate::{
-    components::{Blocking, Monster, Name, Position, RandomWalkerAI, Renderable, Strength},
-    data_read::prelude::load_simple_ldtk_level,
-    draw_sprites::debug_rocks,
+    components::{Blocking, Name, Position, Renderable, Strength},
+    data_read::prelude::{build_being, load_simple_ldtk_level},
     player::Player,
 };
 
@@ -21,14 +20,8 @@ pub fn initialize_game_world(ecs: &mut World) {
         .with(Name("Tester".to_string()))
         .build();
 
-    ecs.create_entity()
-        .with(Position::new(5, 15))
-        .with(Monster)
-        .with(Name::new("Bahhhby"))
-        .with(RandomWalkerAI)
-        .with(Renderable::new(WHITE, BLACK, 16))
-        .with(Blocking)
-        .build();
+    build_being("Bahhhby", Position::new(5, 15), ecs).ok();
+    build_being("Greg Goat", Position::new(12, 20), ecs).ok();
 
-    debug_rocks(ecs);
+    // debug_rocks(ecs);
 }
