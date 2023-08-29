@@ -1,7 +1,7 @@
 use bracket_terminal::prelude::{ColorPair, DrawBatch, Point, BLACK, WHITE};
 use specs::{Entity, World};
 
-use crate::{camera::get_bounding_box, components::Position};
+use crate::{camera::get_player_camera, components::Position};
 
 pub struct Map {
     pub tiles: Vec<WorldTile>,
@@ -91,7 +91,7 @@ impl Map {
 pub fn render_map(ecs: &World, batch: &mut DrawBatch) {
     let map = ecs.fetch::<Map>();
 
-    let bounding_box = get_bounding_box(ecs);
+    let bounding_box = get_player_camera(ecs);
 
     for x in bounding_box.x1..bounding_box.x2 {
         for y in bounding_box.y1..bounding_box.y2 {

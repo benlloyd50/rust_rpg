@@ -4,6 +4,7 @@ use specs::{Builder, Entity, World, WorldExt};
 use crate::{
     components::{Item, Name, Position, Renderable},
     data_read::EntityBuildError,
+    z_order::ITEM_Z,
 };
 
 use super::ENTITY_DB;
@@ -64,7 +65,7 @@ pub fn build_item(
         .with(Item)
         .with(Name::new(&raw.name))
         .with(pos)
-        .with(Renderable::default_bg(raw.atlas_index, raw.fg));
+        .with(Renderable::default_bg(raw.atlas_index, raw.fg, ITEM_Z));
 
     Ok(builder.build())
 }

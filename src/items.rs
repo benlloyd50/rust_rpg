@@ -11,6 +11,7 @@ use crate::{
     components::{InBackpack, Item, Name, PickupAction, Position, Renderable},
     data_read::prelude::*,
     message_log::MessageLog,
+    z_order::ITEM_Z,
 };
 
 #[derive(Default)]
@@ -72,7 +73,7 @@ impl<'a> System<'a> for ItemSpawnerSystem {
             let _ = positions.insert(new_item, spawn.position);
             let _ = renderables.insert(
                 new_item,
-                Renderable::default_bg(static_item.atlas_index, static_item.fg),
+                Renderable::default_bg(static_item.atlas_index, static_item.fg, ITEM_Z),
             );
             let _ = items.insert(new_item, Item);
             let _ = names.insert(new_item, Name(static_item.name.clone()));
@@ -147,6 +148,8 @@ impl<'a> System<'a> for ItemPickupHandler {
     }
 }
 
+/// Checks to see if an item is held by an entity and will return the entity associated with the
+/// item if there is one.
 pub fn inventory_contains(name: &Name, inventory_of: &Entity, ecs: &World) -> Option<Entity> {
     let items = ecs.read_storage::<Item>();
     let in_pack = ecs.read_storage::<InBackpack>();

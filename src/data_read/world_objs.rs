@@ -3,8 +3,12 @@ use std::str::FromStr;
 use serde::{Deserialize, Serialize};
 use specs::{Builder, Entity, World, WorldExt};
 
-use crate::components::{
-    Blocking, Breakable, DeathDrop, HealthStats as HealthStatsComponent, Name, Position, Renderable,
+use crate::{
+    components::{
+        Blocking, Breakable, DeathDrop, HealthStats as HealthStatsComponent, Name, Position,
+        Renderable,
+    },
+    z_order::WORLD_OBJECT_Z,
 };
 
 use super::{EntityBuildError, ENTITY_DB};
@@ -46,7 +50,11 @@ pub fn build_obj(
     let mut builder = world.create_entity().with(Name::new(&raw.name)).with(pos);
 
     if let Some(foreground) = &raw.foreground {
-        builder = builder.with(Renderable::default_bg(raw.atlas_index, *foreground));
+        builder = builder.with(Renderable::default_bg(
+            raw.atlas_index,
+            *foreground,
+            WORLD_OBJECT_Z,
+        ));
     }
 
     if raw.is_blocking {

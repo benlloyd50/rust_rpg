@@ -10,21 +10,24 @@ use crate::{data_read::prelude::ItemID, indexing::idx_to_xy};
 pub struct Renderable {
     pub color_pair: ColorPair,
     pub atlas_index: usize,
+    pub z_priority: u32,
 }
 
 impl Renderable {
-    pub fn new(fg: (u8, u8, u8), bg: (u8, u8, u8), atlas_index: usize) -> Self {
+    pub fn new(fg: (u8, u8, u8), bg: (u8, u8, u8), atlas_index: usize, z_priority: u32) -> Self {
         Self {
             color_pair: ColorPair::new(fg, bg),
             atlas_index,
+            z_priority,
         }
     }
 
     /// Creates a renderable with a black bg and specified parts
-    pub fn default_bg(atlas_index: usize, fg: (u8, u8, u8)) -> Self {
+    pub fn default_bg(atlas_index: usize, fg: (u8, u8, u8), z_priority: u32) -> Self {
         Self {
             color_pair: ColorPair::new(fg, WHITE),
             atlas_index,
+            z_priority,
         }
     }
 }
@@ -44,6 +47,10 @@ impl Position {
 
     pub fn from_idx(idx: usize, width: usize) -> Self {
         idx_to_xy(idx, width).into()
+    }
+
+    pub fn to_idx(&self, width: usize) -> usize {
+        self.y * width + self.x
     }
 }
 

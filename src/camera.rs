@@ -6,8 +6,8 @@ use crate::{components::Position, player::Player, DISPLAY_HEIGHT, DISPLAY_WIDTH}
 const PLAYER_CAMERA_OFFSET_X: i32 = 13;
 const PLAYER_CAMERA_OFFSET_Y: i32 = 13;
 
-// returns the corners of the rectangle
-pub fn get_bounding_box(ecs: &World) -> Rect {
+// Gets the bounds of the camera attached to the player
+pub fn get_player_camera(ecs: &World) -> Rect {
     let player = ecs.read_storage::<Player>();
     let positions = ecs.read_storage::<Position>();
     // let map = ecs.read_resource::<Map>();

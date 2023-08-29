@@ -1,7 +1,10 @@
 use bracket_terminal::prelude::{ColorPair, RGB};
 use specs::{Entities, Join, ReadStorage, System, Write, WriteStorage};
 
-use crate::components::{DeleteCondition, FinishedActivity, Position, Renderable};
+use crate::{
+    components::{DeleteCondition, FinishedActivity, Position, Renderable},
+    z_order::TILE_ANIM_Z,
+};
 
 #[derive(Default)]
 pub struct TileAnimationBuilder {
@@ -69,6 +72,7 @@ impl<'a> System<'a> for TileAnimationSpawner {
                 Renderable {
                     color_pair: *fgbg,
                     atlas_index: *atlas_index,
+                    z_priority: TILE_ANIM_Z,
                 },
             );
             let _ = delete_conditions.insert(new_anim, *delete_condition);

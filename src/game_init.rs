@@ -5,6 +5,7 @@ use crate::{
     components::{Blocking, Name, Position, Renderable, Strength},
     data_read::prelude::{build_being, load_simple_ldtk_level},
     player::Player,
+    z_order::PLAYER_Z,
 };
 
 pub fn initialize_game_world(ecs: &mut World) {
@@ -15,13 +16,11 @@ pub fn initialize_game_world(ecs: &mut World) {
         .with(Position::new(17, 20))
         .with(Player)
         .with(Strength { amt: 1 })
-        .with(Renderable::new(WHITE, BLACK, 2))
+        .with(Renderable::new(WHITE, BLACK, 2, PLAYER_Z))
         .with(Blocking)
         .with(Name("Tester".to_string()))
         .build();
 
     build_being("Bahhhby", Position::new(5, 15), ecs).ok();
     build_being("Greg Goat", Position::new(12, 20), ecs).ok();
-
-    // debug_rocks(ecs);
 }

@@ -1,7 +1,10 @@
 use serde::Deserialize;
 use specs::{Builder, Entity, World, WorldExt};
 
-use crate::components::{Blocking, Monster, Name, Position, RandomWalkerAI, Renderable};
+use crate::{
+    components::{Blocking, Monster, Name, Position, RandomWalkerAI, Renderable},
+    z_order::BEING_Z,
+};
 
 use super::{EntityBuildError, ENTITY_DB};
 
@@ -60,7 +63,7 @@ pub fn build_being(
         .create_entity()
         .with(Name::new(&raw.name))
         .with(pos)
-        .with(Renderable::default_bg(raw.atlas_index, raw.fg));
+        .with(Renderable::default_bg(raw.atlas_index, raw.fg, BEING_Z));
 
     if let Some(_) = &raw.monster {
         builder = builder.with(Monster);

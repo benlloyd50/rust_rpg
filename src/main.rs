@@ -20,6 +20,7 @@ mod monster;
 mod player;
 mod tile_animation;
 mod user_interface;
+mod z_order;
 use tile_animation::TileAnimationCleanUpSystem;
 mod time;
 use player::{check_player_activity, manage_player_input, PlayerResponse};
@@ -28,7 +29,10 @@ use map::Map;
 mod components;
 use components::Position;
 mod fishing;
-use fishing::{CatchFishSystem, SetupFishingActions, UpdateFishingTiles, WaitingForFishSystem};
+use fishing::{
+    CatchFishSystem, PollFishingTiles, SetupFishingActions, UpdateFishingTiles,
+    WaitingForFishSystem,
+};
 use indexing::{
     IndexBlockedTiles, IndexBreakableTiles, IndexFishableTiles, IndexItemTiles, IndexReset,
 };
@@ -69,6 +73,8 @@ impl State {
         // println!("Response Systems are now running.");
         let mut randomwalker = RandomMonsterMovementSystem;
         randomwalker.run_now(&self.ecs);
+        let mut update_fishing_tiles = UpdateFishingTiles;
+        update_fishing_tiles.run_now(&self.ecs);
         // println!("Response Systems are now finished.");
     }
 
@@ -86,8 +92,6 @@ impl State {
         let mut index_items = IndexItemTiles;
         index_items.run_now(&self.ecs);
 
-        let mut update_fishing_tiles = UpdateFishingTiles;
-        update_fishing_tiles.run_now(&self.ecs);
         let mut setup_fishing_actions = SetupFishingActions;
         setup_fishing_actions.run_now(&self.ecs);
         let mut waiting_for_fish = WaitingForFishSystem;
@@ -109,6 +113,8 @@ impl State {
         let mut tile_anim_cleanup_system = TileAnimationCleanUpSystem;
         tile_anim_cleanup_system.run_now(&self.ecs);
 
+        let mut poll_fishing_tiles = PollFishingTiles;
+        poll_fishing_tiles.run_now(&self.ecs);
         let mut remove_dead_tiles = RemoveDeadTiles;
         remove_dead_tiles.run_now(&self.ecs);
 

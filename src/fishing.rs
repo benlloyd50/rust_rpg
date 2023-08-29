@@ -8,6 +8,7 @@ use crate::{
     message_log::MessageLog,
     tile_animation::TileAnimationBuilder,
     time::DeltaTime,
+    z_order::EFFECT_Z,
 };
 use bracket_random::prelude::*;
 use bracket_terminal::prelude::{BLACK, WHITE};
@@ -182,10 +183,37 @@ impl<'a> System<'a> for UpdateFishingTiles {
             let _ = fishables.insert(
                 bubble,
                 Fishable {
-                    time_left: Duration::from_secs(15),
+                    time_left: Duration::from_secs(5),
                 },
             );
-            let _ = renderables.insert(bubble, Renderable::default_bg(47, WHITE));
+            let _ = renderables.insert(bubble, Renderable::default_bg(47, WHITE, EFFECT_Z));
+        }
+    }
+}
+
+pub struct PollFishingTiles;
+
+impl<'a> System<'a> for PollFishingTiles {
+    type SystemData = (
+        WriteStorage<'a, Fishable>,
+        WriteStorage<'a, Renderable>,
+        Read<'a, DeltaTime>,
+        Entities<'a>,
+    );
+
+    fn run(&mut self, (mut fishables, mut renderables, delta_time, entities): Self::SystemData) {
+        let mut remove_mes = Vec::new();
+
+        for (e, fishable) in (&entities, &mut fishables).join() {
+            fishable.time_left = fishable.time_left.saturating_sub(delta_time.0);
+            if fishable.time_left.is_zero() {
+                remove_mes.push(e);
+            }
+        }
+
+        for me in remove_mes {
+            renderables.remove(me);
+            fishables.remove(me);
         }
     }
 }
