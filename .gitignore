@@ -8,4 +8,4 @@ interface_tiles.*
 
 book/
 
-*.ldtk
+# *.ldtk
