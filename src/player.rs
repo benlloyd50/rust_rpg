@@ -1,10 +1,10 @@
 use crate::{
     components::{BreakAction, FinishedActivity, FishAction, Name, PickupAction},
-    items::inventory_contains,
+    items::{inventory_contains, try_item},
     map::{Map, TileEntity},
-    AppState, Position, State,
+    AppState, Position, State, game_init::PlayerEntity,
 };
-use bracket_terminal::prelude::{BTerm, Point, VirtualKeyCode};
+use bracket_terminal::prelude::{BTerm, Point, VirtualKeyCode as VKC};
 use specs::{prelude::*, Component};
 use std::process::exit;
 
@@ -23,12 +23,51 @@ pub fn manage_player_input(state: &mut State, ctx: &BTerm) -> PlayerResponse {
         None => PlayerResponse::Waiting,
         Some(key) => {
             match key {
-                VirtualKeyCode::W | VirtualKeyCode::Up => try_move_player(0, -1, &mut state.ecs),
-                VirtualKeyCode::S | VirtualKeyCode::Down => try_move_player(0, 1, &mut state.ecs),
-                VirtualKeyCode::A | VirtualKeyCode::Left => try_move_player(-1, 0, &mut state.ecs),
-                VirtualKeyCode::D | VirtualKeyCode::Right => try_move_player(1, 0, &mut state.ecs),
-                VirtualKeyCode::P => try_pickup(&mut state.ecs), // p for pickup
-                VirtualKeyCode::Escape => exit(0),
+                VKC::W | VKC::Up => try_move_player(0, -1, &mut state.ecs),
+                VKC::S | VKC::Down => try_move_player(0, 1, &mut state.ecs),
+                VKC::A | VKC::Left => try_move_player(-1, 0, &mut state.ecs),
+                VKC::D | VKC::Right => try_move_player(1, 0, &mut state.ecs),
+                VKC::P => try_pickup(&mut state.ecs), // p for pickup
+                VKC::I => PlayerResponse::StateChange(AppState::PlayerInInventory),
+                VKC::Back => exit(0),
+                VKC::Space => PlayerResponse::TurnAdvance,
+                _ => PlayerResponse::Waiting, // Unbound keypress so just ignore it
+            }
+        }
+    }
+}
+
+// ui x = 81 for shift arrow
+pub fn manage_player_inventory(state: &mut State, ctx: &BTerm) -> PlayerResponse {
+    let player_entity: Entity;
+    {  // dirty borrow checker hack to take the value of player entity
+        player_entity = state.ecs.read_resource::<PlayerEntity>().0;
+    }
+    match ctx.key {
+        None => PlayerResponse::Waiting,
+        Some(key) => {
+            match key {
+                VKC::Key1 => { try_item(&player_entity, 1, &mut state.ecs) },
+                VKC::Key2 => { try_item(&player_entity, 2, &mut state.ecs) },
+                VKC::Key3 => { try_item(&player_entity, 3, &mut state.ecs) },
+                VKC::Key4 => { try_item(&player_entity, 4, &mut state.ecs) },
+                VKC::Key5 => { try_item(&player_entity, 5, &mut state.ecs) },
+                VKC::Key6 => { try_item(&player_entity, 6, &mut state.ecs) },
+                VKC::Key7 => { try_item(&player_entity, 7, &mut state.ecs) },
+                VKC::Key8 => { try_item(&player_entity, 8, &mut state.ecs) },
+                VKC::Key9 => { try_item(&player_entity, 9, &mut state.ecs) },
+                VKC::Key0 => { try_item(&player_entity, 10, &mut state.ecs) },
+                VKC::Minus => { try_item(&player_entity, 11, &mut state.ecs) },
+                VKC::Plus => { try_item(&player_entity, 12, &mut state.ecs) },
+                VKC::A => { try_item(&player_entity, 13, &mut state.ecs) },
+                VKC::B => { try_item(&player_entity, 14, &mut state.ecs) },
+                VKC::C => { try_item(&player_entity, 15, &mut state.ecs) },
+                VKC::D => { try_item(&player_entity, 16, &mut state.ecs) },
+                VKC::E => { try_item(&player_entity, 17, &mut state.ecs) },
+                VKC::F => { try_item(&player_entity, 18, &mut state.ecs) },
+                VKC::G => { try_item(&player_entity, 19, &mut state.ecs) },
+                VKC::H => { try_item(&player_entity, 20, &mut state.ecs) },
+                VKC::Escape | VKC::I => PlayerResponse::StateChange(AppState::InGame),
                 _ => PlayerResponse::Waiting, // Unbound keypress so just ignore it
             }
         }
@@ -63,8 +102,7 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) -> PlayerRespons
                 }
                 TileEntity::Fishable(_entity) => {
                     println!("Attempting to fish at {}, {}", target_pos.x, target_pos.y);
-                    if let Some(_item) =
-                        inventory_contains(&Name::new("Fishing Rod"), &player_entity, ecs)
+                    if inventory_contains(&Name::new("Fishing Rod"), &player_entity, ecs)
                     {
                         fish_actions
                             .insert(
@@ -109,12 +147,12 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) -> PlayerRespons
 fn try_pickup(ecs: &mut World) -> PlayerResponse {
     let mut pickups = ecs.write_storage::<PickupAction>();
 
+    let player_entity = ecs.read_resource::<PlayerEntity>();
     let positions = ecs.read_storage::<Position>();
-    let players = ecs.read_storage::<Player>();
     let map = ecs.fetch::<Map>();
     let entities = ecs.entities();
 
-    for (player_entity, pos, _) in (&entities, &positions, &players).join() {
+    if let Some((player_entity, pos)) = (&entities, &positions).join().find(|(e, _)| e.eq(&player_entity.0)) {
         let mut item_iter = map.all_items_at_pos(&pos);
         if let Some(item_entity) = item_iter.next() {
             let _ = pickups.insert(

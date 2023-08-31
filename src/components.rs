@@ -1,9 +1,9 @@
-use std::{fmt::Display, str::FromStr, time::Duration};
+use std::{fmt::Display, str::FromStr, time::Duration, collections::{HashMap, hash_map::Entry}};
 
 use bracket_terminal::prelude::{ColorPair, Point, WHITE};
 use specs::{Component, Entity, NullStorage, VecStorage};
 
-use crate::{data_read::prelude::ItemID, indexing::idx_to_xy};
+use crate::{data_read::{prelude::ItemID, ENTITY_DB}, indexing::idx_to_xy, items::ItemQty};
 
 #[derive(Debug, Component)]
 #[storage(VecStorage)]
@@ -49,6 +49,7 @@ impl Position {
         idx_to_xy(idx, width).into()
     }
 
+    #[allow(dead_code)]
     pub fn to_idx(&self, width: usize) -> usize {
         self.y * width + self.x
     }
@@ -110,7 +111,8 @@ pub struct FishOnTheLine;
 #[storage(VecStorage)]
 pub struct Name(pub String);
 
-const MISSING_ITEM_NAME: &'static str = "Missing Item Name";
+const MISSING_ITEM_NAME: &'static str = "MISSING_ITEM_NAME";
+const MISSING_BEING_NAME: &'static str = "MISSING_BEING_NAME";
 
 impl Name {
     pub fn new(name: impl ToString) -> Self {
@@ -119,6 +121,10 @@ impl Name {
 
     pub fn missing_item_name() -> Self {
         Name::new(MISSING_ITEM_NAME)
+    }
+
+    pub fn missing_being_name() -> Self {
+        Name::new(MISSING_BEING_NAME)
     }
 }
 
@@ -233,15 +239,56 @@ pub struct FinishedActivity;
 #[storage(NullStorage)]
 pub struct Item;
 
+
 #[derive(Component)]
 #[storage(VecStorage)]
-pub struct InBackpack {
-    pub owner: Entity,
+pub struct Backpack {
+    contents: HashMap<ItemID, ItemQty>,
 }
 
-impl InBackpack {
-    pub fn of(e: Entity) -> Self {
-        Self { owner: e }
+impl Backpack {
+    pub fn empty() -> Self {
+        Self {
+            contents: HashMap::new(),
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        self.contents.len()
+    }
+
+    pub fn add_into_backpack(&mut self, item_id: ItemID, qty: usize) -> bool {
+        match self.contents.entry(item_id) {
+            Entry::Occupied(mut o) => { o.get_mut().add(qty);}
+            Entry::Vacant(v) => { v.insert(ItemQty::new(qty)); }
+        }
+        true
+    }
+
+    pub fn iter(&self) -> std::collections::hash_map::Iter<'_, ItemID, ItemQty> {
+        self.contents.iter()
+    }
+
+
+    /// Checks inventory for an item based on name.
+    /// This is useful when edb is not needed for other reasons in the calling function.
+    /// If you do need edb for other information then use `.contains(ItemID)`
+    pub fn contains_named(&self, name: &Name) -> bool {
+        let edb = &ENTITY_DB.lock().unwrap();
+        let info = edb.items.get_by_name_unchecked(&name.0);
+        self.contains(info.identifier)
+    }
+
+    /// Checks inventory for an item based on ID.
+    pub fn contains(&self, item_id: ItemID) -> bool {
+        match self.contents.get(&item_id) {
+            Some(o) => {
+                o.0 > 0
+            }
+            None => {
+                false
+            }
+        }
     }
 }
 

@@ -69,12 +69,6 @@ pub fn build_obj(
                 return Err(EntityBuildError);
             }
         };
-        println!(
-            "{} has death drop {} with id {:?}",
-            name.to_string(),
-            drop,
-            drop_id
-        );
         builder = builder.with(DeathDrop::new(drop_id));
     }
 

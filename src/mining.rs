@@ -1,8 +1,8 @@
 use crate::{
     components::{
-        BreakAction, Breakable, DeathDrop, HealthStats, Position, Strength, SufferDamage, ToolType,
+        BreakAction, Breakable, DeathDrop, HealthStats, Position, Strength, SufferDamage, ToolType, Name,
     },
-    items::ItemSpawner,
+    items::ItemSpawner, message_log::MessageLog,
 };
 use specs::{Entities, Entity, Join, ReadStorage, System, Write, WriteStorage};
 
@@ -13,35 +13,38 @@ pub struct TileDestructionSystem;
 
 impl<'a> System<'a> for TileDestructionSystem {
     type SystemData = (
-        ReadStorage<'a, Strength>,
         WriteStorage<'a, BreakAction>,
         WriteStorage<'a, SufferDamage>,
+        Write<'a, MessageLog>,
+        ReadStorage<'a, Strength>,
         ReadStorage<'a, Breakable>,
         ReadStorage<'a, HealthStats>,
+        ReadStorage<'a, Name>,
     );
 
     fn run(
         &mut self,
-        (strength, mut break_actions, mut suffer_damage, breakable, health_stats): Self::SystemData,
+        (mut break_actions, mut suffer_damage, mut log, strength, breakable, health_stats, names): Self::SystemData,
     ) {
-        for (strength, action) in (&strength, &break_actions).join() {
+        for (strength, action, name) in (&strength, &break_actions, &names).join() {
             if let Some(target_breakable) = breakable.get(action.target) {
                 if !inventory_contains_tool(&target_breakable.by) {
+                    log.log("You do not own the correct tool for this destructible.");
                     continue;
                 }
             }
 
             if let Some(target_stats) = health_stats.get(action.target) {
                 if target_stats.defense > strength.amt {
-                    println!("Took no damage because defense is greater");
+                    log.log("Took no damage because defense is greater");
                     continue;
                 }
 
                 let damage = strength.amt - target_stats.defense;
-                println!("Dealt {} damage to {}", damage, action.target.id());
+                log.log(format!("Dealt {} damage to {}", damage, name.0));
                 SufferDamage::new_damage(&mut suffer_damage, action.target, -(damage as i32));
             } else {
-                println!("{} entity has no health stats", action.target.id());
+                log.debug(format!("{} entity has no health stats", action.target.id()));
             }
         }
 

@@ -23,7 +23,7 @@ mod user_interface;
 mod z_order;
 use tile_animation::TileAnimationCleanUpSystem;
 mod time;
-use player::{check_player_activity, manage_player_input, PlayerResponse};
+use player::{check_player_activity, manage_player_input, PlayerResponse, manage_player_inventory};
 mod map;
 use map::Map;
 mod components;
@@ -43,8 +43,8 @@ use user_interface::draw_ui;
 use crate::{
     components::{
         Blocking, BreakAction, Breakable, DeathDrop, DeleteCondition, FinishedActivity, FishAction,
-        FishOnTheLine, Fishable, HealthStats, InBackpack, Item, Monster, Name, PickupAction,
-        RandomWalkerAI, Renderable, Strength, SufferDamage, WaitingForFish, Water,
+        FishOnTheLine, Fishable, HealthStats, Item, Monster, Name, PickupAction,
+        RandomWalkerAI, Renderable, Strength, SufferDamage, WaitingForFish, Water, Backpack,
     },
     data_read::initialize_game_databases,
     items::ItemSpawner,
@@ -137,6 +137,7 @@ pub enum AppState {
     InGame,
     ActivityBound { response_delay: Duration }, // can only perform a specific acitivity that is currently happening
     GameStartup,
+    PlayerInInventory,
 }
 
 impl AppState {
@@ -182,6 +183,20 @@ impl GameState for State {
                 self.run_eof_systems();
                 delta_time_update(&mut self.ecs, ctx);
             }
+            AppState::PlayerInInventory => {
+                match manage_player_inventory(self, ctx) {
+                    PlayerResponse::Waiting => {
+                        // Player hasn't done anything yet so only run essential systems
+                    }
+                    PlayerResponse::TurnAdvance => {
+                        // self.run_response_systems();
+                    }
+                    PlayerResponse::StateChange(delta_state) => {
+                        new_state = delta_state;
+                    }
+                }
+                delta_time_update(&mut self.ecs, ctx);
+            } 
             AppState::ActivityBound { mut response_delay } => {
                 // if the player finishes we run final systems and change state
                 self.run_continuous_systems(ctx);
@@ -202,7 +217,10 @@ impl GameState for State {
 
         self.ecs.maintain();
 
-        draw_ui(&self.ecs);
+        {
+            let current_frame_state = self.ecs.fetch::<AppState>();
+            draw_ui(&self.ecs, &current_frame_state);
+        }
         draw_sprite_layers(&self.ecs);
         render_draw_buffer(ctx).expect("Render error??");
 
@@ -266,8 +284,8 @@ fn main() -> BError {
     world.register::<RandomWalkerAI>();
     world.register::<DeathDrop>();
     world.register::<Item>();
-    world.register::<InBackpack>();
     world.register::<Water>();
+    world.register::<Backpack>();
 
     // Resource Initialization, the ECS needs a basic definition of every resource that will be in the game
     world.insert(AppState::GameStartup);

@@ -44,7 +44,7 @@ pub struct ItemInfo {
     pub(crate) pickup_text: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Copy, Clone, Debug)]
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, Hash, Eq, PartialEq)]
 pub struct ItemID(pub u32);
 
 pub fn build_item(

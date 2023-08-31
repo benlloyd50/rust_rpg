@@ -5,14 +5,34 @@
  * Quest - when finished -> Item in Inventory
  */
 
+use std::fmt::Display;
+
 use specs::{Entities, Entity, Join, ReadStorage, System, World, WorldExt, Write, WriteStorage};
 
 use crate::{
-    components::{InBackpack, Item, Name, PickupAction, Position, Renderable},
+    components::{Item, Name, PickupAction, Position, Renderable, Backpack},
     data_read::prelude::*,
     message_log::MessageLog,
-    z_order::ITEM_Z,
+    z_order::ITEM_Z, player::PlayerResponse,
 };
+
+pub struct ItemQty(pub usize);
+
+impl Display for ItemQty {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl ItemQty {
+    pub fn new(amt: usize) -> Self {
+        Self(amt) 
+    }
+
+    pub fn add(&mut self, amt: usize) {
+        self.0 += amt; 
+    }
+}
 
 #[derive(Default)]
 pub struct ItemSpawner {
@@ -88,19 +108,18 @@ pub struct ItemPickupHandler;
 impl<'a> System<'a> for ItemPickupHandler {
     type SystemData = (
         WriteStorage<'a, Position>,
-        WriteStorage<'a, InBackpack>,
+        WriteStorage<'a, Backpack>,
         WriteStorage<'a, PickupAction>,
         Write<'a, MessageLog>,
-        Entities<'a>,
         ReadStorage<'a, Item>,
         ReadStorage<'a, Name>,
     );
 
     fn run(
         &mut self,
-        (mut positions, mut backpacks, mut pickups, mut log, entities, items, names): Self::SystemData,
+        (mut positions, mut backpacks, mut pickups, mut log, items, names): Self::SystemData,
     ) {
-        for (e, pickup, picker_name) in (&entities, &pickups, &names).join() {
+        for (pickup, picker_name, backpack) in (&pickups, &names, &mut backpacks).join() {
             let item_target = pickup.item;
             let item_name = match names.get(item_target) {
                 Some(name) => name.clone(),
@@ -114,33 +133,16 @@ impl<'a> System<'a> for ItemPickupHandler {
                 );
                 continue;
             }
+            let edb = &ENTITY_DB.lock().unwrap();
+            let item_info = edb.items.get_by_name_unchecked(&item_name.0);
 
-            match backpacks.insert(item_target, InBackpack::of(e)) {
-                Ok(maybe_prev_owner) => match maybe_prev_owner {
-                    Some(prev_owner) => {
-                        let prev_owner_name = names.get(prev_owner.owner).unwrap();
-                        eprintln!(
-                            "Item {} is already in {}'s backpack. How did {} pick it up?",
-                            item_name, prev_owner_name, picker_name
-                        );
-                    }
-                    None => {
-                        let edb = &ENTITY_DB.lock().unwrap();
-                        // Valid pickup from picker
-                        positions.remove(item_target);
-                        log.log(format!(
-                            "{} picked up a {}",
-                            picker_name,
-                            item_name.0.to_lowercase()
-                        ));
-                        if let Some(text) =
-                            &edb.items.get_by_name_unchecked(&item_name.0).pickup_text
-                        {
-                            log.enhance(text);
-                        }
-                    }
-                },
-                Err(err) => eprintln!("{}", err),
+            if backpack.add_into_backpack(item_info.identifier, 1) {
+                positions.remove(item_target);
+                log.log(format!( "{} picked up a {}", picker_name, item_name.0.to_lowercase()));
+                if let Some(text) = &edb.items.get_by_name_unchecked(&item_name.0).pickup_text
+                {
+                    log.enhance(text);
+                }
             }
         }
 
@@ -150,17 +152,46 @@ impl<'a> System<'a> for ItemPickupHandler {
 
 /// Checks to see if an item is held by an entity and will return the entity associated with the
 /// item if there is one.
-pub fn inventory_contains(name: &Name, inventory_of: &Entity, ecs: &World) -> Option<Entity> {
-    let items = ecs.read_storage::<Item>();
-    let in_pack = ecs.read_storage::<InBackpack>();
+pub fn inventory_contains(looking_for: &Name, inventory_of: &Entity, ecs: &World) -> bool {
+    let bags = ecs.read_storage::<Backpack>();
     let names = ecs.read_storage::<Name>();
-    let entities = ecs.entities();
+    let checking_inventory = match bags.get(*inventory_of) {
+        Some(bag) => bag,
+        None => { 
+            let missing_being = &Name::missing_being_name();
+            let inventory_owner = names.get(*inventory_of).unwrap_or(missing_being);
+            eprintln!("{} does not have a backpack component", inventory_owner); 
+            return false;
+        }
+    };
 
-    for (item_entity, _, bag, item_name) in (&entities, &items, &in_pack, &names).join() {
-        if bag.owner.eq(inventory_of) && item_name.eq(name) {
-            return Some(item_entity);
+    checking_inventory.contains_named(looking_for)
+}
+
+
+pub fn try_item(entity_trying: &Entity, desired_idx: usize, ecs: &mut World) -> PlayerResponse {
+    let backpacks = ecs.read_storage::<Backpack>();
+    let mut log = ecs.write_resource::<MessageLog>();
+    let items_in_bag = match backpacks.get(*entity_trying) {
+        Some(items) => items,
+        None => panic!("Player entity does not have a Backpack component."),
+    };
+
+    let edb = &ENTITY_DB.lock().unwrap();
+
+    let mut curr_index = 0;
+    let desired_index = desired_idx - 1;
+    for (iid, qty) in items_in_bag.iter() {
+        if curr_index != desired_index {
+            curr_index += 1;
+            continue;
+        }
+        if let Some(info) = edb.items.get_by_id(iid.0) {
+            log.debug(format!("It is {} units of {}", qty, info.name));
+            break;
         }
     }
 
-    None
+
+    PlayerResponse::Waiting
 }
