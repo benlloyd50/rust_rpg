@@ -21,7 +21,7 @@
             "death_drop": "Flint",
             "breakable": "Hand",
             "health_stats": {
-                "max_hp" : 1,
+                "max_hp" : 3,
                 "defense": 0
             },
             "foreground": [255, 255, 255]
@@ -38,6 +38,18 @@
                 "defense": 0
             },
             "foreground": [7, 247, 167]
+        },
+        {
+            "identifier": 12,
+            "name": "Grass",
+            "atlas_index": 32,
+            "is_blocking": true,
+            "breakable": "Hand",
+            "health_stats": {
+                "max_hp" : 1,
+                "defense": 0
+            },
+            "foreground": [255, 255, 255]
         }
     ]
 }

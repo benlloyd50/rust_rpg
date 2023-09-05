@@ -15,7 +15,7 @@
             "name": "Greg Goat",
             "monster": "",
             "is_blocking": true,
-            "ai": "random_walk",
+            "ai": "goal",
             "atlas_index": 17,
             "fg": [255, 255, 255],
             "quips": ["Good-natured greg gaily grazes upon the grass from the ground."]

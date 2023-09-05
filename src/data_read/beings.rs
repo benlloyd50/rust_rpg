@@ -2,7 +2,7 @@ use serde::Deserialize;
 use specs::{Builder, Entity, World, WorldExt};
 
 use crate::{
-    components::{Blocking, Monster, Name, Position, RandomWalkerAI, Renderable},
+    components::{Blocking, Monster, Name, Position, RandomWalkerAI, Renderable, GoalMoverAI},
     z_order::BEING_Z,
 };
 
@@ -76,6 +76,7 @@ pub fn build_being(
     if let Some(ai_type) = &raw.ai {
         builder = match ai_type.as_str() {
             "random_walk" => builder.with(RandomWalkerAI),
+            "goal" => builder.with(GoalMoverAI::new()),
             _ => builder,
         };
     }

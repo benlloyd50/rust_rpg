@@ -143,6 +143,21 @@ pub struct Monster;
 #[storage(NullStorage)]
 pub struct RandomWalkerAI;
 
+/// Makes the entity walk towards a goal which is targeted
+#[derive(Component)]
+#[storage(VecStorage)]
+pub struct GoalMoverAI {
+    goal: Option<Entity>,
+}
+
+impl GoalMoverAI {
+    pub fn new() -> Self {
+        Self {
+            goal: None,
+        }
+    }
+}
+
 #[derive(Debug, Component)]
 #[storage(VecStorage)]
 #[allow(dead_code)]
@@ -246,6 +261,7 @@ pub struct Backpack {
     contents: HashMap<ItemID, ItemQty>,
 }
 
+/// This is lots of behavior for a component but backpacks are complicated and this is a simple abstraction
 impl Backpack {
     pub fn empty() -> Self {
         Self {
@@ -298,6 +314,12 @@ pub struct PickupAction {
     pub item: Entity,
 }
 
+/// Water ripe for swimming in or boating over or building a pier to fish off
 #[derive(Component, Default)]
 #[storage(NullStorage)]
 pub struct Water;
+
+/// A delicious treat loved by many animals and other beings...
+#[derive(Component, Default)]
+#[storage(NullStorage)]
+pub struct Grass;

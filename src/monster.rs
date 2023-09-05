@@ -4,7 +4,7 @@ use bracket_random::prelude::RandomNumberGenerator;
 use specs::{Join, ReadStorage, System, World, WorldExt, WriteExpect, WriteStorage};
 
 use crate::{
-    components::{Monster, Name, Position, RandomWalkerAI},
+    components::{Monster, Name, Position, RandomWalkerAI, GoalMoverAI},
     data_read::ENTITY_DB,
     message_log::MessageLog,
     time::DeltaTime,
@@ -66,5 +66,18 @@ pub fn check_monster_delay(ecs: &World, monster_delay: &mut Duration) -> bool {
         true
     } else {
         false
+    }
+}
+
+pub struct UpdateGoalEntities;
+
+impl<'a> System<'a> for UpdateGoalEntities {
+    type SystemData = (WriteStorage<'a, GoalMoverAI>,
+ReadStorage<'a, Position>,
+ReadStorage<'a, Name>,
+    );
+
+    fn run(&mut self, (goal_movers, positions, names): Self::SystemData) {
+        
     }
 }
