@@ -43,13 +43,15 @@
             "identifier": 12,
             "name": "Grass",
             "atlas_index": 32,
-            "is_blocking": true,
+            "is_blocking": false,
             "breakable": "Hand",
             "health_stats": {
                 "max_hp" : 1,
                 "defense": 0
             },
-            "foreground": [255, 255, 255]
+            "foreground": [255, 255, 255],
+            "grass": ""
+
         }
     ]
 }

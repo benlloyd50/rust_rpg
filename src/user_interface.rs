@@ -4,8 +4,11 @@ use bracket_terminal::prelude::{
 use specs::prelude::*;
 
 use crate::{
+    components::Backpack,
+    data_read::ENTITY_DB,
+    game_init::PlayerEntity,
     message_log::{MessageLog, MessageType},
-    CL_TEXT, AppState, game_init::PlayerEntity, components::{Backpack}, data_read::ENTITY_DB,
+    AppState, CL_TEXT,
 };
 
 pub fn draw_ui(ecs: &World, appstate: &AppState) {
@@ -36,7 +39,7 @@ fn draw_inventory(draw_batch: &mut DrawBatch, ecs: &World) {
     };
 
     draw_batch.draw_hollow_box(
-        Rect::with_size(40, 2 , 35, items_in_bag.len() + 1),
+        Rect::with_size(40, 2, 35, items_in_bag.len() + 1),
         ColorPair::new(WHITESMOKE, RGB::from_u8(61, 84, 107)),
     );
     draw_batch.fill_region(
@@ -50,12 +53,17 @@ fn draw_inventory(draw_batch: &mut DrawBatch, ecs: &World) {
     for (iid, qty) in items_in_bag.iter() {
         let name = match edb.items.get_by_id(iid.0) {
             Some(info) => &info.name,
-            None => { eprintln!("ItemID: {:?} was not found in the Entity database", iid); "{} MISSING ITEM NAME" }
+            None => {
+                eprintln!("ItemID: {:?} was not found in the Entity database", iid);
+                "{} MISSING ITEM NAME"
+            }
         };
-        draw_batch.print(Point::new(41, 2 + idx), format!("{} |{} {}", idx, qty, name));
+        draw_batch.print(
+            Point::new(41, 2 + idx),
+            format!("{} |{} {}", idx, qty, name),
+        );
         idx += 1;
     }
-
 }
 
 fn draw_message_log(draw_batch: &mut DrawBatch, ecs: &World) {
@@ -87,5 +95,3 @@ fn draw_message_log(draw_batch: &mut DrawBatch, ecs: &World) {
         y_offset += 1;
     }
 }
-
-

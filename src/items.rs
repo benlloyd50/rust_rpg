@@ -10,10 +10,11 @@ use std::fmt::Display;
 use specs::{Entities, Entity, Join, ReadStorage, System, World, WorldExt, Write, WriteStorage};
 
 use crate::{
-    components::{Item, Name, PickupAction, Position, Renderable, Backpack},
+    components::{Backpack, Item, Name, PickupAction, Position, Renderable},
     data_read::prelude::*,
     message_log::MessageLog,
-    z_order::ITEM_Z, player::PlayerResponse,
+    player::PlayerResponse,
+    z_order::ITEM_Z,
 };
 
 pub struct ItemQty(pub usize);
@@ -26,11 +27,11 @@ impl Display for ItemQty {
 
 impl ItemQty {
     pub fn new(amt: usize) -> Self {
-        Self(amt) 
+        Self(amt)
     }
 
     pub fn add(&mut self, amt: usize) {
-        self.0 += amt; 
+        self.0 += amt;
     }
 }
 
@@ -138,9 +139,12 @@ impl<'a> System<'a> for ItemPickupHandler {
 
             if backpack.add_into_backpack(item_info.identifier, 1) {
                 positions.remove(item_target);
-                log.log(format!( "{} picked up a {}", picker_name, item_name.0.to_lowercase()));
-                if let Some(text) = &edb.items.get_by_name_unchecked(&item_name.0).pickup_text
-                {
+                log.log(format!(
+                    "{} picked up a {}",
+                    picker_name,
+                    item_name.0.to_lowercase()
+                ));
+                if let Some(text) = &edb.items.get_by_name_unchecked(&item_name.0).pickup_text {
                     log.enhance(text);
                 }
             }
@@ -157,17 +161,16 @@ pub fn inventory_contains(looking_for: &Name, inventory_of: &Entity, ecs: &World
     let names = ecs.read_storage::<Name>();
     let checking_inventory = match bags.get(*inventory_of) {
         Some(bag) => bag,
-        None => { 
+        None => {
             let missing_being = &Name::missing_being_name();
             let inventory_owner = names.get(*inventory_of).unwrap_or(missing_being);
-            eprintln!("{} does not have a backpack component", inventory_owner); 
+            eprintln!("{} does not have a backpack component", inventory_owner);
             return false;
         }
     };
 
     checking_inventory.contains_named(looking_for)
 }
-
 
 pub fn try_item(entity_trying: &Entity, desired_idx: usize, ecs: &mut World) -> PlayerResponse {
     let backpacks = ecs.read_storage::<Backpack>();
@@ -191,7 +194,6 @@ pub fn try_item(entity_trying: &Entity, desired_idx: usize, ecs: &mut World) -> 
             break;
         }
     }
-
 
     PlayerResponse::Waiting
 }

@@ -1,15 +1,17 @@
 use std::time::Duration;
 
 use bracket_terminal::prelude::*;
+use debug::debug_input;
 use draw_sprites::draw_sprite_layers;
 use game_init::initialize_game_world;
 use items::{ItemPickupHandler, ItemSpawnerSystem};
 use mining::{DamageSystem, RemoveDeadTiles, TileDestructionSystem};
-use monster::{check_monster_delay, RandomMonsterMovementSystem};
+use monster::{check_monster_delay, RandomMonsterMovementSystem, UpdateGoalEntities};
 use specs::prelude::*;
 
 mod camera;
 mod data_read;
+mod debug;
 mod draw_sprites;
 mod game_init;
 mod indexing;
@@ -23,7 +25,7 @@ mod user_interface;
 mod z_order;
 use tile_animation::TileAnimationCleanUpSystem;
 mod time;
-use player::{check_player_activity, manage_player_input, PlayerResponse, manage_player_inventory};
+use player::{check_player_activity, manage_player_input, manage_player_inventory, PlayerResponse};
 mod map;
 use map::Map;
 mod components;
@@ -42,9 +44,9 @@ use user_interface::draw_ui;
 
 use crate::{
     components::{
-        Blocking, BreakAction, Breakable, DeathDrop, DeleteCondition, FinishedActivity, FishAction,
-        FishOnTheLine, Fishable, HealthStats, Item, Monster, Name, PickupAction,
-        RandomWalkerAI, Renderable, Strength, SufferDamage, WaitingForFish, Water, Backpack,GoalMoverAI
+        Backpack, Blocking, BreakAction, Breakable, DeathDrop, DeleteCondition, FinishedActivity,
+        FishAction, FishOnTheLine, Fishable, GoalMoverAI, Grass, HealthStats, Item, Monster, Name,
+        PickupAction, RandomWalkerAI, Renderable, Strength, SufferDamage, WaitingForFish, Water,
     },
     data_read::initialize_game_databases,
     items::ItemSpawner,
@@ -73,6 +75,9 @@ impl State {
         // println!("Response Systems are now running.");
         let mut randomwalker = RandomMonsterMovementSystem;
         randomwalker.run_now(&self.ecs);
+        let mut goalmover = UpdateGoalEntities;
+        goalmover.run_now(&self.ecs);
+
         let mut update_fishing_tiles = UpdateFishingTiles;
         update_fishing_tiles.run_now(&self.ecs);
         // println!("Response Systems are now finished.");
@@ -167,8 +172,7 @@ impl GameState for State {
                 todo!("player input will control the menu, when menus are implemented")
             }
             AppState::InGame => {
-                // if we have to run something before player put it here >>>
-                match manage_player_input(self, ctx) {
+                match manage_player_input(&mut self.ecs, ctx) {
                     PlayerResponse::Waiting => {
                         // Player hasn't done anything yet so only run essential systems
                     }
@@ -196,7 +200,7 @@ impl GameState for State {
                     }
                 }
                 delta_time_update(&mut self.ecs, ctx);
-            } 
+            }
             AppState::ActivityBound { mut response_delay } => {
                 // if the player finishes we run final systems and change state
                 self.run_continuous_systems(ctx);
@@ -223,6 +227,7 @@ impl GameState for State {
         }
         draw_sprite_layers(&self.ecs);
         render_draw_buffer(ctx).expect("Render error??");
+        debug_input(ctx, self);
 
         // Insert the state resource to overwrite it's existing and update the state of the app
         let mut state_writer = self.ecs.write_resource::<AppState>();
@@ -287,6 +292,7 @@ fn main() -> BError {
     world.register::<Item>();
     world.register::<Water>();
     world.register::<Backpack>();
+    world.register::<Grass>();
 
     // Resource Initialization, the ECS needs a basic definition of every resource that will be in the game
     world.insert(AppState::GameStartup);

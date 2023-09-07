@@ -12,6 +12,6 @@ bracket-random = "0.8.7"
 specs = {version = "0.19.0", features = ["specs-derive"] }
 serde = {version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-ldtk_map = { git = "https://github.com/benlloyd50/ldtk_map" }
+ldtk_map = { path = "../ldtk_map/"}
 lazy_static = "1.4.0"
-
+pathfinding = "4.3.1"

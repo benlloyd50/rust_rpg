@@ -2,7 +2,7 @@ use serde::Deserialize;
 use specs::{Builder, Entity, World, WorldExt};
 
 use crate::{
-    components::{Blocking, Monster, Name, Position, RandomWalkerAI, Renderable, GoalMoverAI},
+    components::{Blocking, GoalMoverAI, Monster, Name, Position, RandomWalkerAI, Renderable},
     z_order::BEING_Z,
 };
 

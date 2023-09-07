@@ -1,7 +1,7 @@
 use bracket_terminal::prelude::{ColorPair, DrawBatch, Point, BLACK, WHITE};
 use specs::{Entity, World};
 
-use crate::{camera::get_player_camera, components::Position};
+use crate::{camera::get_camera_bounds, components::Position};
 
 pub struct Map {
     pub tiles: Vec<WorldTile>,
@@ -18,7 +18,7 @@ pub struct WorldTile {
 /// Defines the type of entity existing in a tile for quick lookup and action handling
 /// Discrimnants are the priority for action handling, lower taking priority
 #[repr(u8)]
-#[derive(Clone, PartialEq, PartialOrd, Ord, Eq)]
+#[derive(Clone, PartialEq, PartialOrd, Ord, Eq, Debug)]
 pub enum TileEntity {
     Fishable(Entity) = 9,
     Breakable(Entity) = 15,
@@ -32,6 +32,14 @@ impl TileEntity {
         match self {
             TileEntity::Item(item) => Some(item),
             _ => None,
+        }
+    }
+
+    /// Tests if a `tile_entity` is Blocking variant
+    pub fn is_blocker(&self) -> bool {
+        match self {
+            TileEntity::Blocking => true,
+            _ => false,
         }
     }
 }
@@ -85,13 +93,54 @@ impl Map {
                 TileEntity::Blocking => 20,
             })
     }
+
+    /// Checks a position on the map to see if it is blocked
+    pub fn is_blocked(&self, pos: &Position) -> bool {
+        self.tile_entities[self.xy_to_idx(pos.x, pos.y)]
+            .iter()
+            .any(|te| te.is_blocker())
+    }
+
+    pub fn in_bounds(&self, pos: Point) -> bool {
+        pos.x > 0 && pos.x < self.width as i32 && pos.y > 0 && pos.y < self.height as i32
+    }
+}
+
+pub fn successors(map: &Map, curr: &Position) -> Vec<(Position, u32)> {
+    let (x, y) = (curr.x as i32, curr.y as i32);
+    let mut successors = Vec::new();
+
+    let valid_directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]; 
+
+    for &(dx, dy) in &valid_directions {
+        let new_x = x + dx;
+        let new_y = y + dy;
+
+        // Check if the new position is within bounds and not blocked
+        if map.in_bounds(Point::new(new_x, new_y)) {
+            let new_pos = Position::new(new_x as usize, new_y as usize);
+            if !map.is_blocked(&new_pos) {
+                successors.push((new_pos, 1));
+            } 
+        }
+    }
+
+    successors
+}
+
+pub fn distance(lhs: &Position, rhs: &Position) -> u32 {
+    lhs.x.abs_diff(rhs.x) as u32 + lhs.y.abs_diff(rhs.y) as u32
+}
+
+pub fn is_goal(curr_pos: &Position, dest_pos: &Position) -> bool {
+    curr_pos == dest_pos
 }
 
 /// Renders the current map resource to the current console layer
 pub fn render_map(ecs: &World, batch: &mut DrawBatch) {
     let map = ecs.fetch::<Map>();
 
-    let bounding_box = get_player_camera(ecs);
+    let bounding_box = get_camera_bounds(ecs);
 
     for x in bounding_box.x1..bounding_box.x2 {
         for y in bounding_box.y1..bounding_box.y2 {

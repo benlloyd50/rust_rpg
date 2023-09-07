@@ -5,7 +5,7 @@ use specs::{Builder, Entity, World, WorldExt};
 
 use crate::{
     components::{
-        Blocking, Breakable, DeathDrop, HealthStats as HealthStatsComponent, Name, Position,
+        Blocking, Breakable, DeathDrop, Grass, HealthStats as HealthStatsComponent, Name, Position,
         Renderable,
     },
     z_order::WORLD_OBJECT_Z,
@@ -87,6 +87,10 @@ pub fn build_obj(
         }
     }
 
+    if let Some(_) = &raw.grass {
+        builder = builder.with(Grass);
+    }
+
     if let Some(health_stats) = &raw.health_stats {
         builder = builder.with(HealthStatsComponent::new(
             health_stats.max_hp,
@@ -107,6 +111,7 @@ pub struct WorldObject {
     death_drop: Option<String>,
     breakable: Option<String>,
     health_stats: Option<HealthStats>,
+    grass: Option<String>,
     foreground: Option<(u8, u8, u8)>,
 }
 

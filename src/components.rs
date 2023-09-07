@@ -1,9 +1,18 @@
-use std::{fmt::Display, str::FromStr, time::Duration, collections::{HashMap, hash_map::Entry}};
+use std::{
+    collections::{hash_map::Entry, HashMap},
+    fmt::Display,
+    str::FromStr,
+    time::Duration,
+};
 
 use bracket_terminal::prelude::{ColorPair, Point, WHITE};
 use specs::{Component, Entity, NullStorage, VecStorage};
 
-use crate::{data_read::{prelude::ItemID, ENTITY_DB}, indexing::idx_to_xy, items::ItemQty};
+use crate::{
+    data_read::{prelude::ItemID, ENTITY_DB},
+    indexing::idx_to_point,
+    items::ItemQty,
+};
 
 #[derive(Debug, Component)]
 #[storage(VecStorage)]
@@ -33,7 +42,7 @@ impl Renderable {
 }
 
 /// Represents a position of anything that exists physically in the game world
-#[derive(Debug, Component, Copy, Clone)]
+#[derive(Debug, Component, Copy, Clone, PartialEq, Eq, Hash)]
 #[storage(VecStorage)]
 pub struct Position {
     pub x: usize,
@@ -46,10 +55,9 @@ impl Position {
     }
 
     pub fn from_idx(idx: usize, width: usize) -> Self {
-        idx_to_xy(idx, width).into()
+        idx_to_point(idx, width).into()
     }
 
-    #[allow(dead_code)]
     pub fn to_idx(&self, width: usize) -> usize {
         self.y * width + self.x
     }
@@ -60,6 +68,12 @@ impl From<Point> for Position {
     /// proper context. i.e. dont use this when dealing with delta point values (-1, -1)
     fn from(value: Point) -> Self {
         Self::new(value.x as usize, value.y as usize)
+    }
+}
+
+impl Display for Position {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "X:{} Y:{}", self.x, self.y)
     }
 }
 
@@ -147,14 +161,12 @@ pub struct RandomWalkerAI;
 #[derive(Component)]
 #[storage(VecStorage)]
 pub struct GoalMoverAI {
-    goal: Option<Entity>,
+    _goal: Option<Entity>,
 }
 
 impl GoalMoverAI {
     pub fn new() -> Self {
-        Self {
-            goal: None,
-        }
+        Self { _goal: None }
     }
 }
 
@@ -254,7 +266,6 @@ pub struct FinishedActivity;
 #[storage(NullStorage)]
 pub struct Item;
 
-
 #[derive(Component)]
 #[storage(VecStorage)]
 pub struct Backpack {
@@ -275,8 +286,12 @@ impl Backpack {
 
     pub fn add_into_backpack(&mut self, item_id: ItemID, qty: usize) -> bool {
         match self.contents.entry(item_id) {
-            Entry::Occupied(mut o) => { o.get_mut().add(qty);}
-            Entry::Vacant(v) => { v.insert(ItemQty::new(qty)); }
+            Entry::Occupied(mut o) => {
+                o.get_mut().add(qty);
+            }
+            Entry::Vacant(v) => {
+                v.insert(ItemQty::new(qty));
+            }
         }
         true
     }
@@ -284,7 +299,6 @@ impl Backpack {
     pub fn iter(&self) -> std::collections::hash_map::Iter<'_, ItemID, ItemQty> {
         self.contents.iter()
     }
-
 
     /// Checks inventory for an item based on name.
     /// This is useful when edb is not needed for other reasons in the calling function.
@@ -298,12 +312,8 @@ impl Backpack {
     /// Checks inventory for an item based on ID.
     pub fn contains(&self, item_id: ItemID) -> bool {
         match self.contents.get(&item_id) {
-            Some(o) => {
-                o.0 > 0
-            }
-            None => {
-                false
-            }
+            Some(o) => o.0 > 0,
+            None => false,
         }
     }
 }

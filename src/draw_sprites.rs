@@ -2,7 +2,7 @@ use bracket_terminal::prelude::{DrawBatch, Point, *};
 use specs::{Join, World, WorldExt};
 
 use crate::{
-    camera::get_player_camera, components::Renderable, map::render_map, Position, CL_INTERACTABLES,
+    camera::get_camera_bounds, components::Renderable, map::render_map, Position, CL_INTERACTABLES,
     CL_WORLD,
 };
 
@@ -10,7 +10,7 @@ pub fn draw_sprites(ecs: &World, draw_batch: &mut DrawBatch) {
     let positions = ecs.read_storage::<Position>();
     let renderables = ecs.read_storage::<Renderable>();
 
-    let bounding_box = get_player_camera(ecs);
+    let bounding_box = get_camera_bounds(ecs);
 
     let data = (&positions, &renderables).join().collect::<Vec<_>>();
     for (pos, render) in data.iter() {

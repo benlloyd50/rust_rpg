@@ -1,6 +1,6 @@
 use crate::{
     components::{Blocking, Position, Water},
-    indexing::idx_to_xy,
+    indexing::idx_to_point,
     map::{Map, WorldTile},
 };
 use ldtk_map::prelude::*;
@@ -26,10 +26,10 @@ pub fn load_simple_ldtk_level(ecs: &mut World) -> Map {
             if let Some(tag) = tile.entity_tag() {
                 match tag {
                     "Item" => {
-                        let _ = build_item(name, idx_to_xy(idx, map.width).into(), ecs);
+                        let _ = build_item(name, idx_to_point(idx, map.width).into(), ecs);
                     }
                     "Interactable" => {
-                        let _ = build_obj(name, idx_to_xy(idx, map.width).into(), ecs);
+                        let _ = build_obj(name, idx_to_point(idx, map.width).into(), ecs);
                     }
                     _ => eprintln!("invalid tag on entity"),
                 }
@@ -53,7 +53,7 @@ pub fn load_simple_ldtk_level(ecs: &mut World) -> Map {
             }
             _ => println!(
                 "Value not recognized at {:#?}",
-                idx_to_xy(idx, simple_level.width())
+                idx_to_point(idx, simple_level.width())
             ),
         };
 

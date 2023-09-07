@@ -1,8 +1,10 @@
 use crate::{
     components::{
-        BreakAction, Breakable, DeathDrop, HealthStats, Position, Strength, SufferDamage, ToolType, Name,
+        BreakAction, Breakable, DeathDrop, HealthStats, Name, Position, Strength, SufferDamage,
+        ToolType,
     },
-    items::ItemSpawner, message_log::MessageLog,
+    items::ItemSpawner,
+    message_log::MessageLog,
 };
 use specs::{Entities, Entity, Join, ReadStorage, System, Write, WriteStorage};
 
@@ -42,7 +44,10 @@ impl<'a> System<'a> for TileDestructionSystem {
                 let tile_name = names.get(action.target).unwrap();
 
                 let damage = strength.amt - target_stats.defense;
-                log.log(format!("{} dealt {} damage to {}", name.0, damage, tile_name.0));
+                log.log(format!(
+                    "{} dealt {} damage to {}",
+                    name.0, damage, tile_name.0
+                ));
                 SufferDamage::new_damage(&mut suffer_damage, action.target, -(damage as i32));
             } else {
                 log.debug(format!("{} entity has no health stats", action.target.id()));
