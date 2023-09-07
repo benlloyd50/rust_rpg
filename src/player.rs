@@ -3,7 +3,8 @@ use crate::{
     game_init::PlayerEntity,
     items::{inventory_contains, try_item},
     map::{Map, TileEntity},
-    AppState, Position, State, message_log::MessageLog,
+    message_log::MessageLog,
+    AppState, Position, State,
 };
 use bracket_terminal::prelude::{BTerm, Point, VirtualKeyCode as VKC};
 use specs::{prelude::*, Component};

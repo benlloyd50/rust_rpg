@@ -1,15 +1,26 @@
-use bracket_terminal::prelude::{BTerm, TextAlign, to_char, RGBA};
+use bracket_terminal::prelude::{to_char, BTerm, TextAlign, RGBA};
 use specs::WorldExt;
 
-use crate::{camera::mouse_to_map_pos, map::Map, State, CL_WORLD, CL_INTERACTABLES};
+use crate::{camera::mouse_to_map_pos, map::Map, State, CL_INTERACTABLES, CL_WORLD};
 
-const CLEAR: RGBA = RGBA { r: 0.0, g: 0.0, b: 0.0, a: 0.0 };
+const CLEAR: RGBA = RGBA {
+    r: 0.0,
+    g: 0.0,
+    b: 0.0,
+    a: 0.0,
+};
 
 pub fn debug_input(ctx: &mut BTerm, state: &State) {
     if ctx.control {
         let previous_active = ctx.active_console;
         ctx.set_active_console(CL_INTERACTABLES);
-        ctx.printer(ctx.mouse_pos().0, ctx.mouse_pos().1, format!("#[white]{}#[]", to_char(254)), TextAlign::Left, Some(CLEAR));
+        ctx.printer(
+            ctx.mouse_pos().0,
+            ctx.mouse_pos().1,
+            format!("#[white]{}#[]", to_char(254)),
+            TextAlign::Left,
+            Some(CLEAR),
+        );
         ctx.set_active_console(previous_active);
     }
     if ctx.control && ctx.left_click {

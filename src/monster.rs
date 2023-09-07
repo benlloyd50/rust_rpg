@@ -1,15 +1,16 @@
 use std::time::Duration;
 
-use pathfinding::prelude::astar;
 use bracket_random::prelude::RandomNumberGenerator;
+use pathfinding::prelude::astar;
 use specs::{Join, ReadExpect, ReadStorage, System, World, WorldExt, WriteExpect, WriteStorage};
 
 use crate::{
     components::{GoalMoverAI, Grass, Monster, Name, Position, RandomWalkerAI},
     data_read::ENTITY_DB,
-    map::{Map, successors, distance, is_goal},
+    map::{distance, is_goal, successors, Map},
     message_log::MessageLog,
-    time::DeltaTime, player::Player
+    player::Player,
+    time::DeltaTime,
 };
 
 /// Mainly used for early testing but it's somewhat useful
@@ -83,7 +84,10 @@ impl<'a> System<'a> for UpdateGoalEntities {
         ReadExpect<'a, Map>,
     );
 
-    fn run(&mut self, (mut positions, goal_movers, grasses, names, players, map): Self::SystemData) {
+    fn run(
+        &mut self,
+        (mut positions, goal_movers, grasses, names, players, map): Self::SystemData,
+    ) {
         let goal_pos: Position;
         {
             match (&players, &positions).join().next() {
@@ -104,7 +108,12 @@ impl<'a> System<'a> for UpdateGoalEntities {
                 println!("{} did not move since it was close to it's goal", name);
                 continue;
             }
-            let path: (Vec<Position>, u32) = match astar(mover_pos, |p| successors(&map, p), |p| distance(p, &goal_pos), |p| is_goal(p, &goal_pos)) {
+            let path: (Vec<Position>, u32) = match astar(
+                mover_pos,
+                |p| successors(&map, p),
+                |p| distance(p, &goal_pos),
+                |p| is_goal(p, &goal_pos),
+            ) {
                 Some(path) => path,
                 None => {
                     continue;

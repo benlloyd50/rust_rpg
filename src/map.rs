@@ -110,7 +110,7 @@ pub fn successors(map: &Map, curr: &Position) -> Vec<(Position, u32)> {
     let (x, y) = (curr.x as i32, curr.y as i32);
     let mut successors = Vec::new();
 
-    let valid_directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]; 
+    let valid_directions = [(0, 1), (1, 0), (0, -1), (-1, 0)];
 
     for &(dx, dy) in &valid_directions {
         let new_x = x + dx;
@@ -121,7 +121,7 @@ pub fn successors(map: &Map, curr: &Position) -> Vec<(Position, u32)> {
             let new_pos = Position::new(new_x as usize, new_y as usize);
             if !map.is_blocked(&new_pos) {
                 successors.push((new_pos, 1));
-            } 
+            }
         }
     }
 
