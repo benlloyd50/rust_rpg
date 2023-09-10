@@ -161,12 +161,23 @@ pub struct RandomWalkerAI;
 #[derive(Component)]
 #[storage(VecStorage)]
 pub struct GoalMoverAI {
-    _goal: Option<Entity>,
+    pub current: Option<Entity>,
+    pub desires: Vec<Name>,
 }
 
 impl GoalMoverAI {
     pub fn new() -> Self {
-        Self { _goal: None }
+        Self {
+            current: None,
+            desires: vec![],
+        }
+    }
+
+    pub fn with_desires(desires: &[Name]) -> Self {
+        Self {
+            current: None,
+            desires: desires.to_vec(),
+        }
     }
 }
 
@@ -241,6 +252,18 @@ pub enum ToolType {
 #[storage(VecStorage)]
 pub struct BreakAction {
     pub target: Entity,
+}
+
+#[derive(Debug, Component)]
+#[storage(VecStorage)]
+pub struct WantsToMove {
+    pub new_pos: Position,
+}
+
+impl WantsToMove {
+    pub fn new(pos: Position) -> Self {
+        Self { new_pos: pos }
+    }
 }
 
 #[derive(Debug, Component)]

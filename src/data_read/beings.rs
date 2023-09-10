@@ -2,7 +2,9 @@ use serde::Deserialize;
 use specs::{Builder, Entity, World, WorldExt};
 
 use crate::{
-    components::{Blocking, GoalMoverAI, Monster, Name, Position, RandomWalkerAI, Renderable},
+    components::{
+        Blocking, GoalMoverAI, Monster, Name, Position, RandomWalkerAI, Renderable, Strength,
+    },
     z_order::BEING_Z,
 };
 
@@ -20,9 +22,11 @@ pub struct Being {
     pub(crate) monster: Option<String>,
     pub(crate) is_blocking: bool,
     pub(crate) ai: Option<String>,
+    pub(crate) goals: Option<Vec<String>>,
     pub(crate) atlas_index: usize,
     pub(crate) fg: (u8, u8, u8),
     pub(crate) quips: Option<Vec<String>>,
+    pub(crate) strength: Option<usize>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -73,10 +77,23 @@ pub fn build_being(
         builder = builder.with(Blocking);
     }
 
+    if let Some(strength) = &raw.strength {
+        builder = builder.with(Strength { amt: *strength });
+    }
+
     if let Some(ai_type) = &raw.ai {
         builder = match ai_type.as_str() {
             "random_walk" => builder.with(RandomWalkerAI),
-            "goal" => builder.with(GoalMoverAI::new()),
+            "goal" => {
+                let goals = match &raw.goals {
+                    Some(goals) => goals
+                        .iter()
+                        .map(|goal| Name(goal.to_string()))
+                        .collect::<Vec<Name>>(),
+                    None => panic!("{} has Goal ai type but no defined goals", &raw.name),
+                };
+                builder.with(GoalMoverAI::with_desires(&goals))
+            }
             _ => builder,
         };
     }

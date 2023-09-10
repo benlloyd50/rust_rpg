@@ -6,7 +6,10 @@ use draw_sprites::draw_sprite_layers;
 use game_init::initialize_game_world;
 use items::{ItemPickupHandler, ItemSpawnerSystem};
 use mining::{DamageSystem, RemoveDeadTiles, TileDestructionSystem};
-use monster::{check_monster_delay, RandomMonsterMovementSystem, UpdateGoalEntities};
+use monster::{
+    check_monster_delay, GoalFindEntities, GoalMoveToEntities, HandleMoveActions,
+    RandomMonsterMovementSystem,
+};
 use specs::prelude::*;
 
 mod camera;
@@ -46,7 +49,8 @@ use crate::{
     components::{
         Backpack, Blocking, BreakAction, Breakable, DeathDrop, DeleteCondition, FinishedActivity,
         FishAction, FishOnTheLine, Fishable, GoalMoverAI, Grass, HealthStats, Item, Monster, Name,
-        PickupAction, RandomWalkerAI, Renderable, Strength, SufferDamage, WaitingForFish, Water,
+        PickupAction, RandomWalkerAI, Renderable, Strength, SufferDamage, WaitingForFish,
+        WantsToMove, Water,
     },
     data_read::initialize_game_databases,
     items::ItemSpawner,
@@ -75,8 +79,12 @@ impl State {
         // println!("Response Systems are now running.");
         let mut randomwalker = RandomMonsterMovementSystem;
         randomwalker.run_now(&self.ecs);
-        let mut goalmover = UpdateGoalEntities;
+        let mut find_goals = GoalFindEntities;
+        find_goals.run_now(&self.ecs);
+        let mut goalmover = GoalMoveToEntities;
         goalmover.run_now(&self.ecs);
+        let mut handle_moves = HandleMoveActions;
+        handle_moves.run_now(&self.ecs);
 
         let mut update_fishing_tiles = UpdateFishingTiles;
         update_fishing_tiles.run_now(&self.ecs);
@@ -293,6 +301,7 @@ fn main() -> BError {
     world.register::<Water>();
     world.register::<Backpack>();
     world.register::<Grass>();
+    world.register::<WantsToMove>();
 
     // Resource Initialization, the ECS needs a basic definition of every resource that will be in the game
     world.insert(AppState::GameStartup);

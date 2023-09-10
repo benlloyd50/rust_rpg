@@ -2,10 +2,14 @@ use std::time::Duration;
 
 use bracket_random::prelude::RandomNumberGenerator;
 use pathfinding::prelude::astar;
-use specs::{Join, ReadExpect, ReadStorage, System, World, WorldExt, WriteExpect, WriteStorage};
+use specs::{
+    Entities, Join, ReadExpect, ReadStorage, System, World, WorldExt, WriteExpect, WriteStorage,
+};
 
 use crate::{
-    components::{GoalMoverAI, Grass, Monster, Name, Position, RandomWalkerAI},
+    components::{
+        BreakAction, GoalMoverAI, Grass, Monster, Name, Position, RandomWalkerAI, WantsToMove,
+    },
     data_read::ENTITY_DB,
     map::{distance, is_goal, successors, Map},
     message_log::MessageLog,
@@ -72,40 +76,78 @@ pub fn check_monster_delay(ecs: &World, monster_delay: &mut Duration) -> bool {
     }
 }
 
-pub struct UpdateGoalEntities;
+pub struct GoalFindEntities;
 
-impl<'a> System<'a> for UpdateGoalEntities {
+impl<'a> System<'a> for GoalFindEntities {
     type SystemData = (
-        WriteStorage<'a, Position>,
-        ReadStorage<'a, GoalMoverAI>,
-        ReadStorage<'a, Grass>,
+        WriteStorage<'a, GoalMoverAI>,
+        ReadStorage<'a, Position>,
         ReadStorage<'a, Name>,
-        ReadStorage<'a, Player>,
+        Entities<'a>,
+    );
+
+    fn run(&mut self, (mut goal_movers, positions, names, entities): Self::SystemData) {
+        for (goal_entity, goal_mover, mover_pos) in (&entities, &mut goal_movers, &positions).join()
+        {
+            if let Some(_) = goal_mover.current {
+                continue;
+            }
+            let mut closest_goal = (None, 1000000);
+            for (entity, _, pos) in (&entities, &names, &positions)
+                .join()
+                .filter(|(e, n, _)| goal_mover.desires.contains(n) && e.ne(&goal_entity))
+            {
+                let dist_from_goal = distance(mover_pos, pos);
+                if dist_from_goal < closest_goal.1 {
+                    closest_goal = (Some(entity), dist_from_goal);
+                }
+            }
+
+            goal_mover.current = closest_goal.0;
+        }
+    }
+}
+
+pub struct GoalMoveToEntities;
+
+impl<'a> System<'a> for GoalMoveToEntities {
+    type SystemData = (
+        WriteStorage<'a, WantsToMove>,
+        WriteStorage<'a, BreakAction>,
+        WriteStorage<'a, GoalMoverAI>,
+        ReadStorage<'a, Position>,
+        ReadStorage<'a, Name>,
         ReadExpect<'a, Map>,
+        Entities<'a>,
     );
 
     fn run(
         &mut self,
-        (mut positions, goal_movers, grasses, names, players, map): Self::SystemData,
+        (mut wants_to_move, mut break_actions, mut goal_movers, positions, names, map, entities): Self::SystemData,
     ) {
-        let goal_pos: Position;
+        println!("Frame Start <=======");
+        for (entity, goal_mover, mover_pos, name) in
+            (&entities, &mut goal_movers, &positions, &names).join()
         {
-            match (&players, &positions).join().next() {
-                Some(goal) => {
-                    goal_pos = *goal.1;
-                }
+            if goal_mover.current.is_none() {
+                continue;
+            }
+            let goal_pos = match positions.get(goal_mover.current.unwrap()) {
+                Some(pos) => pos,
                 None => {
-                    return;
+                    goal_mover.current = None;
+                    continue;
                 }
             };
-        }
-        let goal_idx = map.xy_to_idx(goal_pos.x, goal_pos.y);
-        println!("Frame Start <=======");
-        println!("Found Goal at Idx: {}", goal_idx);
 
-        for (_, mover_pos, name) in (&goal_movers, &mut positions, &names).join() {
             if distance(&mover_pos, &goal_pos) < 2 {
                 println!("{} did not move since it was close to it's goal", name);
+                let _ = break_actions.insert(
+                    entity,
+                    BreakAction {
+                        target: goal_mover.current.unwrap(), /* cant be none */
+                    },
+                );
                 continue;
             }
             let path: (Vec<Position>, u32) = match astar(
@@ -122,10 +164,25 @@ impl<'a> System<'a> for UpdateGoalEntities {
             println!("{} | {:?}", name, path);
             if path.0.len() > 1 {
                 let new_position = path.0[1];
-                *mover_pos = Position::from(new_position);
+                let _ =
+                    wants_to_move.insert(entity, WantsToMove::new(Position::from(new_position)));
                 println!("{} moved to {}", name, mover_pos);
             }
         }
         println!("Frame End =========>");
+    }
+}
+
+pub struct HandleMoveActions;
+
+impl<'a> System<'a> for HandleMoveActions {
+    type SystemData = (WriteStorage<'a, WantsToMove>, WriteStorage<'a, Position>);
+
+    fn run(&mut self, (mut wants_to_move, mut positions): Self::SystemData) {
+        for (want, pos) in (&wants_to_move, &mut positions).join() {
+            *pos = want.new_pos;
+        }
+
+        wants_to_move.clear();
     }
 }
