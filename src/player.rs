@@ -84,7 +84,7 @@ pub fn manage_player_inventory(state: &mut State, ctx: &BTerm) -> PlayerResponse
 fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) -> PlayerResponse {
     let mut positions = ecs.write_storage::<Position>();
     let players = ecs.read_storage::<Player>();
-    let mut map = ecs.fetch_mut::<Map>();
+    let map = ecs.fetch::<Map>();
     let entities = ecs.entities();
     let mut break_actions = ecs.write_storage::<BreakAction>();
     let mut fish_actions = ecs.write_storage::<FishAction>();
@@ -134,24 +134,12 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) -> PlayerRespons
                     return PlayerResponse::TurnAdvance;
                 }
                 TileEntity::Item(_) => {
-                    let prev_idx = pos.to_idx(map.width);
-                    let blocker_idx = map.tile_entities[prev_idx].iter().position(|te| te.is_blocker()).expect("Player was in previously unblocked tile, player should always be blocked in their space");
-                    map.tile_entities[prev_idx].remove(blocker_idx);
-                    let target_idx = target_pos.to_index(map.width);
-                    map.tile_entities[target_idx].push(TileEntity::Blocking);
-
                     pos.x = target_pos.x as usize;
                     pos.y = target_pos.y as usize;
                     return PlayerResponse::TurnAdvance;
                 }
             },
             None => {
-                // let prev_idx = pos.to_idx(map.width);
-                // let blocker_idx = map.tile_entities[prev_idx].iter().position(|te| te.is_blocker()).expect("Player was in previously unblocked tile, player should always be blocked in their space");
-                // map.tile_entities[prev_idx].remove(blocker_idx);
-                // let target_idx = target_pos.to_index(map.width);
-                // map.tile_entities[target_idx].push(TileEntity::Blocking);
-
                 pos.x = target_pos.x as usize;
                 pos.y = target_pos.y as usize;
                 return PlayerResponse::TurnAdvance;

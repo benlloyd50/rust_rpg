@@ -25,6 +25,7 @@ lazy_static! {
     pub static ref ENTITY_DB: Mutex<GameData> = Mutex::new(GameData::new());
 }
 
+#[derive(Debug)]
 pub struct EntityBuildError;
 
 pub struct GameData {

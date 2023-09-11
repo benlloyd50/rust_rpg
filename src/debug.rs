@@ -1,7 +1,12 @@
-use bracket_terminal::prelude::{to_char, BTerm, TextAlign, RGBA};
-use specs::WorldExt;
+use bracket_terminal::prelude::{to_char, BTerm, TextAlign, VirtualKeyCode, RGBA};
+use specs::{Join, World, WorldExt};
 
-use crate::{camera::mouse_to_map_pos, map::Map, State, CL_INTERACTABLES, CL_WORLD};
+use crate::{
+    camera::mouse_to_map_pos,
+    components::{Position, Transform},
+    map::Map,
+    State, CL_INTERACTABLES, CL_WORLD,
+};
 
 const CLEAR: RGBA = RGBA {
     r: 0.0,
@@ -11,20 +16,41 @@ const CLEAR: RGBA = RGBA {
 };
 
 pub fn debug_input(ctx: &mut BTerm, state: &State) {
-    if ctx.control {
-        let previous_active = ctx.active_console;
-        ctx.set_active_console(CL_INTERACTABLES);
-        ctx.printer(
-            ctx.mouse_pos().0,
-            ctx.mouse_pos().1,
-            format!("#[white]{}#[]", to_char(254)),
-            TextAlign::Left,
-            Some(CLEAR),
-        );
-        ctx.set_active_console(previous_active);
+    if !ctx.control {
+        return;
     }
-    if ctx.control && ctx.left_click {
+
+    let previous_active = ctx.active_console;
+    ctx.set_active_console(CL_INTERACTABLES);
+    ctx.printer(
+        ctx.mouse_pos().0,
+        ctx.mouse_pos().1,
+        format!("#[white]{}#[]", to_char(254)),
+        TextAlign::Left,
+        Some(CLEAR),
+    );
+    ctx.set_active_console(previous_active);
+
+    if ctx.left_click {
         print_tile_contents(ctx, state);
+    }
+
+    if ctx.key.is_some() {
+        match ctx.key.unwrap() {
+            VirtualKeyCode::V => {
+                print_position(&state.ecs);
+            }
+            _ => {}
+        }
+    }
+}
+
+fn print_position(ecs: &World) {
+    let positions = ecs.read_storage::<Position>();
+    let transforms = ecs.read_storage::<Transform>();
+
+    for (pos, fpos) in (&positions, &transforms).join() {
+        println!("Position: {} || FancyPos: {:?}", pos, fpos.sprite_pos);
     }
 }
 

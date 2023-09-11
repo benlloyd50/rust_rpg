@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use bracket_terminal::prelude::*;
 use debug::debug_input;
-use draw_sprites::draw_sprite_layers;
+use draw_sprites::{draw_sprite_layers, update_fancy_positions};
 use game_init::initialize_game_world;
 use items::{ItemPickupHandler, ItemSpawnerSystem};
 use mining::{DamageSystem, RemoveDeadTiles, TileDestructionSystem};
@@ -49,8 +49,8 @@ use crate::{
     components::{
         Backpack, Blocking, BreakAction, Breakable, DeathDrop, DeleteCondition, FinishedActivity,
         FishAction, FishOnTheLine, Fishable, GoalMoverAI, Grass, HealthStats, Item, Monster, Name,
-        PickupAction, RandomWalkerAI, Renderable, Strength, SufferDamage, WaitingForFish,
-        WantsToMove, Water,
+        PickupAction, RandomWalkerAI, Renderable, Strength, SufferDamage, Transform,
+        WaitingForFish, WantsToMove, Water,
     },
     data_read::initialize_game_databases,
     items::ItemSpawner,
@@ -133,7 +133,6 @@ impl State {
 
         let mut item_spawner = ItemSpawnerSystem;
         item_spawner.run_now(&self.ecs);
-
         // println!("Continuous Systems are now finished.");
     }
 
@@ -233,6 +232,7 @@ impl GameState for State {
             let current_frame_state = self.ecs.fetch::<AppState>();
             draw_ui(&self.ecs, &current_frame_state);
         }
+        update_fancy_positions(&self.ecs);
         draw_sprite_layers(&self.ecs);
         render_draw_buffer(ctx).expect("Render error??");
         debug_input(ctx, self);
@@ -302,6 +302,7 @@ fn main() -> BError {
     world.register::<Backpack>();
     world.register::<Grass>();
     world.register::<WantsToMove>();
+    world.register::<Transform>();
 
     // Resource Initialization, the ECS needs a basic definition of every resource that will be in the game
     world.insert(AppState::GameStartup);

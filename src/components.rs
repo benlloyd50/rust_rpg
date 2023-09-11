@@ -5,7 +5,7 @@ use std::{
     time::Duration,
 };
 
-use bracket_terminal::prelude::{ColorPair, Point, WHITE};
+use bracket_terminal::prelude::{ColorPair, Degrees, Point, PointF, WHITE};
 use specs::{Component, Entity, NullStorage, VecStorage};
 
 use crate::{
@@ -41,6 +41,24 @@ impl Renderable {
     }
 }
 
+#[derive(Component)]
+#[storage(VecStorage)]
+pub struct Transform {
+    pub sprite_pos: PointF,
+    pub rotation: Degrees,
+    pub scale: PointF,
+}
+
+impl Transform {
+    pub fn new(x: f32, y: f32, degrees: f32, scale_x: f32, scale_y: f32) -> Self {
+        Self {
+            sprite_pos: PointF::new(x, y),
+            rotation: Degrees(degrees),
+            scale: PointF::new(scale_x, scale_y),
+        }
+    }
+}
+
 /// Represents a position of anything that exists physically in the game world
 #[derive(Debug, Component, Copy, Clone, PartialEq, Eq, Hash)]
 #[storage(VecStorage)]
@@ -60,6 +78,10 @@ impl Position {
 
     pub fn to_idx(&self, width: usize) -> usize {
         self.y * width + self.x
+    }
+
+    pub fn to_point(&self) -> Point {
+        Point::new(self.x, self.y)
     }
 }
 
@@ -166,13 +188,6 @@ pub struct GoalMoverAI {
 }
 
 impl GoalMoverAI {
-    pub fn new() -> Self {
-        Self {
-            current: None,
-            desires: vec![],
-        }
-    }
-
     pub fn with_desires(desires: &[Name]) -> Self {
         Self {
             current: None,
