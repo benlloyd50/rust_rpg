@@ -69,7 +69,8 @@ fn draw_fancy_sprites(ecs: &World, draw_batch: &mut DrawBatch) {
     let transforms = ecs.read_storage::<Transform>();
 
     let bounding_box = get_camera_bounds(ecs);
-    for (ftrans, render) in (&transforms, &renderables).join()
+    for (ftrans, render) in (&transforms, &renderables)
+        .join()
         .filter(|(pos, _)| bounding_box.point_in_rect(pos.sprite_pos.into()))
     {
         let fx = ftrans.sprite_pos.x - bounding_box.x1 as f32;

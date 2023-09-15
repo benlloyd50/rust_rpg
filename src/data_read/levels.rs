@@ -6,7 +6,7 @@ use crate::{
 use ldtk_map::prelude::*;
 use specs::{Builder, World, WorldExt};
 
-use super::{items::build_item, prelude::build_obj};
+use super::prelude::{build_obj, build_being, build_item};
 
 const LEVEL_ZERO: &'static str = "Level_0";
 
@@ -30,6 +30,9 @@ pub fn load_simple_ldtk_level(ecs: &mut World) -> Map {
                     }
                     "Interactable" => {
                         let _ = build_obj(name, idx_to_point(idx, map.width).into(), ecs);
+                    }
+                    "Being" => {
+                        let _ = build_being(name, idx_to_point(idx, map.width).into(), ecs);
                     }
                     _ => eprintln!("invalid tag on entity"),
                 }

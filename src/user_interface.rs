@@ -70,11 +70,11 @@ fn draw_message_log(draw_batch: &mut DrawBatch, ecs: &World) {
     let message_log = ecs.fetch::<MessageLog>();
 
     draw_batch.draw_hollow_box(
-        Rect::with_size(2, 48, 70, 10),
+        Rect::with_size(-1, 50, 70, 10),
         ColorPair::new(WHITESMOKE, RGB::from_u8(61, 84, 107)),
     );
     draw_batch.fill_region(
-        Rect::with_size(3, 49, 69, 9),
+        Rect::with_size(0, 51, 69, 9),
         ColorPair::new(WHITESMOKE, RGB::from_u8(44, 57, 71)),
         to_cp437(' '),
     );
@@ -87,7 +87,7 @@ fn draw_message_log(draw_batch: &mut DrawBatch, ecs: &World) {
             MessageType::FLAVOR => "white",
         };
         draw_batch.printer(
-            Point::new(3, 49 + y_offset),
+            Point::new(1, 51 + y_offset),
             format!("#[{}]{}#[]", color, &message.contents),
             TextAlign::Left,
             Some(RGBA::new()),

@@ -9,7 +9,7 @@ mod world_objs;
 /// ```
 pub mod prelude {
     pub use crate::data_read::beings::build_being;
-    pub use crate::data_read::items::ItemID;
+    pub use crate::data_read::items::{ItemID, build_item};
     pub use crate::data_read::levels::load_simple_ldtk_level;
     pub use crate::data_read::world_objs::build_obj;
     pub use crate::data_read::ENTITY_DB;

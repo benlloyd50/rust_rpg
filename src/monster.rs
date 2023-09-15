@@ -1,19 +1,17 @@
 use std::time::Duration;
 
 use bracket_random::prelude::RandomNumberGenerator;
+use bracket_terminal::prelude::Point;
 use pathfinding::prelude::astar;
 use specs::{
     Entities, Join, ReadExpect, ReadStorage, System, World, WorldExt, WriteExpect, WriteStorage,
 };
 
 use crate::{
-    components::{
-        BreakAction, GoalMoverAI, Grass, Monster, Name, Position, RandomWalkerAI, WantsToMove,
-    },
+    components::{BreakAction, GoalMoverAI, Monster, Name, Position, RandomWalkerAI, WantsToMove},
     data_read::ENTITY_DB,
-    map::{distance, is_goal, successors, Map},
+    map::{distance, is_goal, successors, Map, TileEntity},
     message_log::MessageLog,
-    player::Player,
     time::DeltaTime,
 };
 
@@ -28,23 +26,24 @@ impl<'a> System<'a> for RandomMonsterMovementSystem {
         ReadStorage<'a, Name>,
         ReadStorage<'a, RandomWalkerAI>,
         WriteExpect<'a, MessageLog>,
+        ReadExpect<'a, Map>,
     );
 
-    fn run(&mut self, (mut positions, mons, names, randwalks, mut log): Self::SystemData) {
+    fn run(&mut self, (mut positions, mons, names, randwalks, mut log, map): Self::SystemData) {
         let mut rng = RandomNumberGenerator::new();
         for (pos, _, name, _) in (&mut positions, &mons, &names, &randwalks).join() {
             match rng.range(0, 100) {
                 0..=10 => {
-                    pos.x += 1;
+                    try_move_monster(1, 0, &map, pos);
                 }
                 11..=20 => {
-                    pos.y += 1;
+                    try_move_monster(0, 1, &map, pos);
                 }
                 21..=30 => {
-                    pos.y = pos.y.saturating_sub(1);
+                    try_move_monster(0, -1, &map, pos);
                 }
                 31..=40 => {
-                    pos.x = pos.x.saturating_sub(1);
+                    try_move_monster(-1, 0, &map, pos);
                 }
                 79 => {
                     let edb = &ENTITY_DB.lock().unwrap();
@@ -60,6 +59,27 @@ impl<'a> System<'a> for RandomMonsterMovementSystem {
             }
         }
     }
+}
+
+fn try_move_monster(delta_x: i32, delta_y: i32, map: &Map, monster_pos: &mut Position) {
+    let target_pos = Point::new(monster_pos.x as i32 + delta_x, monster_pos.y as i32 + delta_y);
+    if target_pos.x < 0
+        || target_pos.y < 0
+        || target_pos.x >= map.width as i32
+        || target_pos.y >= map.height as i32
+    {
+        return;
+    }
+    
+    if let Some(tile) = map.first_entity_in_pos(&Position::from(target_pos)) {
+        match tile {
+            TileEntity::Item(_) => {}
+            _ => return,
+        }
+    }
+
+    monster_pos.x = target_pos.x as usize;
+    monster_pos.y = target_pos.y as usize;
 }
 
 const MONSTER_ACTION_DELAY: Duration = Duration::from_secs(1);
@@ -125,7 +145,6 @@ impl<'a> System<'a> for GoalMoveToEntities {
         &mut self,
         (mut wants_to_move, mut break_actions, mut goal_movers, positions, names, map, entities): Self::SystemData,
     ) {
-        println!("Frame Start <=======");
         for (entity, goal_mover, mover_pos, name) in
             (&entities, &mut goal_movers, &positions, &names).join()
         {
@@ -141,7 +160,6 @@ impl<'a> System<'a> for GoalMoveToEntities {
             };
 
             if distance(&mover_pos, &goal_pos) < 2 {
-                println!("{} did not move since it was close to it's goal", name);
                 let _ = break_actions.insert(
                     entity,
                     BreakAction {
@@ -161,7 +179,7 @@ impl<'a> System<'a> for GoalMoveToEntities {
                     continue;
                 }
             };
-            println!("{} | {:?}", name, path);
+            println!("{} | Steps: {:?} Cost: {}", name, path.0.len(), path.1);
             if path.0.len() > 1 {
                 let new_position = path.0[1];
                 let _ =
@@ -169,7 +187,6 @@ impl<'a> System<'a> for GoalMoveToEntities {
                 println!("{} moved to {}", name, mover_pos);
             }
         }
-        println!("Frame End =========>");
     }
 }
 

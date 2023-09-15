@@ -162,7 +162,8 @@ impl<'a> System<'a> for CatchFishSystem {
 
 pub struct UpdateFishingTiles;
 
-pub const BUBBLE_SPAWN_RATE: usize = 100000;
+pub const BUBBLE_SPAWN_RATE: usize = 9000;
+pub const BUBBLE_LIFETIME_SECS: u64 = 10;
 impl<'a> System<'a> for UpdateFishingTiles {
     type SystemData = (
         WriteStorage<'a, Fishable>,
@@ -176,6 +177,7 @@ impl<'a> System<'a> for UpdateFishingTiles {
         let mut new_bubbles = Vec::new();
         for (_, _, entity) in (!(&fishables), &waters, &entities).join() {
             if rng.range(0, BUBBLE_SPAWN_RATE) < 3 {
+                println!("Oh a new bubble");
                 new_bubbles.push(entity);
             }
         }
@@ -183,7 +185,7 @@ impl<'a> System<'a> for UpdateFishingTiles {
             let _ = fishables.insert(
                 bubble,
                 Fishable {
-                    time_left: Duration::from_secs(5),
+                    time_left: Duration::from_secs(BUBBLE_LIFETIME_SECS),
                 },
             );
             let _ = renderables.insert(bubble, Renderable::default_bg(47, WHITE, EFFECT_Z));

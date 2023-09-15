@@ -42,7 +42,7 @@
         {
             "identifier": 12,
             "name": "Grass",
-            "atlas_index": 32,
+            "atlas_index": 33,
             "is_blocking": false,
             "breakable": "Hand",
             "health_stats": {
@@ -51,7 +51,19 @@
             },
             "foreground": [255, 255, 255],
             "grass": ""
-
+        },
+        {
+            "identifier": 13,
+            "name": "Sapling",
+            "atlas_index": 34,
+            "is_blocking": true,
+            "breakable": "Hand",
+            "health_stats": {
+                "max_hp" : 2,
+                "defense": 0
+            },
+            "foreground": [255, 255, 255],
+            "death_drop": "Stick"
         }
     ]
 }

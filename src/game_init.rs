@@ -17,7 +17,7 @@ pub fn initialize_game_world(ecs: &mut World) {
 
     let player_entity = ecs
         .create_entity()
-        .with(Position::new(13, 13))
+        .with(Position::new(67, 30))
         // .with(Transform::new(13f32, 13f32, 0f32, 1.0, 1.0))
         .with(Player)
         .with(Backpack::empty())

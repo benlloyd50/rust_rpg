@@ -5,7 +5,7 @@ use std::{
     time::Duration,
 };
 
-use bracket_terminal::prelude::{ColorPair, Degrees, Point, PointF, WHITE};
+use bracket_terminal::prelude::{ColorPair, Degrees, Point, PointF, RGBA};
 use specs::{Component, Entity, NullStorage, VecStorage};
 
 use crate::{
@@ -31,10 +31,10 @@ impl Renderable {
         }
     }
 
-    /// Creates a renderable with a black bg and specified parts
+    /// Creates a renderable with a clear bg and specified parts
     pub fn default_bg(atlas_index: usize, fg: (u8, u8, u8), z_priority: u32) -> Self {
         Self {
-            color_pair: ColorPair::new(fg, WHITE),
+            color_pair: ColorPair::new(fg, RGBA::from_u8(0, 0, 0, 0)),
             atlas_index,
             z_priority,
         }
@@ -104,6 +104,21 @@ impl Display for Position {
 #[storage(VecStorage)]
 pub struct Strength {
     pub amt: usize,
+}
+
+struct Stats {
+    intelligence: usize,
+    strength: usize,
+    dexterity: usize,
+    vitality: usize,
+    precision: usize,
+    charisma: usize,
+}
+
+struct EntityStats {
+    stats: Stats,
+
+    stat_limit: usize,
 }
 
 /// Prevents gameobjects from passing through it
