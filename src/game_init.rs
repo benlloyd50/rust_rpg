@@ -4,7 +4,9 @@ use specs::{Builder, Entity, World, WorldExt};
 pub const WHITE: (u8, u8, u8) = (255, 255, 255);
 
 use crate::{
-    components::{Backpack, Name, Position, Renderable, Strength, Transform},
+    components::{
+        Backpack, Interactor, InteractorMode, Name, Position, Renderable, Strength, Transform,
+    },
     data_read::prelude::{build_being, load_simple_ldtk_level},
     player::Player,
     z_order::PLAYER_Z,
@@ -21,6 +23,7 @@ pub fn initialize_game_world(ecs: &mut World) {
         .create_entity()
         .with(Position::new(67, 30))
         // .with(Transform::new(13f32, 13f32, 0f32, 1.0, 1.0))
+        .with(Interactor::new(InteractorMode::Reactive))
         .with(Player)
         .with(Backpack::empty())
         .with(Strength { amt: 1 })

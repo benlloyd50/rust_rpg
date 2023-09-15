@@ -1,5 +1,8 @@
 use crate::{
-    components::{BreakAction, FinishedActivity, FishAction, Name, PickupAction},
+    components::{
+        AttackAction, BreakAction, FinishedActivity, FishAction, Interactor, InteractorMode, Name,
+        PickupAction,
+    },
     game_init::PlayerEntity,
     items::{inventory_contains, try_item},
     map::{Map, TileEntity},
@@ -30,6 +33,10 @@ pub fn manage_player_input(ecs: &mut World, ctx: &BTerm) -> PlayerResponse {
                 VKC::A | VKC::Left => try_move_player(-1, 0, ecs),
                 VKC::D | VKC::Right => try_move_player(1, 0, ecs),
                 VKC::P => try_pickup(ecs), // p for pickup
+                VKC::M => {
+                    switch_interaction_mode(ecs);
+                    PlayerResponse::Waiting
+                }
                 VKC::I => PlayerResponse::StateChange(AppState::PlayerInInventory),
                 VKC::Back => exit(0),
                 VKC::Space => {
@@ -84,12 +91,16 @@ pub fn manage_player_inventory(state: &mut State, ctx: &BTerm) -> PlayerResponse
 fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) -> PlayerResponse {
     let mut positions = ecs.write_storage::<Position>();
     let players = ecs.read_storage::<Player>();
+    let interactors = ecs.read_storage::<Interactor>();
     let map = ecs.fetch::<Map>();
     let entities = ecs.entities();
     let mut break_actions = ecs.write_storage::<BreakAction>();
     let mut fish_actions = ecs.write_storage::<FishAction>();
+    let mut attack_actions = ecs.write_storage::<AttackAction>();
 
-    for (player_entity, pos, _) in (&entities, &mut positions, &players).join() {
+    for (player_entity, pos, interactor, _) in
+        (&entities, &mut positions, &interactors, &players).join()
+    {
         let target_pos = Point::new(pos.x as i32 + delta_x, pos.y as i32 + delta_y);
 
         // check target_pos is in map bounds
@@ -103,10 +114,17 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) -> PlayerRespons
 
         match map.first_entity_in_pos(&Position::from(target_pos)) {
             Some(tile) => match tile {
-                TileEntity::Blocking => {
-                    println!("Map is blocked at {}, {}", target_pos.x, target_pos.y);
-                    return PlayerResponse::Waiting;
-                }
+                TileEntity::Blocking(blocker) => match interactor.mode {
+                    InteractorMode::Reactive => {
+                        return PlayerResponse::Waiting;
+                    }
+                    InteractorMode::Agressive => {
+                        attack_actions
+                            .insert(player_entity, AttackAction { target: *blocker })
+                            .expect("Attack action could not be added to player entity");
+                        return PlayerResponse::TurnAdvance;
+                    }
+                },
                 TileEntity::Fishable(_entity) => {
                     println!("Attempting to fish at {}, {}", target_pos.x, target_pos.y);
                     if inventory_contains(&Name::new("Fishing Rod"), &player_entity, ecs) {
@@ -174,6 +192,24 @@ fn try_pickup(ecs: &mut World) -> PlayerResponse {
     }
 
     PlayerResponse::Waiting
+}
+
+fn switch_interaction_mode(ecs: &mut World) {
+    let player_entity = ecs.read_resource::<PlayerEntity>();
+    let mut interactors = ecs.write_storage::<Interactor>();
+
+    let player_interact = match interactors.get_mut(player_entity.0) {
+        Some(p) => p,
+        None => {
+            eprintln!("Player has no interactor component...");
+            return;
+        }
+    };
+
+    player_interact.mode = match player_interact.mode {
+        InteractorMode::Reactive => InteractorMode::Agressive,
+        InteractorMode::Agressive => InteractorMode::Reactive,
+    };
 }
 
 /// Checks if the main player entity has a FinishedActivity component on it so we can return to

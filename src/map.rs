@@ -24,7 +24,7 @@ pub enum TileEntity {
     Fishable(Entity) = 9,
     Breakable(Entity) = 15,
     Item(Entity) = 19,
-    Blocking = 20,
+    Blocking(Entity) = 20,
 }
 
 impl TileEntity {
@@ -39,7 +39,7 @@ impl TileEntity {
     /// Tests if a `tile_entity` is Blocking variant
     pub fn is_blocker(&self) -> bool {
         match self {
-            TileEntity::Blocking => true,
+            TileEntity::Blocking(_) => true,
             _ => false,
         }
     }
@@ -91,7 +91,7 @@ impl Map {
                 TileEntity::Fishable(_) => 9,
                 TileEntity::Breakable(_) => 15,
                 TileEntity::Item(_) => 19,
-                TileEntity::Blocking => 20,
+                TileEntity::Blocking(_) => 20,
             })
     }
 

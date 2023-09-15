@@ -16,6 +16,7 @@ pub mod prelude {
 }
 
 use lazy_static::lazy_static;
+use serde::{Deserialize, Serialize};
 use serde_json::from_str;
 use std::{fs, sync::Mutex};
 
@@ -69,4 +70,10 @@ pub fn initialize_game_databases() {
     game_db.beings = beings;
 
     ENTITY_DB.lock().unwrap().load(game_db);
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct HealthStats {
+    max_hp: usize,
+    defense: usize,
 }

@@ -1,7 +1,8 @@
 use std::time::Duration;
 
 use bracket_terminal::prelude::*;
-use debug::debug_input;
+use combat::AttackActionHandler;
+use debug::{debug_info, debug_input};
 use draw_sprites::{draw_sprite_layers, update_fancy_positions};
 use game_init::initialize_game_world;
 use items::{ItemPickupHandler, ItemSpawnerSystem};
@@ -13,6 +14,7 @@ use monster::{
 use specs::prelude::*;
 
 mod camera;
+mod combat;
 mod data_read;
 mod debug;
 mod draw_sprites;
@@ -47,10 +49,10 @@ use user_interface::draw_ui;
 
 use crate::{
     components::{
-        Backpack, Blocking, BreakAction, Breakable, DeathDrop, DeleteCondition, FinishedActivity,
-        FishAction, FishOnTheLine, Fishable, GoalMoverAI, Grass, HealthStats, Item, Monster, Name,
-        PickupAction, RandomWalkerAI, Renderable, Strength, SufferDamage, Transform,
-        WaitingForFish, WantsToMove, Water,
+        AttackAction, Backpack, Blocking, BreakAction, Breakable, DeathDrop, DeleteCondition,
+        FinishedActivity, FishAction, FishOnTheLine, Fishable, GoalMoverAI, Grass, HealthStats,
+        Interactor, Item, Monster, Name, PickupAction, RandomWalkerAI, Renderable, Strength,
+        SufferDamage, Transform, WaitingForFish, WantsToMove, Water,
     },
     data_read::initialize_game_databases,
     items::ItemSpawner,
@@ -85,6 +87,8 @@ impl State {
         goalmover.run_now(&self.ecs);
         let mut handle_moves = HandleMoveActions;
         handle_moves.run_now(&self.ecs);
+        let mut handle_attack_actions = AttackActionHandler;
+        handle_attack_actions.run_now(&self.ecs);
 
         let mut update_fishing_tiles = UpdateFishingTiles;
         update_fishing_tiles.run_now(&self.ecs);
@@ -235,7 +239,8 @@ impl GameState for State {
         update_fancy_positions(&self.ecs);
         draw_sprite_layers(&self.ecs);
         render_draw_buffer(ctx).expect("Render error??");
-        debug_input(ctx, self);
+        debug_info(ctx, &self.ecs);
+        debug_input(ctx, &self.ecs);
 
         // Insert the state resource to overwrite it's existing and update the state of the app
         let mut state_writer = self.ecs.write_resource::<AppState>();
@@ -282,12 +287,13 @@ fn main() -> BError {
     world.register::<Blocking>();
     world.register::<HealthStats>();
     world.register::<BreakAction>();
+    world.register::<AttackAction>();
     world.register::<PickupAction>();
+    world.register::<FishAction>();
     world.register::<Breakable>();
     world.register::<SufferDamage>();
     world.register::<Strength>();
     world.register::<Fishable>();
-    world.register::<FishAction>();
     world.register::<WaitingForFish>();
     world.register::<FishOnTheLine>();
     world.register::<DeleteCondition>();
@@ -299,10 +305,11 @@ fn main() -> BError {
     world.register::<DeathDrop>();
     world.register::<Item>();
     world.register::<Water>();
-    world.register::<Backpack>();
     world.register::<Grass>();
+    world.register::<Backpack>();
     world.register::<WantsToMove>();
     world.register::<Transform>();
+    world.register::<Interactor>();
 
     // Resource Initialization, the ECS needs a basic definition of every resource that will be in the game
     world.insert(AppState::GameStartup);

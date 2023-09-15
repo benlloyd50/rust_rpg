@@ -31,13 +31,14 @@ impl<'a> System<'a> for IndexBlockedTiles {
         WriteExpect<'a, Map>,
         ReadStorage<'a, Position>,
         ReadStorage<'a, Blocking>,
+        Entities<'a>,
     );
 
-    fn run(&mut self, (mut map, pos, blocking): Self::SystemData) {
-        for (pos, _) in (&pos, &blocking).join() {
+    fn run(&mut self, (mut map, pos, blocking, entities): Self::SystemData) {
+        for (pos, _, e) in (&pos, &blocking, &entities).join() {
             let idx = map.xy_to_idx(pos.x, pos.y);
             match map.tile_entities.get_mut(idx) {
-                Some(entities) => entities.push(TileEntity::Blocking),
+                Some(entities) => entities.push(TileEntity::Blocking(e)),
                 None => eprintln!("Idx: {} was out of bounds, Position: {:#?}", idx, pos),
             }
         }

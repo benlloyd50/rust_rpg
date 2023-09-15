@@ -286,6 +286,12 @@ pub struct BreakAction {
 
 #[derive(Debug, Component)]
 #[storage(VecStorage)]
+pub struct AttackAction {
+    pub target: Entity,
+}
+
+#[derive(Debug, Component)]
+#[storage(VecStorage)]
 pub struct WantsToMove {
     pub new_pos: Position,
 }
@@ -386,3 +392,37 @@ pub struct Water;
 #[derive(Component, Default)]
 #[storage(NullStorage)]
 pub struct Grass;
+
+#[derive(Component)]
+#[storage(VecStorage)]
+pub struct Interactor {
+    pub mode: InteractorMode,
+}
+
+impl Interactor {
+    pub fn new(mode: InteractorMode) -> Self {
+        Self { mode }
+    }
+}
+
+pub enum InteractorMode {
+    Reactive,
+    Agressive,
+    // Reactive,
+}
+
+impl InteractorMode {
+    fn to_string(&self) -> String {
+        match self {
+            Self::Reactive => "Reactive",
+            Self::Agressive => "Agressive",
+        }
+        .to_string()
+    }
+}
+
+impl Display for InteractorMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.to_string())
+    }
+}

@@ -3,12 +3,13 @@ use specs::{Builder, Entity, World, WorldExt};
 
 use crate::{
     components::{
-        Blocking, GoalMoverAI, Monster, Name, Position, RandomWalkerAI, Renderable, Strength,
+        Blocking, GoalMoverAI, HealthStats as HealthStatsComponent, Monster, Name, Position,
+        RandomWalkerAI, Renderable, Strength,
     },
     z_order::BEING_Z,
 };
 
-use super::{EntityBuildError, ENTITY_DB};
+use super::{EntityBuildError, HealthStats, ENTITY_DB};
 
 #[derive(Deserialize)]
 pub struct BeingDatabase {
@@ -27,6 +28,7 @@ pub struct Being {
     pub(crate) fg: (u8, u8, u8),
     pub(crate) quips: Option<Vec<String>>,
     pub(crate) strength: Option<usize>,
+    pub(crate) health_stats: Option<HealthStats>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -96,6 +98,13 @@ pub fn build_being(
             }
             _ => builder,
         };
+    }
+
+    if let Some(health_stats) = &raw.health_stats {
+        builder = builder.with(HealthStatsComponent::new(
+            health_stats.max_hp,
+            health_stats.defense,
+        ));
     }
 
     Ok(builder.build())

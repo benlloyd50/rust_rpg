@@ -30,6 +30,10 @@
             "monster": "",
             "is_blocking": true,
             "strength": 2,
+            "health_stats": {
+                "max_hp" : 4,
+                "defense": 0
+            },
             "ai": "random_walk",
             "atlas_index": 18,
             "fg": [255, 255, 255],
