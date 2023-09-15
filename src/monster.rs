@@ -62,7 +62,10 @@ impl<'a> System<'a> for RandomMonsterMovementSystem {
 }
 
 fn try_move_monster(delta_x: i32, delta_y: i32, map: &Map, monster_pos: &mut Position) {
-    let target_pos = Point::new(monster_pos.x as i32 + delta_x, monster_pos.y as i32 + delta_y);
+    let target_pos = Point::new(
+        monster_pos.x as i32 + delta_x,
+        monster_pos.y as i32 + delta_y,
+    );
     if target_pos.x < 0
         || target_pos.y < 0
         || target_pos.x >= map.width as i32
@@ -70,7 +73,7 @@ fn try_move_monster(delta_x: i32, delta_y: i32, map: &Map, monster_pos: &mut Pos
     {
         return;
     }
-    
+
     if let Some(tile) = map.first_entity_in_pos(&Position::from(target_pos)) {
         match tile {
             TileEntity::Item(_) => {}

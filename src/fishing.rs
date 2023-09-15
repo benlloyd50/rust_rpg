@@ -10,8 +10,11 @@ use crate::{
     time::DeltaTime,
     z_order::EFFECT_Z,
 };
+
+pub const WHITE: (u8, u8, u8) = (255, 255, 255);
+
 use bracket_random::prelude::*;
-use bracket_terminal::prelude::{BLACK, WHITE};
+use bracket_terminal::prelude::BLACK;
 use specs::{Entities, Join, Read, ReadStorage, System, Write, WriteExpect, WriteStorage};
 
 pub struct SetupFishingActions;

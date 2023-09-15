@@ -1,5 +1,7 @@
-use bracket_terminal::prelude::{BLACK, WHITE};
+use bracket_terminal::prelude::BLACK;
 use specs::{Builder, Entity, World, WorldExt};
+
+pub const WHITE: (u8, u8, u8) = (255, 255, 255);
 
 use crate::{
     components::{Backpack, Name, Position, Renderable, Strength, Transform},

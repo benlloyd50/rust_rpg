@@ -1,24 +1,29 @@
 # RPG Game
 ###### Yet another attempt at making a game with Rust
 
-An rpg game
+An rpg game that is about leveling your characters through fun and meaningful quests as well as interesting 
+
+## Screenshots
+![Greg](./screenshots/starting_greg.png)
+![Orc](./screenshots/starting_orcs.png)
 
 ## Technical Details
 - 2d 
-- maybe semi procedural
-- fabricated and filled maps
+- semi procedural in special areas
+- fabricated and fleshed out maps with many items to pick up
 
 ## Gameplay Details
-- coming soon...
+- No classes, design your own stat balance to create unique builds.
+- Deep crafting that provides improved tools and weapons if you have the right materials.
+- Dungeons with procedural generation for replayability and continuous progress.
+- Permadeath - an ode to roguelikes you die, you restart.
 
-## Build it yourself
-*Note: if you want an exe wait til I finish a bit more of the game*
-```
-git clone https://github.com/benlloyd50/rust_rpg.git
-cargo run --release
-```
-Great now the game should be open and running
+## Play the Game
+Go over to the releases tab and download the executable for your OS.
+If your's is not listed, please message me and I will assist you.
 
 ## Controls
 - move around with WASD or arrow keys
-- ya that's really it so far
+- bumping into things will auto perform actions (i.e. fishing, attacking)
+- p - **p**ick up items
+

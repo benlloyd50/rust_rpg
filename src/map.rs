@@ -1,7 +1,8 @@
-use bracket_terminal::prelude::{ColorPair, DrawBatch, Point, BLACK, WHITE};
+use crate::{camera::get_camera_bounds, components::Position};
+use bracket_terminal::prelude::{ColorPair, DrawBatch, Point, BLACK};
 use specs::{Entity, World};
 
-use crate::{camera::get_camera_bounds, components::Position};
+pub const WHITE: (u8, u8, u8) = (255, 255, 255);
 
 pub struct Map {
     pub tiles: Vec<WorldTile>,

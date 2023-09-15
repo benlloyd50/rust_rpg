@@ -6,7 +6,7 @@ use crate::{
 use ldtk_map::prelude::*;
 use specs::{Builder, World, WorldExt};
 
-use super::prelude::{build_obj, build_being, build_item};
+use super::prelude::{build_being, build_item, build_obj};
 
 const LEVEL_ZERO: &'static str = "Level_0";
 
