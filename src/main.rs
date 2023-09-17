@@ -25,6 +25,7 @@ mod message_log;
 mod mining;
 mod monster;
 mod player;
+mod stats;
 mod tile_animation;
 mod user_interface;
 mod z_order;
@@ -47,12 +48,13 @@ use tile_animation::TileAnimationSpawner;
 use time::delta_time_update;
 use user_interface::draw_ui;
 
+use crate::components::EntityStats;
 use crate::{
     components::{
         AttackAction, Backpack, Blocking, BreakAction, Breakable, DeathDrop, DeleteCondition,
         FinishedActivity, FishAction, FishOnTheLine, Fishable, GoalMoverAI, Grass, HealthStats,
-        Interactor, Item, Monster, Name, PickupAction, RandomWalkerAI, Renderable, Strength,
-        SufferDamage, Transform, WaitingForFish, WantsToMove, Water,
+        Interactor, Item, Monster, Name, PickupAction, RandomWalkerAI, Renderable, SufferDamage,
+        Transform, WaitingForFish, WantsToMove, Water,
     },
     data_read::initialize_game_databases,
     items::ItemSpawner,
@@ -248,16 +250,16 @@ impl GameState for State {
     }
 }
 
-bracket_terminal::embedded_resource!(TILE_FONT, "../resources/interactable_tiles.png");
-bracket_terminal::embedded_resource!(CHAR_FONT, "../resources/terminal8x8.png");
-bracket_terminal::embedded_resource!(TERRAIN_FOREST, "../resources/terrain_forest.png");
-bracket_terminal::embedded_resource!(LEVEL_0, "../resources/ldtk/rpg_world_v1.ldtk");
+embedded_resource!(TILE_FONT, "../resources/interactable_tiles.png");
+embedded_resource!(CHAR_FONT, "../resources/terminal8x8.png");
+embedded_resource!(TERRAIN_FOREST, "../resources/terrain_forest.png");
+embedded_resource!(LEVEL_0, "../resources/ldtk/rpg_world_v1.ldtk");
 
 fn main() -> BError {
-    bracket_terminal::link_resource!(TILE_FONT, "resources/interactable_tiles.png");
-    bracket_terminal::link_resource!(CHAR_FONT, "resources/terminal8x8.png");
-    bracket_terminal::link_resource!(TERRAIN_FOREST, "resources/terrain_forest.png");
-    bracket_terminal::link_resource!(LEVEL_0, "../resources/ldtk/rpg_world_v1.ldtk");
+    link_resource!(TILE_FONT, "resources/interactable_tiles.png");
+    link_resource!(CHAR_FONT, "resources/terminal8x8.png");
+    link_resource!(TERRAIN_FOREST, "resources/terrain_forest.png");
+    link_resource!(LEVEL_0, "../resources/ldtk/rpg_world_v1.ldtk");
 
     initialize_game_databases();
 
@@ -292,7 +294,6 @@ fn main() -> BError {
     world.register::<FishAction>();
     world.register::<Breakable>();
     world.register::<SufferDamage>();
-    world.register::<Strength>();
     world.register::<Fishable>();
     world.register::<WaitingForFish>();
     world.register::<FishOnTheLine>();
@@ -310,6 +311,7 @@ fn main() -> BError {
     world.register::<WantsToMove>();
     world.register::<Transform>();
     world.register::<Interactor>();
+    world.register::<EntityStats>();
 
     // Resource Initialization, the ECS needs a basic definition of every resource that will be in the game
     world.insert(AppState::GameStartup);

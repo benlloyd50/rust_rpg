@@ -11,7 +11,7 @@ use crate::{
     z_order::WORLD_OBJECT_Z,
 };
 
-use super::{EntityBuildError, HealthStats, ENTITY_DB};
+use super::{EntityBuildError, ENTITY_DB};
 
 #[derive(Deserialize)]
 pub struct WorldObjectDatabase {
@@ -113,6 +113,12 @@ pub struct WorldObject {
     health_stats: Option<HealthStats>,
     grass: Option<String>,
     foreground: Option<(u8, u8, u8)>,
+}
+
+#[derive(Deserialize, Serialize)]
+struct HealthStats {
+    max_hp: usize,
+    defense: usize,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

@@ -12,6 +12,7 @@ use crate::{
     data_read::{prelude::ItemID, ENTITY_DB},
     indexing::idx_to_point,
     items::ItemQty,
+    stats::Stats,
 };
 
 #[derive(Debug, Component)]
@@ -99,26 +100,53 @@ impl Display for Position {
     }
 }
 
-/// TODO: This is temporary for testing out breaking things and will be replaced by a more comprehensive stat
-#[derive(Debug, Component)]
+#[derive(Debug, Component, Copy, Clone)]
 #[storage(VecStorage)]
-pub struct Strength {
-    pub amt: usize,
+pub struct EntityStats {
+    pub set: Stats,
+
+    pub stat_limit: usize,
 }
 
-struct Stats {
-    intelligence: usize,
-    strength: usize,
-    dexterity: usize,
-    vitality: usize,
-    precision: usize,
-    charisma: usize,
+pub struct StatsError;
+
+impl EntityStats {
+    #[allow(dead_code)]
+    pub fn init(
+        stat_limit: usize,
+        int: usize,
+        str: usize,
+        dex: usize,
+        vit: usize,
+        pre: usize,
+        cha: usize,
+    ) -> Result<Self, StatsError> {
+        let stats = Stats {
+            intelligence: int,
+            strength: str,
+            dexterity: dex,
+            vitality: vit,
+            precision: pre,
+            charisma: cha,
+        };
+        if stats.get_total() < stat_limit {
+            Ok(Self {
+                set: stats,
+                stat_limit: stats.get_total(),
+            })
+        } else {
+            Err(StatsError)
+        }
+    }
 }
 
-struct EntityStats {
-    stats: Stats,
-
-    stat_limit: usize,
+impl From<Stats> for EntityStats {
+    fn from(stats: Stats) -> Self {
+        Self {
+            set: stats,
+            stat_limit: 100,
+        }
+    }
 }
 
 /// Prevents gameobjects from passing through it

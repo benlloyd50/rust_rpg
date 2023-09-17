@@ -15,11 +15,15 @@
             "name": "Greg Goat",
             "monster": "",
             "is_blocking": true,
-            "strength": 1,
             "ai": "goal",
             "goals": [
                 "Grass"
             ],
+            "stats": {
+                "intelligence": 4,
+                "strength": 17,
+                "vitality": 10 
+            },
             "atlas_index": 17,
             "fg": [255, 255, 255],
             "quips": ["Good-natured greg gaily grazes upon the grass from the ground."]
@@ -29,10 +33,10 @@
             "name": "Orc",
             "monster": "",
             "is_blocking": true,
-            "strength": 2,
-            "health_stats": {
-                "max_hp" : 4,
-                "defense": 0
+            "stats": {
+                "intelligence": 9,
+                "strength": 10,
+                "vitality": 15
             },
             "ai": "random_walk",
             "atlas_index": 18,

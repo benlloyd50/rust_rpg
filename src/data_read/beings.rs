@@ -2,14 +2,12 @@ use serde::Deserialize;
 use specs::{Builder, Entity, World, WorldExt};
 
 use crate::{
-    components::{
-        Blocking, GoalMoverAI, HealthStats as HealthStatsComponent, Monster, Name, Position,
-        RandomWalkerAI, Renderable, Strength,
-    },
+    components::{Blocking, GoalMoverAI, Monster, Name, Position, RandomWalkerAI, Renderable},
+    stats::EntityStatsBuilder,
     z_order::BEING_Z,
 };
 
-use super::{EntityBuildError, HealthStats, ENTITY_DB};
+use super::{EntityBuildError, OptionalStats, ENTITY_DB};
 
 #[derive(Deserialize)]
 pub struct BeingDatabase {
@@ -27,8 +25,7 @@ pub struct Being {
     pub(crate) atlas_index: usize,
     pub(crate) fg: (u8, u8, u8),
     pub(crate) quips: Option<Vec<String>>,
-    pub(crate) strength: Option<usize>,
-    pub(crate) health_stats: Option<HealthStats>,
+    pub(crate) stats: Option<OptionalStats>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -79,10 +76,6 @@ pub fn build_being(
         builder = builder.with(Blocking);
     }
 
-    if let Some(strength) = &raw.strength {
-        builder = builder.with(Strength { amt: *strength });
-    }
-
     if let Some(ai_type) = &raw.ai {
         builder = match ai_type.as_str() {
             "random_walk" => builder.with(RandomWalkerAI),
@@ -100,11 +93,29 @@ pub fn build_being(
         };
     }
 
-    if let Some(health_stats) = &raw.health_stats {
-        builder = builder.with(HealthStatsComponent::new(
-            health_stats.max_hp,
-            health_stats.defense,
-        ));
+    if let Some(stats) = &raw.stats {
+        let mut esb = EntityStatsBuilder::new();
+
+        if let Some(intelligence) = stats.intelligence {
+            esb.with_intelligence(intelligence);
+        }
+        if let Some(strength) = stats.strength {
+            esb.with_strength(strength);
+        }
+        if let Some(dexterity) = stats.dexterity {
+            esb.with_dexterity(dexterity);
+        }
+        if let Some(vitality) = stats.vitality {
+            esb.with_vitality(vitality);
+        }
+        if let Some(charisma) = stats.charisma {
+            esb.with_charisma(charisma);
+        }
+        if let Some(precision) = stats.precision {
+            esb.with_precision(precision);
+        }
+
+        builder = builder.with(esb.build()).with(esb.build_health_stats());
     }
 
     Ok(builder.build())

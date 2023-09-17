@@ -1,7 +1,7 @@
 use specs::{Join, ReadStorage, System, Write, WriteStorage};
 
 use crate::{
-    components::{AttackAction, HealthStats, Name, Strength, SufferDamage},
+    components::{AttackAction, EntityStats, HealthStats, Name, SufferDamage},
     message_log::MessageLog,
 };
 
@@ -12,23 +12,23 @@ impl<'a> System<'a> for AttackActionHandler {
         WriteStorage<'a, AttackAction>,
         WriteStorage<'a, SufferDamage>,
         Write<'a, MessageLog>,
-        ReadStorage<'a, Strength>,
+        ReadStorage<'a, EntityStats>,
         ReadStorage<'a, HealthStats>,
         ReadStorage<'a, Name>,
     );
 
     fn run(
         &mut self,
-        (mut attack_actions, mut suffer_damage, mut log, strength, health_stats, names): Self::SystemData,
+        (mut attack_actions, mut suffer_damage, mut log, stats, health_stats, names): Self::SystemData,
     ) {
-        for (strength, action, name) in (&strength, &attack_actions, &names).join() {
+        for (stats_set, action, name) in (&stats, &attack_actions, &names).join() {
             if let Some(target_stats) = health_stats.get(action.target) {
-                if target_stats.defense > strength.amt {
+                if target_stats.defense > stats_set.set.strength {
                     log.log("Took no damage because defense is greater");
                     continue;
                 }
                 let target_name = names.get(action.target).unwrap();
-                let damage = strength.amt - target_stats.defense;
+                let damage = stats_set.set.strength - target_stats.defense;
                 log.log(format!(
                     "{} dealt {} damage to {}",
                     name, damage, target_name

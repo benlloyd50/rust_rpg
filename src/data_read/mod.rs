@@ -72,8 +72,12 @@ pub fn initialize_game_databases() {
     ENTITY_DB.lock().unwrap().load(game_db);
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct HealthStats {
-    max_hp: usize,
-    defense: usize,
+#[derive(Deserialize, Serialize, Debug)]
+pub(crate) struct OptionalStats {
+    pub intelligence: Option<usize>,
+    pub strength: Option<usize>,
+    pub dexterity: Option<usize>,
+    pub vitality: Option<usize>,
+    pub precision: Option<usize>,
+    pub charisma: Option<usize>,
 }

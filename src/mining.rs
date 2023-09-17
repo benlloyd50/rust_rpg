@@ -1,6 +1,6 @@
 use crate::{
     components::{
-        BreakAction, Breakable, DeathDrop, HealthStats, Name, Position, Strength, SufferDamage,
+        BreakAction, Breakable, DeathDrop, EntityStats, HealthStats, Name, Position, SufferDamage,
         ToolType,
     },
     items::ItemSpawner,
@@ -18,7 +18,7 @@ impl<'a> System<'a> for TileDestructionSystem {
         WriteStorage<'a, BreakAction>,
         WriteStorage<'a, SufferDamage>,
         Write<'a, MessageLog>,
-        ReadStorage<'a, Strength>,
+        ReadStorage<'a, EntityStats>,
         ReadStorage<'a, Breakable>,
         ReadStorage<'a, HealthStats>,
         ReadStorage<'a, Name>,
@@ -26,9 +26,9 @@ impl<'a> System<'a> for TileDestructionSystem {
 
     fn run(
         &mut self,
-        (mut break_actions, mut suffer_damage, mut log, strength, breakable, health_stats, names): Self::SystemData,
+        (mut break_actions, mut suffer_damage, mut log, stats, breakable, health_stats, names): Self::SystemData,
     ) {
-        for (strength, action, name) in (&strength, &break_actions, &names).join() {
+        for (stats, action, name) in (&stats, &break_actions, &names).join() {
             if let Some(target_breakable) = breakable.get(action.target) {
                 if !inventory_contains_tool(&target_breakable.by) {
                     log.log("You do not own the correct tool for this destructible.");
@@ -37,13 +37,13 @@ impl<'a> System<'a> for TileDestructionSystem {
             }
 
             if let Some(target_stats) = health_stats.get(action.target) {
-                if target_stats.defense > strength.amt {
+                if target_stats.defense > stats.set.strength {
                     log.log("Took no damage because defense is greater");
                     continue;
                 }
                 let tile_name = names.get(action.target).unwrap();
 
-                let damage = strength.amt - target_stats.defense;
+                let damage = stats.set.strength - target_stats.defense;
                 log.log(format!(
                     "{} dealt {} damage to {}",
                     name.0, damage, tile_name.0

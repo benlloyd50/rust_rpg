@@ -4,11 +4,10 @@ use specs::{Builder, Entity, World, WorldExt};
 pub const WHITE: (u8, u8, u8) = (255, 255, 255);
 
 use crate::{
-    components::{
-        Backpack, Interactor, InteractorMode, Name, Position, Renderable, Strength, Transform,
-    },
+    components::{Backpack, Interactor, InteractorMode, Name, Position, Renderable, Transform},
     data_read::prelude::{build_being, load_simple_ldtk_level},
     player::Player,
+    stats::get_random_stats,
     z_order::PLAYER_Z,
 };
 
@@ -19,6 +18,7 @@ pub fn initialize_game_world(ecs: &mut World) {
     let map = load_simple_ldtk_level(ecs);
     ecs.insert(map);
 
+    let player_stats = get_random_stats();
     let player_entity = ecs
         .create_entity()
         .with(Position::new(67, 30))
@@ -26,7 +26,8 @@ pub fn initialize_game_world(ecs: &mut World) {
         .with(Interactor::new(InteractorMode::Reactive))
         .with(Player)
         .with(Backpack::empty())
-        .with(Strength { amt: 1 })
+        .with(player_stats)
+        .with(player_stats.set.get_health_stats())
         .with(Renderable::new(WHITE, BLACK, 2, PLAYER_Z))
         .with(Name("Tester".to_string()))
         .build();
