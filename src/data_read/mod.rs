@@ -1,6 +1,7 @@
 mod beings;
 mod items;
 mod levels;
+mod recipes;
 mod world_objs;
 
 /// A tight bunch of important data reading stuff such as the databases and json loading
@@ -9,8 +10,9 @@ mod world_objs;
 /// ```
 pub mod prelude {
     pub use crate::data_read::beings::build_being;
-    pub use crate::data_read::items::{build_item, ItemID};
+    pub use crate::data_read::items::{build_item, ItemID, ItemInfo};
     pub use crate::data_read::levels::load_simple_ldtk_level;
+    pub use crate::data_read::recipes::RECIPE_DB;
     pub use crate::data_read::world_objs::build_obj;
     pub use crate::data_read::ENTITY_DB;
 }
@@ -20,7 +22,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::from_str;
 use std::{fs, sync::Mutex};
 
-use self::{beings::BeingDatabase, items::ItemDatabase, world_objs::WorldObjectDatabase};
+use self::{beings::BeingDatabase, items::ItemDatabase, world_objs::WorldObjectDatabase, prelude::RECIPE_DB};
 
 lazy_static! {
     pub static ref ENTITY_DB: Mutex<GameData> = Mutex::new(GameData::new());
@@ -70,6 +72,7 @@ pub fn initialize_game_databases() {
     game_db.beings = beings;
 
     ENTITY_DB.lock().unwrap().load(game_db);
+    RECIPE_DB.lock().unwrap().load();
 }
 
 #[derive(Deserialize, Serialize, Debug)]

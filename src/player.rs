@@ -4,10 +4,10 @@ use crate::{
         PickupAction,
     },
     game_init::PlayerEntity,
-    items::{inventory_contains, try_item},
+    items::inventory_contains,
     map::{Map, TileEntity},
     message_log::MessageLog,
-    AppState, Position, State,
+    AppState, Position,
 };
 use bracket_terminal::prelude::{BTerm, Point, VirtualKeyCode as VKC};
 use specs::{prelude::*, Component};
@@ -44,44 +44,6 @@ pub fn manage_player_input(ecs: &mut World, ctx: &BTerm) -> PlayerResponse {
                     log.log("The player stands around.");
                     PlayerResponse::TurnAdvance
                 }
-                _ => PlayerResponse::Waiting, // Unbound keypress so just ignore it
-            }
-        }
-    }
-}
-
-// ui x = 81 for shift arrow
-pub fn manage_player_inventory(state: &mut State, ctx: &BTerm) -> PlayerResponse {
-    let player_entity: Entity;
-    {
-        // dirty borrow checker hack to take the value of player entity
-        player_entity = state.ecs.read_resource::<PlayerEntity>().0;
-    }
-    match ctx.key {
-        None => PlayerResponse::Waiting,
-        Some(key) => {
-            match key {
-                VKC::Key1 => try_item(&player_entity, 1, &mut state.ecs),
-                VKC::Key2 => try_item(&player_entity, 2, &mut state.ecs),
-                VKC::Key3 => try_item(&player_entity, 3, &mut state.ecs),
-                VKC::Key4 => try_item(&player_entity, 4, &mut state.ecs),
-                VKC::Key5 => try_item(&player_entity, 5, &mut state.ecs),
-                VKC::Key6 => try_item(&player_entity, 6, &mut state.ecs),
-                VKC::Key7 => try_item(&player_entity, 7, &mut state.ecs),
-                VKC::Key8 => try_item(&player_entity, 8, &mut state.ecs),
-                VKC::Key9 => try_item(&player_entity, 9, &mut state.ecs),
-                VKC::Key0 => try_item(&player_entity, 10, &mut state.ecs),
-                VKC::Minus => try_item(&player_entity, 11, &mut state.ecs),
-                VKC::Plus => try_item(&player_entity, 12, &mut state.ecs),
-                VKC::A => try_item(&player_entity, 13, &mut state.ecs),
-                VKC::B => try_item(&player_entity, 14, &mut state.ecs),
-                VKC::C => try_item(&player_entity, 15, &mut state.ecs),
-                VKC::D => try_item(&player_entity, 16, &mut state.ecs),
-                VKC::E => try_item(&player_entity, 17, &mut state.ecs),
-                VKC::F => try_item(&player_entity, 18, &mut state.ecs),
-                VKC::G => try_item(&player_entity, 19, &mut state.ecs),
-                VKC::H => try_item(&player_entity, 20, &mut state.ecs),
-                VKC::Escape | VKC::I => PlayerResponse::StateChange(AppState::InGame),
                 _ => PlayerResponse::Waiting, // Unbound keypress so just ignore it
             }
         }

@@ -19,6 +19,12 @@
             "fg": [255, 255, 255]
         },
         {
+            "identifier": 100,
+            "name": "Sharp Stick",
+            "atlas_index": 97,
+            "fg": [255, 255, 255]
+        },
+        {
             "identifier": 190,
             "name": "Crude Mace",
             "atlas_index": 115,

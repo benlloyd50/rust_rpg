@@ -13,7 +13,6 @@ use crate::{
     components::{Backpack, Item, Name, PickupAction, Position, Renderable},
     data_read::prelude::*,
     message_log::MessageLog,
-    player::PlayerResponse,
     z_order::ITEM_Z,
 };
 
@@ -137,7 +136,7 @@ impl<'a> System<'a> for ItemPickupHandler {
             let edb = &ENTITY_DB.lock().unwrap();
             let item_info = edb.items.get_by_name_unchecked(&item_name.0);
 
-            if backpack.add_into_backpack(item_info.identifier, 1) {
+            if backpack.add_item(item_info.identifier, 1) {
                 positions.remove(item_target);
                 log.log(format!(
                     "{} picked up a {}",
@@ -170,30 +169,4 @@ pub fn inventory_contains(looking_for: &Name, inventory_of: &Entity, ecs: &World
     };
 
     checking_inventory.contains_named(looking_for)
-}
-
-pub fn try_item(entity_trying: &Entity, desired_idx: usize, ecs: &mut World) -> PlayerResponse {
-    let backpacks = ecs.read_storage::<Backpack>();
-    let mut log = ecs.write_resource::<MessageLog>();
-    let items_in_bag = match backpacks.get(*entity_trying) {
-        Some(items) => items,
-        None => panic!("Player entity does not have a Backpack component."),
-    };
-
-    let edb = &ENTITY_DB.lock().unwrap();
-
-    let mut curr_index = 0;
-    let desired_index = desired_idx - 1;
-    for (iid, qty) in items_in_bag.iter() {
-        if curr_index != desired_index {
-            curr_index += 1;
-            continue;
-        }
-        if let Some(info) = edb.items.get_by_id(iid.0) {
-            log.debug(format!("It is {} units of {}", qty, info.name));
-            break;
-        }
-    }
-
-    PlayerResponse::Waiting
 }

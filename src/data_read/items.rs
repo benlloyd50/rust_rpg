@@ -1,3 +1,4 @@
+use bracket_terminal::prelude::PURPLE;
 use serde::{Deserialize, Serialize};
 use specs::{Builder, Entity, World, WorldExt};
 
@@ -37,11 +38,11 @@ impl ItemDatabase {
 #[derive(Serialize, Deserialize)]
 pub struct ItemInfo {
     /// Unique id to find the item's static data
-    pub(crate) identifier: ItemID,
-    pub(crate) name: String,
-    pub(crate) atlas_index: usize,
-    pub(crate) fg: (u8, u8, u8),
-    pub(crate) pickup_text: Option<String>,
+    pub identifier: ItemID,
+    pub name: String,
+    pub atlas_index: usize,
+    pub fg: (u8, u8, u8),
+    pub pickup_text: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Copy, Clone, Debug, Hash, Eq, PartialEq)]

@@ -20,6 +20,8 @@ mod debug;
 mod draw_sprites;
 mod game_init;
 mod indexing;
+mod inventory;
+use inventory::manage_player_inventory;
 mod items;
 mod message_log;
 mod mining;
@@ -31,12 +33,14 @@ mod user_interface;
 mod z_order;
 use tile_animation::TileAnimationCleanUpSystem;
 mod time;
-use player::{check_player_activity, manage_player_input, manage_player_inventory, PlayerResponse};
+use player::{check_player_activity, manage_player_input, PlayerResponse};
 mod map;
 use map::Map;
 mod components;
 use components::Position;
+mod crafting;
 mod fishing;
+
 use fishing::{
     CatchFishSystem, PollFishingTiles, SetupFishingActions, UpdateFishingTiles,
     WaitingForFishSystem,
@@ -49,6 +53,7 @@ use time::delta_time_update;
 use user_interface::draw_ui;
 
 use crate::components::EntityStats;
+use crate::inventory::SelectedInventoryIdx;
 use crate::{
     components::{
         AttackAction, Backpack, Blocking, BreakAction, Breakable, DeathDrop, DeleteCondition,
@@ -198,7 +203,6 @@ impl GameState for State {
                 }
                 self.run_continuous_systems(ctx);
                 self.run_eof_systems();
-                delta_time_update(&mut self.ecs, ctx);
             }
             AppState::PlayerInInventory => {
                 match manage_player_inventory(self, ctx) {
@@ -212,7 +216,6 @@ impl GameState for State {
                         new_state = delta_state;
                     }
                 }
-                delta_time_update(&mut self.ecs, ctx);
             }
             AppState::ActivityBound { mut response_delay } => {
                 // if the player finishes we run final systems and change state
@@ -228,10 +231,10 @@ impl GameState for State {
                 };
 
                 self.run_eof_systems();
-                delta_time_update(&mut self.ecs, ctx);
             }
         }
 
+        delta_time_update(&mut self.ecs, ctx);
         self.ecs.maintain();
 
         {
@@ -312,6 +315,7 @@ fn main() -> BError {
     world.register::<Transform>();
     world.register::<Interactor>();
     world.register::<EntityStats>();
+    world.register::<SelectedInventoryIdx>();
 
     // Resource Initialization, the ECS needs a basic definition of every resource that will be in the game
     world.insert(AppState::GameStartup);

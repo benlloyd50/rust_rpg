@@ -371,7 +371,7 @@ impl Backpack {
         self.contents.len()
     }
 
-    pub fn add_into_backpack(&mut self, item_id: ItemID, qty: usize) -> bool {
+    pub fn add_item(&mut self, item_id: ItemID, qty: usize) -> bool {
         match self.contents.entry(item_id) {
             Entry::Occupied(mut o) => {
                 o.get_mut().add(qty);
@@ -387,6 +387,33 @@ impl Backpack {
         self.contents.iter()
     }
 
+    pub fn remove_item(&mut self, id: &ItemID, amt: usize) -> Option<(ItemID, ItemQty)> {
+        match self.contents.entry(*id) {
+            Entry::Occupied(mut o) => {
+                let bag_qty = o.get_mut();
+                if bag_qty.0 < amt {
+                    return None;
+                }
+
+                bag_qty.0 -= amt;
+                if bag_qty.0 == 0 {
+                    o.remove_entry();
+                }
+
+                Some((*id, ItemQty(amt)))
+            }
+            Entry::Vacant(_) => None,
+        }
+    }
+
+    pub fn get_id_by_idx(&self, idx: usize) -> Option<ItemID> {
+        if idx > self.contents.len() {
+            return None;
+        }
+
+        self.iter().enumerate().find(|(bag_idx, _)| idx == *bag_idx).map(|(_, val)| val.0).copied()
+    }
+
     /// Checks inventory for an item based on name.
     /// This is useful when edb is not needed for other reasons in the calling function.
     /// If you do need edb for other information then use `.contains(ItemID)`
@@ -394,6 +421,17 @@ impl Backpack {
         let edb = &ENTITY_DB.lock().unwrap();
         let info = edb.items.get_by_name_unchecked(&name.0);
         self.contains(info.identifier)
+    }
+
+    /// Checks inventory for an amount of a named item.
+    /// Panics if name does not exist.
+    pub fn contains_named_amt(&self, name: &Name, amt: usize) -> bool {
+        let edb = &ENTITY_DB.lock().unwrap();
+        let info = edb.items.get_by_name_unchecked(&name.0);
+        match self.contents.get(&info.identifier) {
+            Some(o) => o.0 >= amt,
+            None => false,
+        }
     }
 
     /// Checks inventory for an item based on ID.

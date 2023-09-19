@@ -5,10 +5,10 @@ use specs::prelude::*;
 
 use crate::{
     components::Backpack,
-    data_read::ENTITY_DB,
+    data_read::{ENTITY_DB, prelude::ItemInfo},
     game_init::PlayerEntity,
     message_log::{MessageLog, MessageType},
-    AppState, CL_TEXT,
+    AppState, CL_TEXT, inventory::SelectedInventoryIdx,
 };
 
 pub fn draw_ui(ecs: &World, appstate: &AppState) {
@@ -30,7 +30,6 @@ pub fn draw_ui(ecs: &World, appstate: &AppState) {
 fn draw_inventory(draw_batch: &mut DrawBatch, ecs: &World) {
     let player_entity = ecs.read_resource::<PlayerEntity>();
     let player_bag = ecs.read_storage::<Backpack>();
-
     let items_in_bag = match player_bag.get(player_entity.0) {
         Some(bag) => bag,
         None => {
@@ -58,11 +57,20 @@ fn draw_inventory(draw_batch: &mut DrawBatch, ecs: &World) {
                 "{} MISSING ITEM NAME"
             }
         };
-        draw_batch.print(
-            Point::new(41, 2 + idx),
-            format!("{} |{} {}", idx, qty, name),
+        draw_batch.print_color(
+            Point::new(42, 2 + idx),
+            format!("{:X}| {:03} {}", idx, qty.0, name),
+            ColorPair::new(WHITESMOKE, RGB::from_u8(44, 57, 71)),
         );
         idx += 1;
+    }
+
+    let selected_indices = ecs.read_storage::<SelectedInventoryIdx>();
+    if let Some(selection) = selected_indices.get(player_entity.0) { 
+        if selection.idx > items_in_bag.len() {
+            return;
+        }
+        draw_batch.print(Point::new(41, 3 + selection.idx), ">");
     }
 }
 
