@@ -1,10 +1,10 @@
 use bracket_terminal::prelude::{BTerm, VirtualKeyCode as VKC};
-use specs::{Component, Entity, VecStorage, World, WorldExt};
+use specs::{Entity, World, WorldExt};
 
 use crate::{
     game_init::PlayerEntity,
     player::PlayerResponse,
-    AppState, State, crafting::craft_item, components::Backpack,
+    AppState, State, components::{Backpack, SelectedInventoryIdx}, message_log::MessageLog,
 };
 
 pub enum UseMenuResult {
@@ -52,53 +52,56 @@ pub fn manage_player_inventory(state: &mut State, ctx: &BTerm) -> PlayerResponse
 }
 
 pub fn select_item(player_entity: &Entity, idx_selected: usize, ecs: &mut World) -> PlayerResponse {
+    let mut log = ecs.write_resource::<MessageLog>();
     let mut selected_idxs = ecs.write_storage::<SelectedInventoryIdx>();
-    match selected_idxs.insert(
-        *player_entity,
-        SelectedInventoryIdx {
-            idx: idx_selected,
-            intended_action: None,
-        },
-    ) {
-        Ok(maybe_exisiting) => {
-            match maybe_exisiting {
-                Some(first_selection) => {
-                    println!(
-                        "First Index was {} and Second Index is {}",
-                        first_selection.idx, idx_selected
-                    );
-                    let mut backpacks = ecs.write_storage::<Backpack>();
-                    let crafter_bag = match backpacks.get_mut(*player_entity) {
-                        Some(bag) => bag,
-                        None => panic!("Player does not have a backpack component.")
-                    };
+    let mut backpacks = ecs.write_storage::<Backpack>();
+    let crafter_bag = match backpacks.get_mut(*player_entity) {
+        Some(bag) => bag,
+        None => panic!("Player does not have a backpack component.")
+    };
 
-                    let first_item = crafter_bag.get_id_by_idx(first_selection.idx).unwrap();
-                    let second_item = crafter_bag.get_id_by_idx(idx_selected).unwrap();
-                    craft_item(crafter_bag, (first_item, second_item));
-                    
-                    // Selecting process finished here clear them.
-                    selected_idxs.remove(*player_entity);
-                    PlayerResponse::Waiting
-                }
-                None => {
-                    println!("Inserted first selected inventory index which was {}", idx_selected);
-                    PlayerResponse::Waiting
-                }
-            }
-        }
-        Err(_) => {
-            eprintln!("Cannot access player's selected index and failed during insertion into SelectedInventoryIdx storage");
-            PlayerResponse::Waiting
-        }
+    if idx_selected + 1 > crafter_bag.len() {
+        log.log("Index selected is out of bounds of the backapack.");
+        return PlayerResponse::Waiting;
     }
-}
+    PlayerResponse::Waiting
 
-#[derive(Component)]
-#[storage(VecStorage)]
-pub struct SelectedInventoryIdx {
-    pub idx: usize,
-    pub intended_action: Option<UseMenuResult>,
+
+
+    // match selected_idxs.insert(
+    //     *player_entity,
+    //     SelectedInventoryIdx {
+    //         first_idx: idx_selected,
+    //         intended_action: None,
+    //     },
+    // ) {
+    //     Ok(maybe_exisiting) => {
+    //         match maybe_exisiting {
+    //             Some(selection) => {
+    //                 println!(
+    //                     "First Index was {} and Second Index is {}",
+    //                     selection.first_idx, idx_selected
+    //                 );
+    //
+    //                 let first_item = crafter_bag.get_id_by_idx(selection.first_idx).unwrap();
+    //                 let second_item = crafter_bag.get_id_by_idx(idx_selected).unwrap();
+    //                 craft_item(crafter_bag, (first_item, second_item));
+    //                
+    //                 // Selecting process finished here clear them.
+    //                 selected_idxs.remove(*player_entity);
+    //                 PlayerResponse::Waiting
+    //             }
+    //             None => {
+    //                 println!("Inserted first selected inventory index which was {}", idx_selected);
+    //                 PlayerResponse::Waiting
+    //             }
+    //         }
+    //     }
+    //     Err(_) => {
+    //         eprintln!("Cannot access player's selected index and failed during insertion into SelectedInventoryIdx storage");
+    //         PlayerResponse::Waiting
+    //     }
+    // }
 }
 
 fn clean_and_exit_inventory(player_entity: &Entity, ecs: &mut World) -> PlayerResponse {

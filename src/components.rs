@@ -12,7 +12,7 @@ use crate::{
     data_read::{prelude::ItemID, ENTITY_DB},
     indexing::idx_to_point,
     items::ItemQty,
-    stats::Stats,
+    stats::Stats, inventory::UseMenuResult,
 };
 
 #[derive(Debug, Component)]
@@ -330,6 +330,7 @@ impl WantsToMove {
     }
 }
 
+
 #[derive(Debug, Component)]
 #[storage(VecStorage)]
 pub struct SufferDamage {
@@ -492,3 +493,23 @@ impl Display for InteractorMode {
         write!(f, "{}", self.to_string())
     }
 }
+
+// ==== Inventory Menu Control =====
+// Control Flow
+// precondition: player opens menu
+// selects first item <- WantsToSelect
+// use menu opens: 
+
+#[derive(Component, Debug)]
+#[storage(VecStorage)]
+pub struct WantsToSelect {
+    selected_idx: usize,
+}
+
+#[derive(Component)]
+#[storage(VecStorage)]
+pub struct SelectedInventoryIdx {
+    pub first_idx: usize,
+    pub intended_action: Option<UseMenuResult>,
+}
+

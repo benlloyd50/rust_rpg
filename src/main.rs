@@ -21,6 +21,7 @@ mod draw_sprites;
 mod game_init;
 mod indexing;
 mod inventory;
+mod colors;
 use inventory::manage_player_inventory;
 mod items;
 mod message_log;
@@ -53,21 +54,13 @@ use time::delta_time_update;
 use user_interface::draw_ui;
 
 use crate::components::EntityStats;
-use crate::inventory::SelectedInventoryIdx;
-use crate::{
-    components::{
+use crate::{components::{
+SelectedInventoryIdx,
         AttackAction, Backpack, Blocking, BreakAction, Breakable, DeathDrop, DeleteCondition,
         FinishedActivity, FishAction, FishOnTheLine, Fishable, GoalMoverAI, Grass, HealthStats,
         Interactor, Item, Monster, Name, PickupAction, RandomWalkerAI, Renderable, SufferDamage,
         Transform, WaitingForFish, WantsToMove, Water,
-    },
-    data_read::initialize_game_databases,
-    items::ItemSpawner,
-    message_log::MessageLog,
-    player::Player,
-    tile_animation::TileAnimationBuilder,
-    time::DeltaTime,
-};
+    }, data_read::initialize_game_databases, items::ItemSpawner, message_log::MessageLog, player::Player, tile_animation::TileAnimationBuilder, time::DeltaTime};
 
 // Size of the terminal window
 pub const DISPLAY_WIDTH: usize = 40;

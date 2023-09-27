@@ -4,11 +4,11 @@ use bracket_terminal::prelude::{
 use specs::prelude::*;
 
 use crate::{
-    components::Backpack,
-    data_read::{ENTITY_DB, prelude::ItemInfo},
+    components::{Backpack, SelectedInventoryIdx},
+    data_read::ENTITY_DB,
     game_init::PlayerEntity,
     message_log::{MessageLog, MessageType},
-    AppState, CL_TEXT, inventory::SelectedInventoryIdx,
+    AppState, CL_TEXT, colors::{INVENTORY_BACKGROUND, INVENTORY_OUTLINE, to_rgb, white_fg},
 };
 
 pub fn draw_ui(ecs: &World, appstate: &AppState) {
@@ -20,6 +20,7 @@ pub fn draw_ui(ecs: &World, appstate: &AppState) {
     match *appstate {
         AppState::PlayerInInventory => {
             draw_inventory(&mut draw_batch, &ecs);
+            draw_use_menu(&mut draw_batch);
         }
         _ => {}
     }
@@ -39,11 +40,11 @@ fn draw_inventory(draw_batch: &mut DrawBatch, ecs: &World) {
 
     draw_batch.draw_hollow_box(
         Rect::with_size(40, 2, 35, items_in_bag.len() + 1),
-        ColorPair::new(WHITESMOKE, RGB::from_u8(61, 84, 107)),
+        white_fg(to_rgb(INVENTORY_OUTLINE)),
     );
     draw_batch.fill_region(
         Rect::with_size(41, 3, 34, items_in_bag.len()),
-        ColorPair::new(WHITESMOKE, RGB::from_u8(44, 57, 71)),
+        white_fg(to_rgb(INVENTORY_BACKGROUND)),
         to_cp437(' '),
     );
 
@@ -60,17 +61,29 @@ fn draw_inventory(draw_batch: &mut DrawBatch, ecs: &World) {
         draw_batch.print_color(
             Point::new(42, 2 + idx),
             format!("{:X}| {:03} {}", idx, qty.0, name),
-            ColorPair::new(WHITESMOKE, RGB::from_u8(44, 57, 71)),
+            white_fg(to_rgb(INVENTORY_BACKGROUND)),
         );
         idx += 1;
     }
 
     let selected_indices = ecs.read_storage::<SelectedInventoryIdx>();
     if let Some(selection) = selected_indices.get(player_entity.0) { 
-        if selection.idx > items_in_bag.len() {
+        if selection.first_idx < items_in_bag.len() {
+            draw_batch.print(Point::new(41, 3 + selection.first_idx), ">");
             return;
         }
-        draw_batch.print(Point::new(41, 3 + selection.idx), ">");
+    }
+}
+
+const POSSIBLE_ACTIONS: [&str; 4]  = ["Craft", "Use", "Examine", "Cancel"];
+
+fn draw_use_menu(draw_batch: &mut DrawBatch) {
+    draw_batch.draw_hollow_box(Rect::with_size(30, 6, 8, 6), white_fg(to_rgb(INVENTORY_OUTLINE)));
+    draw_batch.fill_region(Rect::with_size(31, 7, 7, 5), white_fg(to_rgb(INVENTORY_BACKGROUND)), to_cp437(' '),);
+    
+    // NOTE: we would probably want to keep track of what actions are possible for a specific item
+    for (idx, action) in POSSIBLE_ACTIONS.iter().enumerate() {
+        draw_batch.print_color(Point::new(31, 7 + idx), action, white_fg(to_rgb(INVENTORY_BACKGROUND)));
     }
 }
 
@@ -79,11 +92,11 @@ fn draw_message_log(draw_batch: &mut DrawBatch, ecs: &World) {
 
     draw_batch.draw_hollow_box(
         Rect::with_size(-1, 50, 70, 10),
-        ColorPair::new(WHITESMOKE, RGB::from_u8(61, 84, 107)),
+        white_fg(to_rgb(INVENTORY_OUTLINE)),
     );
     draw_batch.fill_region(
         Rect::with_size(0, 51, 69, 9),
-        ColorPair::new(WHITESMOKE, RGB::from_u8(44, 57, 71)),
+        white_fg(to_rgb(INVENTORY_BACKGROUND)),
         to_cp437(' '),
     );
 
