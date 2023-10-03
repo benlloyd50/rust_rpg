@@ -22,7 +22,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::from_str;
 use std::{fs, sync::Mutex};
 
-use self::{beings::BeingDatabase, items::ItemDatabase, world_objs::WorldObjectDatabase, prelude::RECIPE_DB};
+use self::{
+    beings::BeingDatabase, items::ItemDatabase, prelude::RECIPE_DB, world_objs::WorldObjectDatabase,
+};
 
 lazy_static! {
     pub static ref ENTITY_DB: Mutex<GameData> = Mutex::new(GameData::new());

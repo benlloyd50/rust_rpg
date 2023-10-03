@@ -14,6 +14,7 @@ use monster::{
 use specs::prelude::*;
 
 mod camera;
+mod colors;
 mod combat;
 mod data_read;
 mod debug;
@@ -21,8 +22,7 @@ mod draw_sprites;
 mod game_init;
 mod indexing;
 mod inventory;
-mod colors;
-use inventory::manage_player_inventory;
+use inventory::inventory_tick;
 mod items;
 mod message_log;
 mod mining;
@@ -54,13 +54,20 @@ use time::delta_time_update;
 use user_interface::draw_ui;
 
 use crate::components::EntityStats;
-use crate::{components::{
-SelectedInventoryIdx,
+use crate::{
+    components::{
         AttackAction, Backpack, Blocking, BreakAction, Breakable, DeathDrop, DeleteCondition,
         FinishedActivity, FishAction, FishOnTheLine, Fishable, GoalMoverAI, Grass, HealthStats,
-        Interactor, Item, Monster, Name, PickupAction, RandomWalkerAI, Renderable, SufferDamage,
-        Transform, WaitingForFish, WantsToMove, Water,
-    }, data_read::initialize_game_databases, items::ItemSpawner, message_log::MessageLog, player::Player, tile_animation::TileAnimationBuilder, time::DeltaTime};
+        Interactor, Item, Monster, Name, PickupAction, RandomWalkerAI, Renderable,
+        SelectedInventoryIdx, SufferDamage, Transform, WaitingForFish, WantsToMove, Water,
+    },
+    data_read::initialize_game_databases,
+    items::ItemSpawner,
+    message_log::MessageLog,
+    player::Player,
+    tile_animation::TileAnimationBuilder,
+    time::DeltaTime,
+};
 
 // Size of the terminal window
 pub const DISPLAY_WIDTH: usize = 40;
@@ -198,17 +205,7 @@ impl GameState for State {
                 self.run_eof_systems();
             }
             AppState::PlayerInInventory => {
-                match manage_player_inventory(self, ctx) {
-                    PlayerResponse::Waiting => {
-                        // Player hasn't done anything yet so only run essential systems
-                    }
-                    PlayerResponse::TurnAdvance => {
-                        // self.run_response_systems();
-                    }
-                    PlayerResponse::StateChange(delta_state) => {
-                        new_state = delta_state;
-                    }
-                }
+                inventory_tick(&mut new_state, self, ctx);
             }
             AppState::ActivityBound { mut response_delay } => {
                 // if the player finishes we run final systems and change state

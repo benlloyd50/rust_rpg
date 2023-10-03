@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use bracket_terminal::prelude::PURPLE;
 use serde::{Deserialize, Serialize};
 use specs::{Builder, Entity, World, WorldExt};
@@ -47,6 +49,18 @@ pub struct ItemInfo {
 
 #[derive(Serialize, Deserialize, Copy, Clone, Debug, Hash, Eq, PartialEq)]
 pub struct ItemID(pub u32);
+
+impl Display for ItemID {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let edb = &ENTITY_DB.lock().unwrap();
+        let temp = format!("Missing name {}", self.0);
+        let name = match edb.items.get_by_id(self.0) {
+            Some(info) => &info.name,
+            None => &temp,
+        };
+        write!(f, "{}", name)
+    }
+}
 
 pub fn build_item(
     name: impl ToString,

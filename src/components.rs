@@ -11,8 +11,9 @@ use specs::{Component, Entity, NullStorage, VecStorage};
 use crate::{
     data_read::{prelude::ItemID, ENTITY_DB},
     indexing::idx_to_point,
+    inventory::UseMenuResult,
     items::ItemQty,
-    stats::Stats, inventory::UseMenuResult,
+    stats::Stats,
 };
 
 #[derive(Debug, Component)]
@@ -330,7 +331,6 @@ impl WantsToMove {
     }
 }
 
-
 #[derive(Debug, Component)]
 #[storage(VecStorage)]
 pub struct SufferDamage {
@@ -412,7 +412,11 @@ impl Backpack {
             return None;
         }
 
-        self.iter().enumerate().find(|(bag_idx, _)| idx == *bag_idx).map(|(_, val)| val.0).copied()
+        self.iter()
+            .enumerate()
+            .find(|(bag_idx, _)| idx == *bag_idx)
+            .map(|(_, val)| val.0)
+            .copied()
     }
 
     /// Checks inventory for an item based on name.
@@ -494,22 +498,9 @@ impl Display for InteractorMode {
     }
 }
 
-// ==== Inventory Menu Control =====
-// Control Flow
-// precondition: player opens menu
-// selects first item <- WantsToSelect
-// use menu opens: 
-
-#[derive(Component, Debug)]
-#[storage(VecStorage)]
-pub struct WantsToSelect {
-    selected_idx: usize,
-}
-
 #[derive(Component)]
 #[storage(VecStorage)]
 pub struct SelectedInventoryIdx {
     pub first_idx: usize,
     pub intended_action: Option<UseMenuResult>,
 }
-
