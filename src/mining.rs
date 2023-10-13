@@ -6,7 +6,7 @@ use crate::{
     items::ItemSpawner,
     message_log::MessageLog,
 };
-use specs::{Entities, Entity, Join, ReadStorage, System, Write, WriteStorage};
+use specs::{Entities, Entity, Join, ReadStorage, System, Write, WriteStorage, LendJoin};
 
 /// Allows tile to be breakable. The tile must contain a breakable and health stats component.
 /// The attacker must contain a strength and have breakactions queued up in their system.
