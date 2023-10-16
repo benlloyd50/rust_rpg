@@ -3,36 +3,42 @@
         {
             "identifier": 0,
             "name": "Flint",
+            "examine_text": "It is pointy and sharp",
             "atlas_index": 68,
             "fg": [183, 197, 201]
         },
         {
             "identifier": 1,
             "name": "Fire Flint",
+            "examine_text": "Now it can ignite something!",
             "atlas_index": 68,
             "fg": [242, 122, 70]
         },
         {
             "identifier": 2,
             "name": "Stick",
+            "examine_text": "A small piece of a tree",
             "atlas_index": 96,
             "fg": [255, 255, 255]
         },
         {
             "identifier": 100,
             "name": "Sharp Stick",
+            "examine_text": "This is usable for poking things",
             "atlas_index": 97,
             "fg": [255, 255, 255]
         },
         {
             "identifier": 190,
             "name": "Crude Mace",
+            "examine_text": "Crude enough to bash in a face",
             "atlas_index": 115,
             "fg": [255, 255, 255]
         },
         {
             "identifier": 201,
             "name": "Fishing Rod",
+            "examine_text": "You can fish where bubbles appear from",
             "atlas_index": 112,
             "fg": [255, 255, 255],
             "pickup_text": "You should try finding some bubbles to use this in."

@@ -1,6 +1,5 @@
 use std::fmt::Display;
 
-use bracket_terminal::prelude::PURPLE;
 use serde::{Deserialize, Serialize};
 use specs::{Builder, Entity, World, WorldExt};
 

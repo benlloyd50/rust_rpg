@@ -6,7 +6,7 @@ use crate::{
     items::ItemSpawner,
     message_log::MessageLog,
 };
-use specs::{Entities, Entity, Join, ReadStorage, System, Write, WriteStorage, LendJoin};
+use specs::{Entities, Entity, Join, LendJoin, ReadStorage, System, Write, WriteStorage};
 
 /// Allows tile to be breakable. The tile must contain a breakable and health stats component.
 /// The attacker must contain a strength and have breakactions queued up in their system.
@@ -59,8 +59,11 @@ impl<'a> System<'a> for TileDestructionSystem {
 }
 
 // TODO: when we get the inventory added check that it contains the tool
-fn inventory_contains_tool(_tool_type: &ToolType) -> bool {
-    true
+fn inventory_contains_tool(tool_type: &ToolType) -> bool {
+    match tool_type {
+        ToolType::Hand => true,
+        _ => false,
+    }
 }
 
 impl SufferDamage {

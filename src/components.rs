@@ -430,6 +430,7 @@ impl Backpack {
 
     /// Checks inventory for an amount of a named item.
     /// Panics if name does not exist.
+    #[allow(dead_code)]
     pub fn contains_named_amt(&self, name: &Name, amt: usize) -> bool {
         let edb = &ENTITY_DB.lock().unwrap();
         let info = edb.items.get_by_name_unchecked(&name.0);

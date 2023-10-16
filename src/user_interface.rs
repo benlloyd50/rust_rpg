@@ -7,7 +7,7 @@ use crate::{
     data_read::ENTITY_DB,
     game_init::PlayerEntity,
     inventory::{check_player_selection, SelectionStatus},
-    message_log::{MessageLog, MessageType},
+    message_log::MessageLog,
     AppState, CL_TEXT,
 };
 
@@ -77,7 +77,7 @@ fn draw_inventory(draw_batch: &mut DrawBatch, ecs: &World) {
 }
 
 const POSSIBLE_ACTIONS: [&str; 4] = [
-    "#[orange]C#[]raft",
+    "#[orange]U#[]se with",
     "#[orange]E#[]xamine",
     "#[orange]D#[]rop",
     "#[white]Cancel#[]",
@@ -106,7 +106,7 @@ fn draw_use_menu(draw_batch: &mut DrawBatch) {
 }
 
 fn draw_message_log(draw_batch: &mut DrawBatch, ecs: &World) {
-    let message_log = ecs.fetch::<MessageLog>();
+    let log = ecs.fetch::<MessageLog>();
 
     draw_batch.draw_hollow_box(
         Rect::with_size(-1, 50, 70, 10),
@@ -119,15 +119,10 @@ fn draw_message_log(draw_batch: &mut DrawBatch, ecs: &World) {
     );
 
     let mut y_offset = 0;
-    for message in message_log.messages.iter().rev().take(9) {
-        let color = match message.kind {
-            MessageType::INFO => "lightgray",
-            MessageType::DEBUG => "orange",
-            MessageType::FLAVOR => "white",
-        };
+    for message in log.nth_recent(9) {
         draw_batch.printer(
             Point::new(1, 51 + y_offset),
-            format!("#[{}]{}#[]", color, &message.contents),
+            message.colored(),
             TextAlign::Left,
             Some(RGBA::new()),
         );

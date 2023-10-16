@@ -6,9 +6,9 @@ use crate::data_read::prelude::{ItemID, RECIPE_DB};
 pub fn craft_item(crafter_bag: &mut Backpack, first_item_used: ItemID, used_on: ItemID) {
     let rdb = &RECIPE_DB.lock().unwrap();
     let recipe_crafted = match rdb
-        .recipes
+        .use_with_recipes
         .iter()
-        .find(|r| r.first.eq(&first_item_used) && r.second.eq(&used_on))
+        .find(|r| r.first.id.eq(&first_item_used) && r.second.id.eq(&used_on))
     {
         Some(recipe) => recipe,
         None => {
@@ -18,10 +18,11 @@ pub fn craft_item(crafter_bag: &mut Backpack, first_item_used: ItemID, used_on: 
         }
     };
 
-    if recipe_crafted.use_items {
+    if recipe_crafted.first.consume {
         crafter_bag.remove_item(&first_item_used, 1);
+    }
+    if recipe_crafted.second.consume {
         crafter_bag.remove_item(&used_on, 1);
     }
-
     crafter_bag.add_item(recipe_crafted.output, 1);
 }

@@ -1,8 +1,13 @@
 [
     {
-        "first": "Flint",
-        "second": "Stick",
-        "output": "Sharp Stick",
-        "use_items": false
+        "first": {
+            "name": "Flint",
+            "consume": false
+        },
+        "second":{
+            "name": "Stick",
+            "consume": true
+        },
+        "output": "Sharp Stick"
     }
 ]

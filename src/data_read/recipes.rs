@@ -11,13 +11,13 @@ lazy_static! {
 }
 
 pub struct RecipeDatabase {
-    pub recipes: Vec<Recipe>,
+    pub use_with_recipes: Vec<UseWithRecipe>,
 }
 
 impl RecipeDatabase {
     pub fn new() -> Self {
         Self {
-            recipes: Vec::new(),
+            use_with_recipes: Vec::new(),
         }
     }
 
@@ -26,29 +26,43 @@ impl RecipeDatabase {
             .expect("Unable to find recipes.json at `raws/recipes.json`");
         let recipes: Vec<RawRecipe> = from_str(&contents).expect("Bad JSON in recipes.json fix it");
         let edb = &ENTITY_DB.lock().unwrap();
-        self.recipes = recipes
+        self.use_with_recipes = recipes
             .iter()
-            .map(|r| Recipe {
-                first: edb.items.get_by_name_unchecked(&r.first).identifier,
-                second: edb.items.get_by_name_unchecked(&r.second).identifier,
+            .map(|r| UseWithRecipe {
+                first: Ingredient {
+                    id: edb.items.get_by_name_unchecked(&r.first.name).identifier,
+                    consume: r.first.consume,
+                },
+                second: Ingredient {
+                    id: edb.items.get_by_name_unchecked(&r.second.name).identifier,
+                    consume: r.second.consume,
+                },
                 output: edb.items.get_by_name_unchecked(&r.output).identifier,
-                use_items: r.use_items,
             })
             .collect();
     }
 }
 
-pub struct Recipe {
-    pub first: ItemID,
-    pub second: ItemID,
+pub struct UseWithRecipe {
+    pub first: Ingredient,
+    pub second: Ingredient,
     pub output: ItemID,
-    pub use_items: bool,
+}
+
+pub struct Ingredient {
+    pub id: ItemID,
+    pub consume: bool,
 }
 
 #[derive(Deserialize, Serialize)]
-pub struct RawRecipe {
-    pub first: String,
-    pub second: String,
-    pub output: String,
-    pub use_items: bool,
+struct RawRecipe {
+    first: RawIngredient,
+    second: RawIngredient,
+    output: String,
+}
+
+#[derive(Deserialize, Serialize)]
+struct RawIngredient {
+    name: String,
+    consume: bool,
 }

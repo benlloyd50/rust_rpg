@@ -54,7 +54,8 @@ fn handle_player_input(state: &mut State, ctx: &BTerm) -> InventoryResponse {
             let mut selected_idxs = state.ecs.write_storage::<SelectedInventoryIdx>();
             if let Some(selection) = selected_idxs.get_mut(player_entity) {
                 match key {
-                    VKC::C => {
+                    VKC::U => {
+                        // using an item with something else translates to crafting most of the time (99.9%)
                         selection.intended_action = Some(UseMenuResult::Craft);
                         InventoryResponse::Waiting
                     }
@@ -153,14 +154,16 @@ fn handle_one_item_actions(ecs: &mut World) {
         }
     };
 
+    let mut log = ecs.write_resource::<MessageLog>();
     match selection.intended_action.as_ref().unwrap() {
         UseMenuResult::Drop => {
             // remove item from bag
+            log.log("Dropped it");
             println!("pretend you dropped it");
         }
         UseMenuResult::Examine => {
             //log flavor text
-            println!("pretend you examined it");
+            log.log("Examined it");
         }
         UseMenuResult::Cancel => {}
         UseMenuResult::Craft => {
