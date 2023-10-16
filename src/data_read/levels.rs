@@ -8,7 +8,7 @@ use specs::{Builder, World, WorldExt};
 
 use super::prelude::{build_being, build_item, build_obj};
 
-const LEVEL_ZERO: &'static str = "Level_0";
+const LEVEL_ZERO: &str = "Level_0";
 
 pub fn load_simple_ldtk_level(ecs: &mut World) -> Map {
     let ldtk_design = DesignMap::load("./resources/ldtk/rpg_world_v1.ldtk");
@@ -16,8 +16,7 @@ pub fn load_simple_ldtk_level(ecs: &mut World) -> Map {
     let simple_level = &ldtk_design.levels()[LEVEL_ZERO];
     let mut map = Map::new(simple_level.width(), simple_level.height());
 
-    let mut idx = 0;
-    for tile in simple_level.level() {
+    for (idx, tile) in simple_level.level().iter().enumerate() {
         map.tiles[idx] = WorldTile {
             atlas_index: tile.atlas_index(),
         };
@@ -59,8 +58,6 @@ pub fn load_simple_ldtk_level(ecs: &mut World) -> Map {
                 idx_to_point(idx, simple_level.width())
             ),
         };
-
-        idx += 1;
     }
 
     map

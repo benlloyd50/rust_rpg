@@ -30,13 +30,13 @@ pub fn draw_sprite_layers(ecs: &World) {
     draw_batch.target(CL_INTERACTABLES);
     draw_batch.cls();
 
-    draw_sprites(&ecs, &mut draw_batch);
-    draw_fancy_sprites(&ecs, &mut draw_batch);
+    draw_sprites(ecs, &mut draw_batch);
+    draw_fancy_sprites(ecs, &mut draw_batch);
     draw_batch.submit(CL_INTERACTABLES).expect("Batch error??");
 
     draw_batch.target(CL_WORLD);
     draw_batch.cls();
-    render_map(&ecs, &mut draw_batch);
+    render_map(ecs, &mut draw_batch);
     draw_batch.submit(CL_WORLD).expect("Batch error??");
 }
 
@@ -94,7 +94,7 @@ fn lerp_positon(curr: &PointF, actual: &Position, scalar: f32) -> PointF {
 }
 
 #[allow(dead_code)]
-const COLORS: [&'static (u8, u8, u8); 11] = [
+const COLORS: [&(u8, u8, u8); 11] = [
     &ROSYBROWN,
     &DARKSALMON,
     &BURLYWOOD,

@@ -48,11 +48,9 @@ impl<'a> System<'a> for RandomMonsterMovementSystem {
                 79 => {
                     let edb = &ENTITY_DB.lock().unwrap();
                     if let Some(monster) = edb.beings.get_by_name(&name.0) {
-                        monster
-                            .quips
-                            .as_ref()
-                            .and_then(|quips| quips.first())
-                            .map(|quip| log.enhance(quip));
+                        if let Some(quip) = monster.quips.as_ref().and_then(|quips| quips.first()) {
+                            log.enhance(quip)
+                        }
                     }
                 }
                 _ => {}
@@ -92,11 +90,7 @@ pub fn check_monster_delay(ecs: &World, monster_delay: &mut Duration) -> bool {
     let delta_time = ecs.read_resource::<DeltaTime>();
     *monster_delay = monster_delay.checked_add(delta_time.0).unwrap();
 
-    if *monster_delay >= MONSTER_ACTION_DELAY {
-        true
-    } else {
-        false
-    }
+    *monster_delay >= MONSTER_ACTION_DELAY
 }
 
 pub struct GoalFindEntities;
@@ -112,7 +106,7 @@ impl<'a> System<'a> for GoalFindEntities {
     fn run(&mut self, (mut goal_movers, positions, names, entities): Self::SystemData) {
         for (goal_entity, goal_mover, mover_pos) in (&entities, &mut goal_movers, &positions).join()
         {
-            if let Some(_) = goal_mover.current {
+            if goal_mover.current.is_some() {
                 continue;
             }
             let mut closest_goal = (None, 1000000);
@@ -162,7 +156,7 @@ impl<'a> System<'a> for GoalMoveToEntities {
                 }
             };
 
-            if distance(&mover_pos, &goal_pos) < 2 {
+            if distance(mover_pos, goal_pos) < 2 {
                 let _ = break_actions.insert(
                     entity,
                     BreakAction {
@@ -174,8 +168,8 @@ impl<'a> System<'a> for GoalMoveToEntities {
             let path: (Vec<Position>, u32) = match astar(
                 mover_pos,
                 |p| successors(&map, p),
-                |p| distance(p, &goal_pos),
-                |p| is_goal(p, &goal_pos),
+                |p| distance(p, goal_pos),
+                |p| is_goal(p, goal_pos),
             ) {
                 Some(path) => path,
                 None => {
@@ -185,8 +179,7 @@ impl<'a> System<'a> for GoalMoveToEntities {
             println!("{} | Steps: {:?} Cost: {}", name, path.0.len(), path.1);
             if path.0.len() > 1 {
                 let new_position = path.0[1];
-                let _ =
-                    wants_to_move.insert(entity, WantsToMove::new(Position::from(new_position)));
+                let _ = wants_to_move.insert(entity, WantsToMove::new(new_position));
                 println!("{} moved to {}", name, mover_pos);
             }
         }

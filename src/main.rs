@@ -25,7 +25,7 @@ mod game_init;
 mod indexing;
 mod inventory;
 mod ui;
-use inventory::inventory_tick;
+use inventory::{handle_one_item_actions, handle_two_item_actions, InventoryResponse, handle_player_input};
 mod items;
 mod mining;
 mod monster;
@@ -204,7 +204,20 @@ impl GameState for State {
                 self.run_eof_systems();
             }
             AppState::PlayerInInventory => {
-                inventory_tick(&mut new_state, self, ctx);
+                match handle_player_input(&mut self.ecs, ctx) {
+                    InventoryResponse::Waiting => {
+                        // Player hasn't done anything yet so only run essential systems
+                    }
+                    InventoryResponse::ActionReady => {
+                        handle_one_item_actions(&mut self.ecs);
+                    }
+                    InventoryResponse::SecondItemSelected { second_idx } => {
+                        handle_two_item_actions(&mut self.ecs, second_idx);
+                    }
+                    InventoryResponse::StateChange(delta_state) => {
+                        new_state = delta_state;
+                    }
+                }
             }
             AppState::ActivityBound { mut response_delay } => {
                 // if the player finishes we run final systems and change state
@@ -223,6 +236,7 @@ impl GameState for State {
             }
         }
 
+        // Essential Systems ran every frame
         delta_time_update(&mut self.ecs, ctx);
         self.ecs.maintain();
 
@@ -230,6 +244,7 @@ impl GameState for State {
             let current_frame_state = self.ecs.fetch::<AppState>();
             draw_ui(&self.ecs, &current_frame_state);
         }
+
         update_fancy_positions(&self.ecs);
         draw_sprite_layers(&self.ecs);
         render_draw_buffer(ctx).expect("Render error??");

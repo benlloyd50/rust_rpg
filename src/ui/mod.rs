@@ -17,11 +17,11 @@ pub fn draw_ui(ecs: &World, appstate: &AppState) {
     let mut draw_batch = DrawBatch::new();
     draw_batch.target(CL_TEXT).cls();
 
-    draw_message_log(&mut draw_batch, &ecs);
+    draw_message_log(&mut draw_batch, ecs);
 
     match *appstate {
         AppState::PlayerInInventory => {
-            draw_inventory(&mut draw_batch, &ecs);
+            draw_inventory(&mut draw_batch, ecs);
             if check_inventory_selection(ecs) == SelectionStatus::SelectionWithoutAction {
                 draw_use_menu(&mut draw_batch);
             }

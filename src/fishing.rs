@@ -45,7 +45,7 @@ impl<'a> System<'a> for SetupFishingActions {
             let attempts = rng.range(2, 6); // this could be affected by a fishing skill level?
             match fish_waiters.insert(e, WaitingForFish::new(attempts)) {
                 Ok(fishy) => {
-                    if let Some(_) = fishy {
+                    if fishy.is_some() {
                         eprintln!("ERROR: entity: {} was already waiting for fish, they should not have performed the action again", e.id());
                     }
                 }

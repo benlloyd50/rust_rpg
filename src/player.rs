@@ -142,7 +142,7 @@ fn try_pickup(ecs: &mut World) -> PlayerResponse {
         .join()
         .find(|(e, _)| e.eq(&player_entity.0))
     {
-        let mut item_iter = map.all_items_at_pos(&pos);
+        let mut item_iter = map.all_items_at_pos(pos);
         if let Some(item_entity) = item_iter.next() {
             let _ = pickups.insert(
                 player_entity,
@@ -179,10 +179,5 @@ fn switch_interaction_mode(ecs: &mut World) {
 pub fn check_player_activity(ecs: &mut World) -> bool {
     let players = ecs.read_storage::<Player>();
     let mut finished_activities = ecs.write_storage::<FinishedActivity>();
-
-    for _ in (&players, &mut finished_activities).join() {
-        return true;
-    }
-
-    false
+    (&players, &mut finished_activities).join().next().is_some()
 }

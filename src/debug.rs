@@ -88,13 +88,8 @@ pub fn debug_input(ctx: &mut BTerm, ecs: &World) {
         print_tile_contents(ctx, ecs);
     }
 
-    if ctx.key.is_some() {
-        match ctx.key.unwrap() {
-            VirtualKeyCode::V => {
-                print_position(&ecs);
-            }
-            _ => {}
-        }
+    if ctx.key.is_some() && ctx.key.unwrap() == VirtualKeyCode::V {
+        print_position(ecs);
     }
 }
 
@@ -125,7 +120,7 @@ fn print_tile_contents(ctx: &mut BTerm, ecs: &World) {
     ctx.set_active_console(CL_WORLD);
     print!("MousePos on CL_WORLD: {:?} | ", &ctx.mouse_pos());
 
-    let cursor_map_pos = mouse_to_map_pos(&ctx.mouse_pos(), &ecs);
+    let cursor_map_pos = mouse_to_map_pos(&ctx.mouse_pos(), ecs);
 
     let tile_idx = match cursor_map_pos {
         Some(pos) => pos.to_idx(map.width),

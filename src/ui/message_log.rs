@@ -17,15 +17,13 @@ pub(crate) fn draw_message_log(draw_batch: &mut DrawBatch, ecs: &World) {
         ColorPair::new(INVENTORY_OUTLINE, INVENTORY_BACKGROUND),
     );
 
-    let mut y_offset = 0;
-    for message in log.nth_recent(9) {
+    for (y_offset, message) in log.nth_recent(9).enumerate() {
         draw_batch.printer(
             Point::new(1, 51 + y_offset),
             message.colored(),
             TextAlign::Left,
             Some(RGBA::new()),
         );
-        y_offset += 1;
     }
 }
 
@@ -39,24 +37,24 @@ impl MessageLog {
         Self {
             messages: vec![Message::new(
                 "Welcome to the world of rust_rpg!".to_string(),
-                MessageType::INFO,
+                MessageType::Info,
             )],
         }
     }
 
     /// Adds info to the log
     pub fn log(&mut self, contents: impl ToString) {
-        self.add_to_log(contents.to_string(), MessageType::INFO);
+        self.add_to_log(contents.to_string(), MessageType::Info);
     }
 
     /// Adds flavor to the log
     pub fn enhance(&mut self, contents: impl ToString) {
-        self.add_to_log(contents.to_string(), MessageType::FLAVOR);
+        self.add_to_log(contents.to_string(), MessageType::Flavor);
     }
 
     /// Adds debug info to the log
     pub fn debug(&mut self, contents: impl ToString) {
-        self.add_to_log(contents.to_string(), MessageType::DEBUG);
+        self.add_to_log(contents.to_string(), MessageType::Debug);
     }
 
     /// Returns the nth most recent messages in the log
@@ -101,9 +99,9 @@ impl Message {
     /// Returns a colored output of the message based on type and amt
     pub fn colored(&self) -> String {
         let color = match self.kind {
-            MessageType::INFO => "lightgray",
-            MessageType::DEBUG => "orange",
-            MessageType::FLAVOR => "white",
+            MessageType::Info => "lightgray",
+            MessageType::Debug => "orange",
+            MessageType::Flavor => "white",
         };
         let suffix_amt = if self.repeated > 1 {
             format!(" x{}", self.repeated)
@@ -122,7 +120,7 @@ impl Display for Message {
 
 #[derive(PartialEq, Eq)]
 pub enum MessageType {
-    FLAVOR, // conversations, flavor text
-    INFO,   // game info ie Fishing attempts remaining
-    DEBUG,  // only shown if debug is enabled
+    Flavor, // conversations, flavor text
+    Info,   // game info ie Fishing attempts remaining
+    Debug,  // only shown if debug is enabled
 }

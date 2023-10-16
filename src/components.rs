@@ -78,11 +78,11 @@ impl Position {
         idx_to_point(idx, width).into()
     }
 
-    pub fn to_idx(&self, width: usize) -> usize {
+    pub fn to_idx(self, width: usize) -> usize {
         self.y * width + self.x
     }
 
-    pub fn to_point(&self) -> Point {
+    pub fn to_point(self) -> Point {
         Point::new(self.x, self.y)
     }
 }
@@ -191,8 +191,8 @@ pub struct FishOnTheLine;
 #[storage(VecStorage)]
 pub struct Name(pub String);
 
-const MISSING_ITEM_NAME: &'static str = "MISSING_ITEM_NAME";
-const MISSING_BEING_NAME: &'static str = "MISSING_BEING_NAME";
+const MISSING_ITEM_NAME: &str = "MISSING_ITEM_NAME";
+const MISSING_BEING_NAME: &str = "MISSING_BEING_NAME";
 
 impl Name {
     pub fn new(name: impl ToString) -> Self {
@@ -483,19 +483,13 @@ pub enum InteractorMode {
     // Reactive,
 }
 
-impl InteractorMode {
-    fn to_string(&self) -> String {
-        match self {
-            Self::Reactive => "Reactive",
-            Self::Agressive => "Agressive",
-        }
-        .to_string()
-    }
-}
-
 impl Display for InteractorMode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.to_string())
+       let self_str = match self {
+            Self::Reactive => "Reactive",
+            Self::Agressive => "Agressive",
+        };
+       write!(f, "{}", self_str)
     }
 }
 

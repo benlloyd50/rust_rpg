@@ -87,7 +87,7 @@ pub fn build_obj(
         }
     }
 
-    if let Some(_) = &raw.grass {
+    if raw.grass.is_some() {
         builder = builder.with(Grass);
     }
 

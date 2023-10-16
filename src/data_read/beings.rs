@@ -68,7 +68,7 @@ pub fn build_being(
         .with(pos)
         .with(Renderable::default_bg(raw.atlas_index, raw.fg, BEING_Z));
 
-    if let Some(_) = &raw.monster {
+    if raw.monster.is_some() {
         builder = builder.with(Monster);
     }
 
