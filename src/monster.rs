@@ -11,8 +11,8 @@ use crate::{
     components::{BreakAction, GoalMoverAI, Monster, Name, Position, RandomWalkerAI, WantsToMove},
     data_read::ENTITY_DB,
     map::{distance, is_goal, successors, Map, TileEntity},
-    message_log::MessageLog,
     time::DeltaTime,
+    ui::message_log::MessageLog,
 };
 
 /// Mainly used for early testing but it's somewhat useful

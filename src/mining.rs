@@ -4,7 +4,7 @@ use crate::{
         ToolType,
     },
     items::ItemSpawner,
-    message_log::MessageLog,
+    ui::message_log::MessageLog,
 };
 use specs::{Entities, Entity, Join, LendJoin, ReadStorage, System, Write, WriteStorage};
 

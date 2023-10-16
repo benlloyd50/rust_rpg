@@ -5,7 +5,7 @@ use crate::{
     components::{Backpack, SelectedInventoryIdx},
     crafting::craft_item,
     game_init::PlayerEntity,
-    message_log::MessageLog,
+    ui::message_log::MessageLog,
     AppState, State,
 };
 
@@ -49,7 +49,7 @@ fn handle_player_input(state: &mut State, ctx: &BTerm) -> InventoryResponse {
     match ctx.key {
         None => InventoryResponse::Waiting,
         Some(key)
-            if check_player_selection(&state.ecs) == SelectionStatus::SelectionWithoutAction =>
+            if check_inventory_selection(&state.ecs) == SelectionStatus::SelectionWithoutAction =>
         {
             let mut selected_idxs = state.ecs.write_storage::<SelectedInventoryIdx>();
             if let Some(selection) = selected_idxs.get_mut(player_entity) {
@@ -119,7 +119,7 @@ fn select_item(player_entity: &Entity, idx_selected: usize, ecs: &mut World) -> 
         return InventoryResponse::Waiting;
     }
 
-    match check_player_selection(ecs) {
+    match check_inventory_selection(ecs) {
         SelectionStatus::NoSelection => {
             let mut selected_idxs = ecs.write_storage::<SelectedInventoryIdx>();
             let _ = selected_idxs.insert(
@@ -231,9 +231,10 @@ pub enum SelectionStatus {
     SelectionWithoutAction,
     SelectionAndAction,
 }
+
 /// Gets the state of the player in the inventory screen.
 /// Checks if the player has made a selection and an action for the selection
-pub fn check_player_selection(ecs: &World) -> SelectionStatus {
+pub fn check_inventory_selection(ecs: &World) -> SelectionStatus {
     let player_entity = ecs.read_resource::<PlayerEntity>();
     let selected_idxs = ecs.read_storage::<SelectedInventoryIdx>();
     match selected_idxs.get(player_entity.0) {

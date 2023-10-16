@@ -1,3 +1,5 @@
+use crate::ui::draw_ui;
+use crate::ui::message_log::MessageLog;
 use std::time::Duration;
 
 use bracket_terminal::prelude::*;
@@ -22,15 +24,14 @@ mod draw_sprites;
 mod game_init;
 mod indexing;
 mod inventory;
+mod ui;
 use inventory::inventory_tick;
 mod items;
-mod message_log;
 mod mining;
 mod monster;
 mod player;
 mod stats;
 mod tile_animation;
-mod user_interface;
 mod z_order;
 use tile_animation::TileAnimationCleanUpSystem;
 mod time;
@@ -51,7 +52,6 @@ use indexing::{
 };
 use tile_animation::TileAnimationSpawner;
 use time::delta_time_update;
-use user_interface::draw_ui;
 
 use crate::components::EntityStats;
 use crate::{
@@ -63,7 +63,6 @@ use crate::{
     },
     data_read::initialize_game_databases,
     items::ItemSpawner,
-    message_log::MessageLog,
     player::Player,
     tile_animation::TileAnimationBuilder,
     time::DeltaTime,

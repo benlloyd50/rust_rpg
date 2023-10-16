@@ -2,6 +2,33 @@
 // therefore, drawing the message log is defined in user_interface
 use std::fmt::Display;
 
+use bracket_terminal::prelude::{ColorPair, DrawBatch, Point, Rect, TextAlign, RGBA};
+use specs::World;
+
+use crate::colors::{INVENTORY_BACKGROUND, INVENTORY_OUTLINE};
+
+use super::drawing::AccentBox;
+
+pub(crate) fn draw_message_log(draw_batch: &mut DrawBatch, ecs: &World) {
+    let log = ecs.fetch::<MessageLog>();
+
+    draw_batch.draw_accent_box(
+        Rect::with_size(-1, 50, 70, 10),
+        ColorPair::new(INVENTORY_OUTLINE, INVENTORY_BACKGROUND),
+    );
+
+    let mut y_offset = 0;
+    for message in log.nth_recent(9) {
+        draw_batch.printer(
+            Point::new(1, 51 + y_offset),
+            message.colored(),
+            TextAlign::Left,
+            Some(RGBA::new()),
+        );
+        y_offset += 1;
+    }
+}
+
 /// Resource used for logging to the message console on the screen to the player
 pub struct MessageLog {
     pub messages: Vec<Message>,

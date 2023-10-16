@@ -12,7 +12,7 @@ use specs::{Entities, Entity, Join, ReadStorage, System, World, WorldExt, Write,
 use crate::{
     components::{Backpack, Item, Name, PickupAction, Position, Renderable},
     data_read::prelude::*,
-    message_log::MessageLog,
+    ui::message_log::MessageLog,
     z_order::ITEM_Z,
 };
 

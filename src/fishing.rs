@@ -5,9 +5,9 @@ use crate::{
         DeleteCondition, FinishedActivity, FishAction, FishOnTheLine, Fishable, Name, Renderable,
         WaitingForFish, Water,
     },
-    message_log::MessageLog,
     tile_animation::TileAnimationBuilder,
     time::DeltaTime,
+    ui::message_log::MessageLog,
     z_order::EFFECT_Z,
 };
 

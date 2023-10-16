@@ -21,6 +21,32 @@ pub fn get_random_stats() -> EntityStats {
     })
 }
 
+#[derive(Debug, Copy, Clone, Deserialize, Serialize)]
+pub struct Stats {
+    pub intelligence: usize,
+    pub strength: usize,
+    pub dexterity: usize,
+    pub vitality: usize,
+    pub precision: usize,
+    pub charisma: usize,
+}
+
+impl Stats {
+    pub fn get_total(&self) -> usize {
+        self.intelligence
+            + self.vitality
+            + self.strength
+            + self.dexterity
+            + self.precision
+            + self.charisma
+    }
+
+    /// Generates complementary health stats based off the vitality
+    pub fn get_health_stats(&self) -> HealthStats {
+        HealthStats::new(self.vitality + 10, self.vitality * 2 / 3)
+    }
+}
+
 pub struct EntityStatsBuilder {
     stats: Stats,
 }
@@ -76,31 +102,5 @@ impl EntityStatsBuilder {
 
     pub fn build_health_stats(&mut self) -> HealthStats {
         self.stats.get_health_stats()
-    }
-}
-
-#[derive(Debug, Copy, Clone, Deserialize, Serialize)]
-pub struct Stats {
-    pub intelligence: usize,
-    pub strength: usize,
-    pub dexterity: usize,
-    pub vitality: usize,
-    pub precision: usize,
-    pub charisma: usize,
-}
-
-impl Stats {
-    pub fn get_total(&self) -> usize {
-        self.intelligence
-            + self.vitality
-            + self.strength
-            + self.dexterity
-            + self.precision
-            + self.charisma
-    }
-
-    /// Generates complementary health stats based off the vitality
-    pub fn get_health_stats(&self) -> HealthStats {
-        HealthStats::new(self.vitality + 10, self.vitality * 2 / 3)
     }
 }

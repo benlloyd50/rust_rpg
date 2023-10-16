@@ -6,7 +6,7 @@ use crate::{
     game_init::PlayerEntity,
     items::inventory_contains,
     map::{Map, TileEntity},
-    message_log::MessageLog,
+    ui::message_log::MessageLog,
     AppState, Position,
 };
 use bracket_terminal::prelude::{BTerm, Point, VirtualKeyCode as VKC};

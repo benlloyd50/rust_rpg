@@ -2,7 +2,7 @@ use specs::{Join, ReadStorage, System, Write, WriteStorage};
 
 use crate::{
     components::{AttackAction, EntityStats, HealthStats, Name, SufferDamage},
-    message_log::MessageLog,
+    ui::message_log::MessageLog,
 };
 
 pub struct AttackActionHandler;
