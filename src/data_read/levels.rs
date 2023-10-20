@@ -53,7 +53,7 @@ pub fn load_simple_ldtk_level(ecs: &mut World) -> Map {
                     .with(Blocking)
                     .build();
             }
-            _ => println!(
+            _ => eprintln!(
                 "Value not recognized at {:#?}",
                 idx_to_point(idx, simple_level.width())
             ),

@@ -129,7 +129,7 @@ impl<'a> System<'a> for RemoveDeadTiles {
                         }
                     }
                     Err(err) => {
-                        println!("Failed to clean up {} : {}", e.id(), err);
+                        eprintln!("Failed to clean up {} : {}", e.id(), err);
                     }
                 }
             }

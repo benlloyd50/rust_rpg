@@ -142,7 +142,6 @@ pub fn handle_one_item_actions(ecs: &mut World) {
         UseMenuResult::Drop => {
             // remove item from bag
             log.log("Dropped it");
-            println!("pretend you dropped it");
         }
         UseMenuResult::Examine => {
             //log flavor text

@@ -176,11 +176,9 @@ impl<'a> System<'a> for GoalMoveToEntities {
                     continue;
                 }
             };
-            println!("{} | Steps: {:?} Cost: {}", name, path.0.len(), path.1);
             if path.0.len() > 1 {
                 let new_position = path.0[1];
                 let _ = wants_to_move.insert(entity, WantsToMove::new(new_position));
-                println!("{} moved to {}", name, mover_pos);
             }
         }
     }
