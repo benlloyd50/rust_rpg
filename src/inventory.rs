@@ -1,18 +1,19 @@
 use bracket_terminal::prelude::{BTerm, VirtualKeyCode as VKC};
-use specs::{Entity, World, WorldExt};
+use specs::{Entity, Join, World, WorldExt};
 
 use crate::{
-    components::{Backpack, SelectedInventoryIdx},
-    crafting::craft_item,
+    components::{InBag, Item, Name, SelectedInventoryIdx, WantsToCraft},
     game_init::PlayerEntity,
     ui::message_log::MessageLog,
     AppState,
 };
 
+#[derive(Clone)]
 pub enum UseMenuResult {
     Craft,
     Drop,
     Examine,
+    Equip,
     Cancel,
 }
 
@@ -31,9 +32,7 @@ pub fn handle_player_input(ecs: &mut World, ctx: &BTerm) -> InventoryResponse {
     }
     match ctx.key {
         None => InventoryResponse::Waiting,
-        Some(key)
-            if check_inventory_selection(&ecs) == SelectionStatus::SelectionWithoutAction =>
-        {
+        Some(key) if check_inventory_selection(&ecs) == SelectionStatus::SelectionWithoutAction => {
             let mut selected_idxs = ecs.write_storage::<SelectedInventoryIdx>();
             if let Some(selection) = selected_idxs.get_mut(player_entity) {
                 match key {
@@ -48,6 +47,10 @@ pub fn handle_player_input(ecs: &mut World, ctx: &BTerm) -> InventoryResponse {
                     }
                     VKC::D => {
                         selection.intended_action = Some(UseMenuResult::Drop);
+                        InventoryResponse::ActionReady
+                    }
+                    VKC::Q => {
+                        selection.intended_action = Some(UseMenuResult::Equip);
                         InventoryResponse::ActionReady
                     }
                     VKC::Escape => {
@@ -91,13 +94,14 @@ pub fn handle_player_input(ecs: &mut World, ctx: &BTerm) -> InventoryResponse {
 
 fn select_item(player_entity: &Entity, idx_selected: usize, ecs: &mut World) -> InventoryResponse {
     let mut log = ecs.write_resource::<MessageLog>();
-    let mut backpacks = ecs.write_storage::<Backpack>();
-    let crafter_bag = match backpacks.get_mut(*player_entity) {
-        Some(bag) => bag,
-        None => panic!("Player does not have a backpack component."),
-    };
+    let in_bags = ecs.read_storage::<InBag>();
+    // why do i gotta join 1 storage? is there a better way?
+    let inv_count = (&in_bags)
+        .join()
+        .filter(|bag| bag.owner == *player_entity)
+        .count();
 
-    if idx_selected + 1 > crafter_bag.len() {
+    if idx_selected + 1 > inv_count {
         log.log("Index selected is out of bounds of the backapack.");
         return InventoryResponse::Waiting;
     }
@@ -145,12 +149,29 @@ pub fn handle_one_item_actions(ecs: &mut World) {
         }
         UseMenuResult::Examine => {
             //log flavor text
-            log.log("Examined it");
+            let items = ecs.read_storage::<Item>();
+            let in_bags = ecs.read_storage::<InBag>();
+            let names = ecs.read_storage::<Name>();
+            if let Some((idx, (_, _, Name(name)))) = (&items, &in_bags, &names)
+                .join()
+                .enumerate()
+                .filter(|(idx, (_, bag, _))| {
+                    idx == &selection.first_idx && bag.owner == player_entity.0
+                })
+                .next()
+            {
+                log.log(format!("Examined the {} at {}", name, idx + 1));
+            } else {
+                log.log(format!("Couldn't examine idx: {}", selection.first_idx));
+            }
         }
-        UseMenuResult::Cancel => {}
+        UseMenuResult::Equip => {
+            // let wants_to_equips = ecs.write_storage<>();
+        }
         UseMenuResult::Craft => {
             unreachable!("Two item actions cannot be performed here (in this fn).")
         }
+        UseMenuResult::Cancel => {}
     }
 
     selected_idxs.remove(player_entity.0);
@@ -158,18 +179,9 @@ pub fn handle_one_item_actions(ecs: &mut World) {
 
 pub fn handle_two_item_actions(ecs: &mut World, second_idx: usize) {
     let player_entity = ecs.read_resource::<PlayerEntity>();
-    let mut backpacks = ecs.write_storage::<Backpack>();
-    let player_bag = match backpacks.get_mut(player_entity.0) {
-        Some(bag) => bag,
-        None => {
-            eprintln!("Player has no backpack component associated with them.");
-            return;
-        }
-    };
-
     let mut selected_idxs = ecs.write_storage::<SelectedInventoryIdx>();
     let selection = match selected_idxs.get(player_entity.0) {
-        Some(idx) => idx,
+        Some(idx) => idx.clone(),
         None => {
             eprintln!(
                 "Player has no SelectedInventoryIdx component associated when using two items"
@@ -181,7 +193,18 @@ pub fn handle_two_item_actions(ecs: &mut World, second_idx: usize) {
     // unwrap is safe because this fn is not entered unless we have an action and selection selected
     match selection.intended_action.as_ref().unwrap() {
         UseMenuResult::Craft => {
-            perform_craft(player_bag, selection.first_idx, second_idx);
+            if selection.first_idx == second_idx {
+                eprintln!("Cannot craft using the same item in your inventory.");
+                return;
+            }
+            let mut wants_to_craft = ecs.write_storage::<WantsToCraft>();
+            let _ = wants_to_craft.insert(
+                player_entity.0,
+                WantsToCraft {
+                    first_idx: selection.first_idx,
+                    second_idx,
+                },
+            );
         }
         _ => unreachable!(
             "These options should be unreachable since they only require 1 item to be performed."
@@ -189,15 +212,6 @@ pub fn handle_two_item_actions(ecs: &mut World, second_idx: usize) {
     }
 
     selected_idxs.remove(player_entity.0);
-}
-
-fn perform_craft(crafter_bag: &mut Backpack, first_idx: usize, second_idx: usize) {
-    if first_idx == second_idx {
-        eprintln!("Cannot craft using the same item in your inventory.")
-    }
-    let first_item = crafter_bag.get_id_by_idx(first_idx).unwrap();
-    let second_item = crafter_bag.get_id_by_idx(second_idx).unwrap();
-    craft_item(crafter_bag, first_item, second_item);
 }
 
 fn clean_and_exit_inventory(player_entity: &Entity, ecs: &mut World) -> InventoryResponse {

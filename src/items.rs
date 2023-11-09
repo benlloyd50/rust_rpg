@@ -7,10 +7,10 @@
 
 use std::fmt::Display;
 
-use specs::{Entities, Entity, Join, ReadStorage, System, World, WorldExt, Write, WriteStorage};
+use specs::{Entities, Entity, Join, ReadStorage, System, World, Write, WriteStorage};
 
 use crate::{
-    components::{Backpack, Item, Name, PickupAction, Position, Renderable},
+    components::{InBag, Item, Name, PickupAction, Position, Renderable},
     data_read::prelude::*,
     ui::message_log::MessageLog,
     z_order::ITEM_Z,
@@ -24,6 +24,7 @@ impl Display for ItemQty {
     }
 }
 
+#[allow(dead_code)]
 impl ItemQty {
     pub fn new(amt: usize) -> Self {
         Self(amt)
@@ -46,17 +47,22 @@ impl ItemSpawner {
         }
     }
 
-    pub fn request(&mut self, item_id: ItemID, x: usize, y: usize) {
+    pub fn request(&mut self, item_id: ItemID, spawn_type: SpawnType) {
         self.requests.push(ItemSpawnRequest {
             item_id,
-            position: Position::new(x, y),
+            spawn_type,
         });
     }
 }
 
 pub struct ItemSpawnRequest {
     item_id: ItemID,
-    position: Position,
+    spawn_type: SpawnType,
+}
+
+pub enum SpawnType {
+    OnGround(Position),
+    InBag(Entity),
 }
 
 pub struct ItemSpawnerSystem;
@@ -68,12 +74,21 @@ impl<'a> System<'a> for ItemSpawnerSystem {
         WriteStorage<'a, Item>,
         WriteStorage<'a, Position>,
         WriteStorage<'a, Renderable>,
+        WriteStorage<'a, InBag>,
         WriteStorage<'a, Name>,
     );
 
     fn run(
         &mut self,
-        (entities, mut spawn_requests, mut items, mut positions, mut renderables, mut names): Self::SystemData,
+        (
+            entities,
+            mut spawn_requests,
+            mut items,
+            mut positions,
+            mut renderables,
+            mut in_bags,
+            mut names,
+        ): Self::SystemData,
     ) {
         let edb = &ENTITY_DB.lock().unwrap();
 
@@ -90,12 +105,20 @@ impl<'a> System<'a> for ItemSpawnerSystem {
             };
 
             let new_item = entities.create();
-            let _ = positions.insert(new_item, spawn.position);
+            match spawn.spawn_type {
+                SpawnType::OnGround(pos) => {
+                    let _ = positions.insert(new_item, pos);
+                }
+                SpawnType::InBag(owner) => {
+                    let _ = in_bags.insert(new_item, InBag { owner });
+                }
+            }
+
             let _ = renderables.insert(
                 new_item,
                 Renderable::default_bg(static_item.atlas_index, static_item.fg, ITEM_Z),
             );
-            let _ = items.insert(new_item, Item);
+            let _ = items.insert(new_item, Item(spawn.item_id));
             let _ = names.insert(new_item, Name(static_item.name.clone()));
         }
 
@@ -108,18 +131,19 @@ pub struct ItemPickupHandler;
 impl<'a> System<'a> for ItemPickupHandler {
     type SystemData = (
         WriteStorage<'a, Position>,
-        WriteStorage<'a, Backpack>,
         WriteStorage<'a, PickupAction>,
+        WriteStorage<'a, InBag>,
         Write<'a, MessageLog>,
         ReadStorage<'a, Item>,
         ReadStorage<'a, Name>,
+        Entities<'a>,
     );
 
     fn run(
         &mut self,
-        (mut positions, mut backpacks, mut pickups, mut log, items, names): Self::SystemData,
+        (mut positions, mut pickups, mut inbags, mut log, items, names, entities): Self::SystemData,
     ) {
-        for (pickup, picker_name, backpack) in (&pickups, &names, &mut backpacks).join() {
+        for (picker, pickup, picker_name) in (&entities, &pickups, &names).join() {
             let item_target = pickup.item;
             let item_name = match names.get(item_target) {
                 Some(name) => name.clone(),
@@ -134,18 +158,17 @@ impl<'a> System<'a> for ItemPickupHandler {
                 continue;
             }
             let edb = &ENTITY_DB.lock().unwrap();
-            let item_info = edb.items.get_by_name_unchecked(&item_name.0);
 
-            if backpack.add_item(item_info.identifier, 1) {
-                positions.remove(item_target);
-                log.log(format!(
-                    "{} picked up a {}",
-                    picker_name,
-                    item_name.0.to_lowercase()
-                ));
-                if let Some(text) = &edb.items.get_by_name_unchecked(&item_name.0).pickup_text {
-                    log.enhance(text);
-                }
+            // TODO: check inventory capacity and handle this result better
+            let _ = inbags.insert(item_target, InBag { owner: picker });
+            positions.remove(item_target);
+            log.log(format!(
+                "{} picked up a {}",
+                picker_name,
+                item_name.0.to_lowercase()
+            ));
+            if let Some(text) = &edb.items.get_by_name_unchecked(&item_name.0).pickup_text {
+                log.enhance(text);
             }
         }
 
@@ -155,18 +178,7 @@ impl<'a> System<'a> for ItemPickupHandler {
 
 /// Checks to see if an item is held by an entity and will return the entity associated with the
 /// item if there is one.
-pub fn inventory_contains(looking_for: &Name, inventory_of: &Entity, ecs: &World) -> bool {
-    let bags = ecs.read_storage::<Backpack>();
-    let names = ecs.read_storage::<Name>();
-    let checking_inventory = match bags.get(*inventory_of) {
-        Some(bag) => bag,
-        None => {
-            let missing_being = &Name::missing_being_name();
-            let inventory_owner = names.get(*inventory_of).unwrap_or(missing_being);
-            eprintln!("{} does not have a backpack component", inventory_owner);
-            return false;
-        }
-    };
-
-    checking_inventory.contains_named(looking_for)
+pub fn inventory_contains(_looking_for: &Name, _inventory_of: &Entity, _ecs: &World) -> bool {
+    // TODO: check inv contains item
+    true
 }

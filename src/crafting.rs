@@ -1,28 +1,57 @@
-use crate::components::Backpack;
-use crate::data_read::prelude::{ItemID, RECIPE_DB};
+use specs::{Entities, Entity, Join, ReadStorage, System, Write, WriteStorage};
 
-/// Crafts an item by removing items from a `crafter`'s inventory items.
-/// TODO: check for item qty in recipes
-pub fn craft_item(crafter_bag: &mut Backpack, first_item_used: ItemID, used_on: ItemID) {
-    let rdb = &RECIPE_DB.lock().unwrap();
-    let recipe_crafted = match rdb
-        .use_with_recipes
-        .iter()
-        .find(|r| r.first.id.eq(&first_item_used) && r.second.id.eq(&used_on))
-    {
-        Some(recipe) => recipe,
-        None => {
-            print!("No recipe match the action performed. ||");
-            println!(" First item: {} Second item: {}", first_item_used, used_on);
-            return;
+use crate::{
+    components::{InBag, Item, WantsToCraft},
+    data_read::prelude::RECIPE_DB,
+    items::{ItemSpawner, SpawnType},
+    ui::message_log::MessageLog,
+};
+
+pub struct HandleCraftingSystem;
+
+impl<'a> System<'a> for HandleCraftingSystem {
+    type SystemData = (
+        WriteStorage<'a, WantsToCraft>,
+        Write<'a, ItemSpawner>,
+        Write<'a, MessageLog>,
+        ReadStorage<'a, Item>,
+        ReadStorage<'a, InBag>,
+        Entities<'a>,
+    );
+
+    /// TODO: check for item qty in recipes
+    fn run(
+        &mut self,
+        (mut wants_to_craft, mut spawn_requests, mut log, items, in_bags, entities): Self::SystemData,
+    ) {
+        let rdb = &RECIPE_DB.lock().unwrap();
+        for (crafter, craft_action) in (&entities, &wants_to_craft).join() {
+            let crafter_inv: Vec<(Entity, &Item, &InBag)> = (&entities, &items, &in_bags)
+                .join()
+                .filter(|(_, _, bag)| bag.owner == crafter)
+                .into_iter()
+                .collect();
+            let recipe_crafted = match rdb.use_with_recipes.iter().find(|r| {
+                r.first.id.eq(&crafter_inv[craft_action.first_idx].1 .0)
+                    && r.second.id.eq(&crafter_inv[craft_action.second_idx].1 .0)
+            }) {
+                Some(recipe) => recipe,
+                None => {
+                    log.log("No recipe matched for the items used to craft");
+                    return;
+                }
+            };
+
+            if recipe_crafted.first.consume {
+                let _ = entities.delete(crafter_inv[craft_action.first_idx].0);
+            }
+            if recipe_crafted.second.consume {
+                let _ = entities.delete(crafter_inv[craft_action.second_idx].0);
+            }
+
+            spawn_requests.request(recipe_crafted.output, SpawnType::InBag(crafter));
         }
-    };
 
-    if recipe_crafted.first.consume {
-        crafter_bag.remove_item(&first_item_used, 1);
+        wants_to_craft.clear();
     }
-    if recipe_crafted.second.consume {
-        crafter_bag.remove_item(&used_on, 1);
-    }
-    crafter_bag.add_item(recipe_crafted.output, 1);
 }

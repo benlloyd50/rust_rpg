@@ -3,7 +3,7 @@ use crate::{
         BreakAction, Breakable, DeathDrop, EntityStats, HealthStats, Name, Position, SufferDamage,
         ToolType,
     },
-    items::ItemSpawner,
+    items::{ItemSpawner, SpawnType},
     ui::message_log::MessageLog,
 };
 use specs::{Entities, Entity, Join, LendJoin, ReadStorage, System, Write, WriteStorage};
@@ -125,7 +125,7 @@ impl<'a> System<'a> for RemoveDeadTiles {
                 match entities.delete(e) {
                     Ok(..) => {
                         if let Some(item) = maybe_item {
-                            item_spawner.request(item.item_id, pos.x, pos.y);
+                            item_spawner.request(item.item_id, SpawnType::OnGround(*pos));
                         }
                     }
                     Err(err) => {

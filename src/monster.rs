@@ -133,18 +133,15 @@ impl<'a> System<'a> for GoalMoveToEntities {
         WriteStorage<'a, BreakAction>,
         WriteStorage<'a, GoalMoverAI>,
         ReadStorage<'a, Position>,
-        ReadStorage<'a, Name>,
         ReadExpect<'a, Map>,
         Entities<'a>,
     );
 
     fn run(
         &mut self,
-        (mut wants_to_move, mut break_actions, mut goal_movers, positions, names, map, entities): Self::SystemData,
+        (mut wants_to_move, mut break_actions, mut goal_movers, positions, map, entities): Self::SystemData,
     ) {
-        for (entity, goal_mover, mover_pos, name) in
-            (&entities, &mut goal_movers, &positions, &names).join()
-        {
+        for (entity, goal_mover, mover_pos) in (&entities, &mut goal_movers, &positions).join() {
             if goal_mover.current.is_none() {
                 continue;
             }

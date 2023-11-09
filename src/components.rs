@@ -1,20 +1,10 @@
-use std::{
-    collections::{hash_map::Entry, HashMap},
-    fmt::Display,
-    str::FromStr,
-    time::Duration,
-};
+use crate::stats::Stats;
+use std::{fmt::Display, str::FromStr, time::Duration};
 
 use bracket_terminal::prelude::{ColorPair, Degrees, Point, PointF, RGBA};
 use specs::{Component, Entity, NullStorage, VecStorage};
 
-use crate::{
-    data_read::{prelude::ItemID, ENTITY_DB},
-    indexing::idx_to_point,
-    inventory::UseMenuResult,
-    items::ItemQty,
-    stats::Stats,
-};
+use crate::{data_read::prelude::ItemID, indexing::idx_to_point, inventory::UseMenuResult};
 
 #[derive(Debug, Component)]
 #[storage(VecStorage)]
@@ -78,7 +68,7 @@ impl Position {
         idx_to_point(idx, width).into()
     }
 
-    pub fn to_idx(self, width: usize) -> usize {
+    pub fn to_idx(&self, width: usize) -> usize {
         self.y * width + self.x
     }
 
@@ -192,7 +182,6 @@ pub struct FishOnTheLine;
 pub struct Name(pub String);
 
 const MISSING_ITEM_NAME: &str = "MISSING_ITEM_NAME";
-const MISSING_BEING_NAME: &str = "MISSING_BEING_NAME";
 
 impl Name {
     pub fn new(name: impl ToString) -> Self {
@@ -201,10 +190,6 @@ impl Name {
 
     pub fn missing_item_name() -> Self {
         Name::new(MISSING_ITEM_NAME)
-    }
-
-    pub fn missing_being_name() -> Self {
-        Name::new(MISSING_BEING_NAME)
     }
 }
 
@@ -333,6 +318,13 @@ impl WantsToMove {
 
 #[derive(Debug, Component)]
 #[storage(VecStorage)]
+pub struct WantsToCraft {
+    pub first_idx: usize,
+    pub second_idx: usize,
+}
+
+#[derive(Debug, Component)]
+#[storage(VecStorage)]
 pub struct SufferDamage {
     pub amount: Vec<i32>,
 }
@@ -351,101 +343,27 @@ pub enum DeleteCondition {
 pub struct FinishedActivity;
 
 #[derive(Component, Default)]
-#[storage(NullStorage)]
-pub struct Item;
+#[storage(VecStorage)]
+pub struct Item(pub ItemID);
 
 #[derive(Component)]
 #[storage(VecStorage)]
-pub struct Backpack {
-    contents: HashMap<ItemID, ItemQty>,
+pub struct InBag {
+    pub owner: Entity,
 }
 
-/// This is lots of behavior for a component but backpacks are complicated and this is a simple abstraction
-impl Backpack {
-    pub fn empty() -> Self {
-        Self {
-            contents: HashMap::new(),
-        }
-    }
+// Items in this container will have an InBag component with the owner entity == entity holding
+// this component
+#[derive(Component)]
+#[storage(VecStorage)]
+#[allow(dead_code)]
+pub struct ItemContainer {
+    size: usize,
+}
 
-    pub fn len(&self) -> usize {
-        self.contents.len()
-    }
-
-    pub fn add_item(&mut self, item_id: ItemID, qty: usize) -> bool {
-        match self.contents.entry(item_id) {
-            Entry::Occupied(mut o) => {
-                o.get_mut().add(qty);
-            }
-            Entry::Vacant(v) => {
-                v.insert(ItemQty::new(qty));
-            }
-        }
-        true
-    }
-
-    pub fn iter(&self) -> std::collections::hash_map::Iter<'_, ItemID, ItemQty> {
-        self.contents.iter()
-    }
-
-    pub fn remove_item(&mut self, id: &ItemID, amt: usize) -> Option<(ItemID, ItemQty)> {
-        match self.contents.entry(*id) {
-            Entry::Occupied(mut o) => {
-                let bag_qty = o.get_mut();
-                if bag_qty.0 < amt {
-                    return None;
-                }
-
-                bag_qty.0 -= amt;
-                if bag_qty.0 == 0 {
-                    o.remove_entry();
-                }
-
-                Some((*id, ItemQty(amt)))
-            }
-            Entry::Vacant(_) => None,
-        }
-    }
-
-    pub fn get_id_by_idx(&self, idx: usize) -> Option<ItemID> {
-        if idx > self.contents.len() {
-            return None;
-        }
-
-        self.iter()
-            .enumerate()
-            .find(|(bag_idx, _)| idx == *bag_idx)
-            .map(|(_, val)| val.0)
-            .copied()
-    }
-
-    /// Checks inventory for an item based on name.
-    /// This is useful when edb is not needed for other reasons in the calling function.
-    /// If you do need edb for other information then use `.contains(ItemID)`
-    pub fn contains_named(&self, name: &Name) -> bool {
-        let edb = &ENTITY_DB.lock().unwrap();
-        let info = edb.items.get_by_name_unchecked(&name.0);
-        self.contains(info.identifier)
-    }
-
-    /// Checks inventory for an amount of a named item.
-    /// Panics if name does not exist.
-    #[allow(dead_code)]
-    pub fn contains_named_amt(&self, name: &Name, amt: usize) -> bool {
-        let edb = &ENTITY_DB.lock().unwrap();
-        let info = edb.items.get_by_name_unchecked(&name.0);
-        match self.contents.get(&info.identifier) {
-            Some(o) => o.0 >= amt,
-            None => false,
-        }
-    }
-
-    /// Checks inventory for an item based on ID.
-    pub fn contains(&self, item_id: ItemID) -> bool {
-        match self.contents.get(&item_id) {
-            Some(o) => o.0 > 0,
-            None => false,
-        }
+impl ItemContainer {
+    pub fn new(size: usize) -> Self {
+        Self { size }
     }
 }
 
@@ -485,15 +403,15 @@ pub enum InteractorMode {
 
 impl Display for InteractorMode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-       let self_str = match self {
+        let self_str = match self {
             Self::Reactive => "Reactive",
             Self::Agressive => "Agressive",
         };
-       write!(f, "{}", self_str)
+        write!(f, "{}", self_str)
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Clone)]
 #[storage(VecStorage)]
 pub struct SelectedInventoryIdx {
     pub first_idx: usize,

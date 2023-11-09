@@ -4,6 +4,7 @@ use std::time::Duration;
 
 use bracket_terminal::prelude::*;
 use combat::AttackActionHandler;
+use crafting::HandleCraftingSystem;
 use debug::{debug_info, debug_input};
 use draw_sprites::{draw_sprite_layers, update_fancy_positions};
 use game_init::initialize_game_world;
@@ -25,7 +26,9 @@ mod game_init;
 mod indexing;
 mod inventory;
 mod ui;
-use inventory::{handle_one_item_actions, handle_two_item_actions, InventoryResponse, handle_player_input};
+use inventory::{
+    handle_one_item_actions, handle_player_input, handle_two_item_actions, InventoryResponse,
+};
 mod items;
 mod mining;
 mod monster;
@@ -53,10 +56,10 @@ use indexing::{
 use tile_animation::TileAnimationSpawner;
 use time::delta_time_update;
 
-use crate::components::EntityStats;
+use crate::components::{EntityStats, InBag, ItemContainer, WantsToCraft};
 use crate::{
     components::{
-        AttackAction, Backpack, Blocking, BreakAction, Breakable, DeathDrop, DeleteCondition,
+        AttackAction, Blocking, BreakAction, Breakable, DeathDrop, DeleteCondition,
         FinishedActivity, FishAction, FishOnTheLine, Fishable, GoalMoverAI, Grass, HealthStats,
         Interactor, Item, Monster, Name, PickupAction, RandomWalkerAI, Renderable,
         SelectedInventoryIdx, SufferDamage, Transform, WaitingForFish, WantsToMove, Water,
@@ -213,6 +216,10 @@ impl GameState for State {
                     }
                     InventoryResponse::SecondItemSelected { second_idx } => {
                         handle_two_item_actions(&mut self.ecs, second_idx);
+                        let mut craft_system = HandleCraftingSystem;
+                        craft_system.run_now(&mut self.ecs);
+                        let mut item_spawner = ItemSpawnerSystem;
+                        item_spawner.run_now(&self.ecs);
                     }
                     InventoryResponse::StateChange(delta_state) => {
                         new_state = delta_state;
@@ -314,8 +321,10 @@ fn main() -> BError {
     world.register::<Item>();
     world.register::<Water>();
     world.register::<Grass>();
-    world.register::<Backpack>();
+    world.register::<InBag>();
+    world.register::<ItemContainer>();
     world.register::<WantsToMove>();
+    world.register::<WantsToCraft>();
     world.register::<Transform>();
     world.register::<Interactor>();
     world.register::<EntityStats>();

@@ -38,7 +38,7 @@ impl TileEntity {
 
     /// Tests if a `tile_entity` is Blocking variant
     pub fn is_blocker(&self) -> bool {
-        matches!(self, TileEntity::Blocking(_)) 
+        matches!(self, TileEntity::Blocking(_))
     }
 }
 

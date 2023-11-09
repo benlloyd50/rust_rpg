@@ -18,7 +18,8 @@ pub fn update_fancy_positions(ecs: &World) {
     let dt = ecs.read_resource::<DeltaTime>();
 
     for (ftrans, pos) in (&mut transforms, &positions).join() {
-        ftrans.sprite_pos = lerp_positon(&ftrans.sprite_pos, pos, SPRITE_SPEED * dt.0.as_secs_f32());
+        ftrans.sprite_pos =
+            lerp_positon(&ftrans.sprite_pos, pos, SPRITE_SPEED * dt.0.as_secs_f32());
     }
 }
 

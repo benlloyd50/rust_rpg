@@ -46,7 +46,7 @@ pub struct ItemInfo {
     pub pickup_text: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Copy, Clone, Debug, Hash, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, Hash, Eq, PartialEq, Default)]
 pub struct ItemID(pub u32);
 
 impl Display for ItemID {
@@ -76,7 +76,7 @@ pub fn build_item(
     };
     let builder = world
         .create_entity()
-        .with(Item)
+        .with(Item(raw.identifier))
         .with(Name::new(&raw.name))
         .with(pos)
         .with(Renderable::default_bg(raw.atlas_index, raw.fg, ITEM_Z));
