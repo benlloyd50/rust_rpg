@@ -4,10 +4,11 @@ use crate::colors::{to_rgb, INVENTORY_BACKGROUND, INVENTORY_OUTLINE};
 
 use super::drawing::AccentBox;
 
-const INVENTORY_ACTIONS: [&str; 4] = [
+const INVENTORY_ACTIONS: [&str; 5] = [
     "#[orange]U#[]se with",
     "#[orange]E#[]xamine",
     "#[orange]D#[]rop",
+    "E#[orange]Q#[]uip",
     "#[white]Cancel#[]",
 ];
 

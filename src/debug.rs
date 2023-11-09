@@ -55,6 +55,7 @@ fn draw_inventory_state(ctx: &mut BTerm, ecs: &World) {
                 Some(action) => match action {
                     UseMenuResult::Drop => "Drop",
                     UseMenuResult::Craft => "Craft",
+                    UseMenuResult::Equip => "Equip",
                     UseMenuResult::Cancel => "Cancel",
                     UseMenuResult::Examine => "Examine",
                 }
