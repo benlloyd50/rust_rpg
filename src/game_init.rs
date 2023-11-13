@@ -5,7 +5,8 @@ pub const WHITE: (u8, u8, u8) = (255, 255, 255);
 
 use crate::{
     components::{
-        Interactor, InteractorMode, ItemContainer, Name, Position, Renderable, Transform,
+        EquipmentSlots, Interactor, InteractorMode, ItemContainer, Name, Position, Renderable,
+        Transform,
     },
     data_read::prelude::{build_being, load_simple_ldtk_level},
     player::Player,
@@ -34,6 +35,7 @@ pub fn initialize_game_world(ecs: &mut World) {
         .with(Interactor::new(InteractorMode::Reactive))
         .with(Player)
         .with(ItemContainer::new(10))
+        .with(EquipmentSlots::human())
         .with(player_stats)
         .with(player_stats.set.get_health_stats())
         .with(Renderable::new(WHITE, BLACK, 2, PLAYER_Z))

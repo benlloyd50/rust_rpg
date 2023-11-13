@@ -8,8 +8,8 @@ const INVENTORY_ACTIONS: [&str; 5] = [
     "#[orange]U#[]se with",
     "#[orange]E#[]xamine",
     "#[orange]D#[]rop",
-    "E#[orange]Q#[]uip",
-    "#[white]Cancel#[]",
+    "#[]E#[orange]q#[]uip",
+    "#[lightgray]<Esc>#[]",
 ];
 
 pub fn draw_use_menu(draw_batch: &mut DrawBatch) {

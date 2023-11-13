@@ -10,7 +10,7 @@ use std::fmt::Display;
 use specs::{Entities, Entity, Join, ReadStorage, System, World, Write, WriteStorage};
 
 use crate::{
-    components::{InBag, Item, Name, PickupAction, Position, Renderable},
+    components::{Equipable, EquipmentSlot, InBag, Item, Name, PickupAction, Position, Renderable},
     data_read::prelude::*,
     ui::message_log::MessageLog,
     z_order::ITEM_Z,
@@ -76,6 +76,7 @@ impl<'a> System<'a> for ItemSpawnerSystem {
         WriteStorage<'a, Renderable>,
         WriteStorage<'a, InBag>,
         WriteStorage<'a, Name>,
+        WriteStorage<'a, Equipable>,
     );
 
     fn run(
@@ -88,6 +89,7 @@ impl<'a> System<'a> for ItemSpawnerSystem {
             mut renderables,
             mut in_bags,
             mut names,
+            mut equipables,
         ): Self::SystemData,
     ) {
         let edb = &ENTITY_DB.lock().unwrap();
@@ -103,6 +105,7 @@ impl<'a> System<'a> for ItemSpawnerSystem {
                     continue;
                 }
             };
+            // TODO: duplicated in data_read/items.rs
 
             let new_item = entities.create();
             match spawn.spawn_type {
@@ -112,6 +115,25 @@ impl<'a> System<'a> for ItemSpawnerSystem {
                 SpawnType::InBag(owner) => {
                     let _ = in_bags.insert(new_item, InBag { owner });
                 }
+            }
+
+            if let Some(equipable) = &static_item.equipable {
+                let slot = match equipable.as_str() {
+                    "Hand" => EquipmentSlot::Hand,
+                    "Torso" => EquipmentSlot::Torso,
+                    "Head" => EquipmentSlot::Head,
+                    "Legs" => EquipmentSlot::Legs,
+                    "Feet" => EquipmentSlot::Feet,
+                    "Tail" => EquipmentSlot::Tail,
+                    _ => {
+                        eprintln!(
+                            "{} is not a valid name for an equipment slot, using Head instead",
+                            equipable
+                        );
+                        EquipmentSlot::Head
+                    }
+                };
+                let _ = equipables.insert(new_item, Equipable { slot });
             }
 
             let _ = renderables.insert(

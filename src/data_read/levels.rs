@@ -25,7 +25,7 @@ pub fn load_simple_ldtk_level(ecs: &mut World) -> Map {
             if let Some(tag) = tile.entity_tag() {
                 match tag {
                     "Item" => {
-                        let _ = build_item(name, idx_to_point(idx, map.width).into(), ecs);
+                        let _ = build_item(name, Some(idx_to_point(idx, map.width).into()), ecs);
                     }
                     "Interactable" => {
                         let _ = build_obj(name, idx_to_point(idx, map.width).into(), ecs);

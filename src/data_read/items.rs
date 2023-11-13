@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use specs::{Builder, Entity, World, WorldExt};
 
 use crate::{
-    components::{Item, Name, Position, Renderable},
+    components::{Equipable, EquipmentSlot, Item, Name, Position, Renderable},
     data_read::EntityBuildError,
     z_order::ITEM_Z,
 };
@@ -44,6 +44,7 @@ pub struct ItemInfo {
     pub atlas_index: usize,
     pub fg: (u8, u8, u8),
     pub pickup_text: Option<String>,
+    pub equipable: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Copy, Clone, Debug, Hash, Eq, PartialEq, Default)]
@@ -61,9 +62,10 @@ impl Display for ItemID {
     }
 }
 
+// TODO: duplicated in items.rs
 pub fn build_item(
     name: impl ToString,
-    pos: Position,
+    pos: Option<Position>,
     world: &mut World,
 ) -> Result<Entity, EntityBuildError> {
     let edb = &ENTITY_DB.lock().unwrap();
@@ -74,12 +76,42 @@ pub fn build_item(
             return Err(EntityBuildError);
         }
     };
-    let builder = world
+    let mut builder = world
         .create_entity()
         .with(Item(raw.identifier))
         .with(Name::new(&raw.name))
-        .with(pos)
         .with(Renderable::default_bg(raw.atlas_index, raw.fg, ITEM_Z));
+
+    if let Some(pos) = pos {
+        builder = builder.with(pos);
+    }
+
+    if let Some(equipable) = &raw.equipable {
+        builder = match equipable.as_str() {
+            "Hand" => builder.with(Equipable {
+                slot: EquipmentSlot::Hand,
+            }),
+            "Torso" => builder.with(Equipable {
+                slot: EquipmentSlot::Torso,
+            }),
+            "Head" => builder.with(Equipable {
+                slot: EquipmentSlot::Head,
+            }),
+            "Legs" => builder.with(Equipable {
+                slot: EquipmentSlot::Legs,
+            }),
+            "Feet" => builder.with(Equipable {
+                slot: EquipmentSlot::Feet,
+            }),
+            "Tail" => builder.with(Equipable {
+                slot: EquipmentSlot::Tail,
+            }),
+            _ => {
+                eprintln!("{} is not a valid name for an equipment slot", equipable);
+                builder
+            }
+        };
+    }
 
     Ok(builder.build())
 }

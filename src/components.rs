@@ -316,11 +316,17 @@ impl WantsToMove {
     }
 }
 
-#[derive(Debug, Component)]
+#[derive(Component)]
 #[storage(VecStorage)]
 pub struct WantsToCraft {
     pub first_idx: usize,
     pub second_idx: usize,
+}
+
+#[derive(Component)]
+#[storage(VecStorage)]
+pub struct WantsToEquip {
+    pub item: Entity,
 }
 
 #[derive(Debug, Component)]
@@ -350,6 +356,54 @@ pub struct Item(pub ItemID);
 #[storage(VecStorage)]
 pub struct InBag {
     pub owner: Entity,
+}
+
+#[derive(Component)]
+#[storage(VecStorage)]
+pub struct Equipped {
+    pub on: Entity,
+}
+
+#[derive(Component)]
+#[storage(VecStorage)]
+pub struct Equipable {
+    pub slot: EquipmentSlot,
+}
+
+#[derive(PartialEq)]
+pub enum EquipmentSlot {
+    Hand,
+    Torso,
+    Head,
+    Legs,
+    Feet,
+    Tail,
+}
+
+#[derive(Component)]
+#[storage(VecStorage)]
+pub struct EquipmentSlots {
+    pub slots: Vec<EquipmentSlot>,
+}
+
+impl EquipmentSlots {
+    pub fn new(slots: Vec<EquipmentSlot>) -> Self {
+        Self { slots }
+    }
+
+    /// Creates slots based on an average human's bodyparts
+    pub fn human() -> Self {
+        Self {
+            slots: vec![
+                EquipmentSlot::Hand,
+                EquipmentSlot::Hand,
+                EquipmentSlot::Legs,
+                EquipmentSlot::Torso,
+                EquipmentSlot::Head,
+                EquipmentSlot::Feet,
+            ],
+        }
+    }
 }
 
 // Items in this container will have an InBag component with the owner entity == entity holding

@@ -7,6 +7,7 @@ use combat::AttackActionHandler;
 use crafting::HandleCraftingSystem;
 use debug::{debug_info, debug_input};
 use draw_sprites::{draw_sprite_layers, update_fancy_positions};
+use equipment::EquipActionHandler;
 use game_init::initialize_game_world;
 use items::{ItemPickupHandler, ItemSpawnerSystem};
 use mining::{DamageSystem, RemoveDeadTiles, TileDestructionSystem};
@@ -22,6 +23,7 @@ mod combat;
 mod data_read;
 mod debug;
 mod draw_sprites;
+mod equipment;
 mod game_init;
 mod indexing;
 mod inventory;
@@ -56,7 +58,10 @@ use indexing::{
 use tile_animation::TileAnimationSpawner;
 use time::delta_time_update;
 
-use crate::components::{EntityStats, InBag, ItemContainer, WantsToCraft};
+use crate::components::{
+    EntityStats, Equipable, EquipmentSlots, Equipped, InBag, ItemContainer, WantsToCraft,
+    WantsToEquip,
+};
 use crate::{
     components::{
         AttackAction, Blocking, BreakAction, Breakable, DeathDrop, DeleteCondition,
@@ -213,11 +218,13 @@ impl GameState for State {
                     }
                     InventoryResponse::ActionReady => {
                         handle_one_item_actions(&mut self.ecs);
+                        let mut equip_system = EquipActionHandler;
+                        equip_system.run_now(&self.ecs);
                     }
                     InventoryResponse::SecondItemSelected { second_idx } => {
                         handle_two_item_actions(&mut self.ecs, second_idx);
                         let mut craft_system = HandleCraftingSystem;
-                        craft_system.run_now(&mut self.ecs);
+                        craft_system.run_now(&self.ecs);
                         let mut item_spawner = ItemSpawnerSystem;
                         item_spawner.run_now(&self.ecs);
                     }
@@ -325,10 +332,14 @@ fn main() -> BError {
     world.register::<ItemContainer>();
     world.register::<WantsToMove>();
     world.register::<WantsToCraft>();
+    world.register::<WantsToEquip>();
     world.register::<Transform>();
     world.register::<Interactor>();
     world.register::<EntityStats>();
     world.register::<SelectedInventoryIdx>();
+    world.register::<EquipmentSlots>();
+    world.register::<Equipable>();
+    world.register::<Equipped>();
 
     // Resource Initialization, the ECS needs a basic definition of every resource that will be in the game
     world.insert(AppState::GameStartup);

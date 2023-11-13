@@ -1,10 +1,10 @@
 use crate::{
     colors::{to_rgb, white_fg, INVENTORY_BACKGROUND, INVENTORY_OUTLINE},
-    components::{InBag, Item, Name},
+    components::{Equipped, InBag, Item, Name},
 };
 use bracket_terminal::prelude::{ColorPair, DrawBatch};
 use bracket_terminal::prelude::{Point, Rect};
-use specs::{Join, World, WorldExt};
+use specs::{Join, LendJoin, World, WorldExt};
 
 use crate::{components::SelectedInventoryIdx, game_init::PlayerEntity};
 
@@ -15,6 +15,7 @@ pub(crate) fn draw_inventory(draw_batch: &mut DrawBatch, ecs: &World) {
     let items = ecs.read_storage::<Item>();
     let in_bags = ecs.read_storage::<InBag>();
     let names = ecs.read_storage::<Name>();
+    let equipped = ecs.read_storage::<Equipped>();
 
     // TODO: show empty in inventory if inv_count == 0
     let inv_count = (&items, &in_bags, &names)
@@ -27,14 +28,15 @@ pub(crate) fn draw_inventory(draw_batch: &mut DrawBatch, ecs: &World) {
     );
 
     // Draw each item in inventory
-    for (offset, (_, _, Name(name))) in (&items, &in_bags, &names)
+    for (offset, (_, _, Name(name), equipped)) in (&items, &in_bags, &names, (&equipped).maybe())
         .join()
-        .filter(|(_, bag, _)| bag.owner == player_entity.0)
+        .filter(|(_, bag, _, _)| bag.owner == player_entity.0)
         .enumerate()
     {
+        let status = if equipped.is_some() { "(E)" } else { "" };
         draw_batch.print_color(
             Point::new(42, 2 + offset + 1),
-            format!("{:X}| {}", offset + 1, name),
+            format!("{:X}| {}{}", offset + 1, status, name),
             white_fg(to_rgb(INVENTORY_BACKGROUND)),
         );
     }

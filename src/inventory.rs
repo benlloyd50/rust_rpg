@@ -2,7 +2,7 @@ use bracket_terminal::prelude::{BTerm, VirtualKeyCode as VKC};
 use specs::{Entity, Join, World, WorldExt};
 
 use crate::{
-    components::{InBag, Item, Name, SelectedInventoryIdx, WantsToCraft},
+    components::{InBag, Item, Name, SelectedInventoryIdx, WantsToCraft, WantsToEquip},
     game_init::PlayerEntity,
     ui::message_log::MessageLog,
     AppState,
@@ -166,7 +166,18 @@ pub fn handle_one_item_actions(ecs: &mut World) {
             }
         }
         UseMenuResult::Equip => {
-            // let wants_to_equips = ecs.write_storage<>();
+            // get the item at the selected idx and create action for it
+            let items = ecs.read_storage::<Item>();
+            let in_bags = ecs.read_storage::<InBag>();
+            let entities = ecs.entities();
+            if let Some((item_entity, _, _)) = (&entities, &items, &in_bags)
+                .join()
+                .filter(|(_, _, bag)| bag.owner == player_entity.0)
+                .nth(selection.first_idx)
+            {
+                let mut equip_actions = ecs.write_storage::<WantsToEquip>();
+                let _ = equip_actions.insert(player_entity.0, WantsToEquip { item: item_entity });
+            }
         }
         UseMenuResult::Craft => {
             unreachable!("Two item actions cannot be performed here (in this fn).")

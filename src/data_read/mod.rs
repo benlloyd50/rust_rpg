@@ -63,13 +63,13 @@ pub fn initialize_game_databases() {
     game_db.items = items;
 
     let contents: String = fs::read_to_string("raws/world_objs.json")
-        .expect("Unable to find items.json at `raws/world_objs.json`");
+        .expect("Unable to find world_objs.json at `raws/world_objs.json`");
     let world_objs: WorldObjectDatabase =
-        from_str(&contents).expect("Bad JSON in items.json fix it");
+        from_str(&contents).expect("Bad JSON in world_objs.json fix it");
     game_db.world_objs = world_objs;
 
     let contents: String = fs::read_to_string("raws/beings.json")
-        .expect("Unable to find items.json at `raws/beings.json`");
+        .expect("Unable to find beings.json at `raws/beings.json`");
     let beings: BeingDatabase = from_str(&contents).expect("Bad JSON in beings.json fix it");
     game_db.beings = beings;
 
