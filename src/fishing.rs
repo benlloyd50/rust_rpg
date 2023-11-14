@@ -31,7 +31,7 @@ impl<'a> System<'a> for SetupFishingActions {
         &mut self,
         (entities, mut fish_actions, mut fish_waiters, mut anim_builder): Self::SystemData,
     ) {
-        for (e, fish_action) in (&entities, &mut fish_actions).join() {
+        for (fisher, fish_action) in (&entities, &mut fish_actions).join() {
             let mut rng = RandomNumberGenerator::new();
             anim_builder.request(
                 112,
@@ -39,18 +39,18 @@ impl<'a> System<'a> for SetupFishingActions {
                 fish_action.target.y,
                 WHITE.into(),
                 BLACK.into(),
-                DeleteCondition::ActivityFinish(e),
+                DeleteCondition::ActivityFinish(fisher),
             );
 
             let attempts = rng.range(2, 6); // this could be affected by a fishing skill level?
-            match fish_waiters.insert(e, WaitingForFish::new(attempts)) {
+            match fish_waiters.insert(fisher, WaitingForFish::new(attempts)) {
                 Ok(fishy) => {
                     if fishy.is_some() {
-                        eprintln!("ERROR: entity: {} was already waiting for fish, they should not have performed the action again", e.id());
+                        eprintln!("ERROR: entity: {} was already waiting for fish, they should not have performed the action again", fisher.id());
                     }
                 }
                 Err(..) => {
-                    eprintln!("ERROR: Failed to start fishing for entity: {}", e.id());
+                    eprintln!("ERROR: Failed to start fishing for entity: {}", fisher.id());
                     continue;
                 }
             }

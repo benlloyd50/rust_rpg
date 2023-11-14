@@ -7,7 +7,7 @@
 
 use std::fmt::Display;
 
-use specs::{Entities, Entity, Join, ReadStorage, System, World, Write, WriteStorage};
+use specs::{Entities, Entity, Join, ReadStorage, System, World, WorldExt, Write, WriteStorage};
 
 use crate::{
     components::{Equipable, EquipmentSlot, InBag, Item, Name, PickupAction, Position, Renderable},
@@ -198,9 +198,15 @@ impl<'a> System<'a> for ItemPickupHandler {
     }
 }
 
-/// Checks to see if an item is held by an entity and will return the entity associated with the
-/// item if there is one.
-pub fn inventory_contains(_looking_for: &Name, _inventory_of: &Entity, _ecs: &World) -> bool {
-    // TODO: check inv contains item
-    true
+/// Checks to see if there is atleast one `target` item on the `owner`
+pub fn inventory_contains(target: &Name, owner: &Entity, ecs: &World) -> bool {
+    let items = ecs.read_storage::<Item>();
+    let names = ecs.read_storage::<Name>();
+    let in_bags = ecs.read_storage::<InBag>();
+
+    (&items, &names, &in_bags)
+        .join()
+        .filter(|(_, name, bag)| name.eq(&target) && bag.owner.eq(owner))
+        .count()
+        >= 1
 }
