@@ -1,12 +1,11 @@
 [
     {
         "first": {
-            "name": "Flint",
-            "consume": false
+            "name": "Flint"
         },
         "second":{
             "name": "Stick",
-            "consume": true
+            "consume": 1 
         },
         "output": "Sharp Stick"
     }

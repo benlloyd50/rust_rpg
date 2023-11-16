@@ -3,7 +3,7 @@ use specs::{Entities, Entity, Join, ReadStorage, System, Write, WriteStorage};
 use crate::{
     components::{InBag, Item, WantsToCraft},
     data_read::prelude::{ItemID, RECIPE_DB},
-    items::{ItemSpawner, SpawnType},
+    items::{ItemQty, ItemSpawner, SpawnType},
     ui::message_log::MessageLog,
 };
 
@@ -14,7 +14,7 @@ pub struct UseWithRecipe {
 
 pub struct Ingredient {
     pub id: ItemID,
-    pub consume: bool,
+    pub consume: Option<ItemQty>,
 }
 
 pub struct HandleCraftingSystem;
@@ -24,7 +24,7 @@ impl<'a> System<'a> for HandleCraftingSystem {
         WriteStorage<'a, WantsToCraft>,
         Write<'a, ItemSpawner>,
         Write<'a, MessageLog>,
-        ReadStorage<'a, Item>,
+        WriteStorage<'a, Item>,
         ReadStorage<'a, InBag>,
         Entities<'a>,
     );
@@ -32,24 +32,24 @@ impl<'a> System<'a> for HandleCraftingSystem {
     /// TODO: check for item qty in recipes
     fn run(
         &mut self,
-        (mut craft_actions, mut spawn_requests, mut log, items, in_bags, entities): Self::SystemData,
+        (mut craft_actions, mut spawn_requests, mut log, mut items, in_bags, entities): Self::SystemData,
     ) {
         let rdb = &RECIPE_DB.lock().unwrap();
-        for (crafter, craft_action) in (&entities, &craft_actions).join() {
-            let crafting_items: Vec<(Entity, &ItemID)> = (&entities, &items, &in_bags)
+        'outer: for (crafter, craft_action) in (&entities, &craft_actions).join() {
+            let crafting_items: Vec<(Entity, &Item)> = (&entities, &items, &in_bags)
                 .join()
                 .enumerate()
-                .filter (|(idx, (_, _, bag))| {
+                .filter(|(idx, (_, _, bag))| {
                     bag.owner == crafter
                         && (*idx == craft_action.first_idx || *idx == craft_action.second_idx)
                 })
-                .map(|(_, (item_entity, Item(id), _))| (item_entity, id))
+                .map(|(_, (item_entity, item, _))| (item_entity, item))
                 .collect();
 
             #[rustfmt::skip] // not the prettiest way to check
             let recipe_crafted = match rdb.use_with_recipes.iter().find(|recipe| {
-                crafting_items.iter().any(|(_, id)| recipe.ingredients[0].id == **id)
-                && crafting_items.iter().any(|(_, id)| recipe.ingredients[1].id == **id)
+                crafting_items.iter().any(|(_, Item { id, ..})| recipe.ingredients[0].id == *id)
+                && crafting_items.iter().any(|(_, Item { id, ..})| recipe.ingredients[1].id == *id)
             }) {
                 Some(recipe) => recipe,
                 None => {
@@ -58,16 +58,34 @@ impl<'a> System<'a> for HandleCraftingSystem {
                 }
             };
 
-            for ingredient in &recipe_crafted.ingredients {
-                if !ingredient.consume {
-                    continue;
-                }
-                match crafting_items.iter().find(|(_, &id)| id.eq(&ingredient.id)) {
-                    Some((e, _)) => {
-                        let _ = entities.delete(*e);
+            let mut item_updates: Vec<(Entity, Item)> = vec![];
+            // check there are enough of a consumable ingredient
+            for ingredient in recipe_crafted
+                .ingredients
+                .iter()
+                .filter(|ingredient| ingredient.consume.is_some())
+            {
+                match crafting_items
+                    .iter()
+                    .find(|(_, Item { id, .. })| id.eq(&ingredient.id))
+                {
+                    Some((e, bag_item)) => {
+                        if bag_item.qty < ingredient.consume.unwrap() {
+                            continue 'outer;
+                        }
+                        item_updates.push((
+                            *e,
+                            Item::new(bag_item.id, bag_item.qty - ingredient.consume.unwrap()),
+                        ));
                     }
-                    None => eprintln!("Item entity was cleared before proper cleanup was conducted."),
+                    None => {
+                        eprintln!("Item entity was cleared before proper cleanup was conducted.")
+                    }
                 }
+            }
+
+            for (entity, new_item) in item_updates {
+                let _ = items.insert(entity, new_item);
             }
 
             spawn_requests.request(recipe_crafted.output, SpawnType::InBag(crafter));

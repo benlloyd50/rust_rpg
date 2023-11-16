@@ -1,4 +1,4 @@
-use crate::stats::Stats;
+use crate::{items::ItemQty, stats::Stats};
 use std::{fmt::Display, str::FromStr, time::Duration};
 
 use bracket_terminal::prelude::{ColorPair, Degrees, Point, PointF, RGBA};
@@ -350,7 +350,16 @@ pub struct FinishedActivity;
 
 #[derive(Component, Default)]
 #[storage(VecStorage)]
-pub struct Item(pub ItemID);
+pub struct Item {
+    pub id: ItemID,
+    pub qty: ItemQty,
+}
+
+impl Item {
+    pub fn new(id: ItemID, qty: ItemQty) -> Self {
+        Self { id, qty }
+    }
+}
 
 #[derive(Component)]
 #[storage(VecStorage)]
@@ -387,10 +396,6 @@ pub struct EquipmentSlots {
 }
 
 impl EquipmentSlots {
-    pub fn new(slots: Vec<EquipmentSlot>) -> Self {
-        Self { slots }
-    }
-
     /// Creates slots based on an average human's bodyparts
     pub fn human() -> Self {
         Self {

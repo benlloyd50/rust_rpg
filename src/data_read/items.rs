@@ -6,6 +6,7 @@ use specs::{Builder, Entity, World, WorldExt};
 use crate::{
     components::{Equipable, EquipmentSlot, Item, Name, Position, Renderable},
     data_read::EntityBuildError,
+    items::ItemQty,
     z_order::ITEM_Z,
 };
 
@@ -62,7 +63,7 @@ impl Display for ItemID {
     }
 }
 
-// TODO: duplicated in items.rs
+// TODO: duplicated in items.rs, this one could probably be removed in favor the resource, ItemSpawner
 pub fn build_item(
     name: impl ToString,
     pos: Option<Position>,
@@ -78,7 +79,7 @@ pub fn build_item(
     };
     let mut builder = world
         .create_entity()
-        .with(Item(raw.identifier))
+        .with(Item::new(raw.identifier, ItemQty(1)))
         .with(Name::new(&raw.name))
         .with(Renderable::default_bg(raw.atlas_index, raw.fg, ITEM_Z));
 

@@ -5,7 +5,10 @@
  * Quest - when finished -> Item in Inventory
  */
 
-use std::fmt::Display;
+use std::{
+    fmt::Display,
+    ops::{Add, Sub},
+};
 
 use specs::{Entities, Entity, Join, ReadStorage, System, World, WorldExt, Write, WriteStorage};
 
@@ -16,6 +19,7 @@ use crate::{
     z_order::ITEM_Z,
 };
 
+#[derive(Default, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ItemQty(pub usize);
 
 impl Display for ItemQty {
@@ -24,14 +28,19 @@ impl Display for ItemQty {
     }
 }
 
-#[allow(dead_code)]
-impl ItemQty {
-    pub fn new(amt: usize) -> Self {
-        Self(amt)
-    }
+impl Add for ItemQty {
+    type Output = Self;
 
-    pub fn add(&mut self, amt: usize) {
-        self.0 += amt;
+    fn add(self, rhs: Self) -> Self::Output {
+        Self(self.0 + rhs.0)
+    }
+}
+
+impl Sub for ItemQty {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self(self.0 - rhs.0)
     }
 }
 
@@ -87,7 +96,7 @@ impl<'a> System<'a> for ItemSpawnerSystem {
             mut items,
             mut positions,
             mut renderables,
-            mut in_bags,
+            mut inbags,
             mut names,
             mut equipables,
         ): Self::SystemData,
@@ -105,18 +114,33 @@ impl<'a> System<'a> for ItemSpawnerSystem {
                     continue;
                 }
             };
-            // TODO: duplicated in data_read/items.rs
 
             let new_item = entities.create();
             match spawn.spawn_type {
                 SpawnType::OnGround(pos) => {
                     let _ = positions.insert(new_item, pos);
+                    let _ = items.insert(new_item, Item::new(spawn.item_id, ItemQty(1)));
                 }
                 SpawnType::InBag(owner) => {
-                    let _ = in_bags.insert(new_item, InBag { owner });
+                    match (&entities, &items, &inbags)
+                        .join()
+                        .find(|(_, item, bag)| bag.owner == owner && item.id == spawn.item_id)
+                    {
+                        Some((bagged_entity, bagged_item, _)) => {
+                            let _ = items.insert(
+                                bagged_entity,
+                                Item::new(bagged_item.id, bagged_item.qty + ItemQty(1)),
+                            );
+                        }
+                        None => {
+                            let _ = items.insert(new_item, Item::new(spawn.item_id, ItemQty(1)));
+                            let _ = inbags.insert(new_item, InBag { owner });
+                        }
+                    }
                 }
             }
 
+            // TODO: duplicated in data_read/items.rs
             if let Some(equipable) = &static_item.equipable {
                 let slot = match equipable.as_str() {
                     "Hand" => EquipmentSlot::Hand,
@@ -140,7 +164,6 @@ impl<'a> System<'a> for ItemSpawnerSystem {
                 new_item,
                 Renderable::default_bg(static_item.atlas_index, static_item.fg, ITEM_Z),
             );
-            let _ = items.insert(new_item, Item(spawn.item_id));
             let _ = names.insert(new_item, Name(static_item.name.clone()));
         }
 
@@ -155,51 +178,84 @@ impl<'a> System<'a> for ItemPickupHandler {
         WriteStorage<'a, Position>,
         WriteStorage<'a, PickupAction>,
         WriteStorage<'a, InBag>,
+        WriteStorage<'a, Item>,
         Write<'a, MessageLog>,
-        ReadStorage<'a, Item>,
         ReadStorage<'a, Name>,
         Entities<'a>,
     );
 
     fn run(
         &mut self,
-        (mut positions, mut pickups, mut inbags, mut log, items, names, entities): Self::SystemData,
+        (mut positions, mut pickup_actions, mut inbags, mut items, mut log, names, entities): Self::SystemData,
     ) {
-        for (picker, pickup, picker_name) in (&entities, &pickups, &names).join() {
-            let item_target = pickup.item;
-            let item_name = match names.get(item_target) {
+        for (picker, pickup, picker_name) in (&entities, &pickup_actions, &names).join() {
+            let ground_entity = pickup.item;
+            let item_name = match names.get(ground_entity) {
                 Some(name) => name.clone(),
                 None => Name::missing_item_name(),
             };
+            let ground_item = match items.get(ground_entity) {
+                Some(item) => item,
+                None => {
+                    eprintln!(
+                        "{:?} was not an item, it's name was {}",
+                        ground_entity, item_name
+                    );
+                    continue;
+                }
+            };
 
-            if !items.contains(item_target) {
-                eprintln!(
-                    "{:?} was not an item, it's name was {}",
-                    item_target, item_name
-                );
-                continue;
-            }
             let edb = &ENTITY_DB.lock().unwrap();
-
-            // TODO: check inventory capacity and handle this result better
-            let _ = inbags.insert(item_target, InBag { owner: picker });
-            positions.remove(item_target);
+            // TODO: check inventory capacity
+            match (&entities, &items, &inbags)
+                .join()
+                .find(|(_, item, bag)| bag.owner == picker && item.id == ground_item.id)
+            {
+                Some((bagged_entity, bagged_item, _)) => {
+                    let _ = items.insert(
+                        bagged_entity,
+                        Item::new(bagged_item.id, bagged_item.qty + ground_item.qty),
+                    );
+                    items.remove(ground_entity);
+                    let _ = entities.delete(ground_entity);
+                }
+                None => {
+                    let _ = inbags.insert(ground_entity, InBag { owner: picker });
+                    positions.remove(ground_entity);
+                    if let Some(text) = &edb.items.get_by_name_unchecked(&item_name.0).pickup_text {
+                        log.enhance(text);
+                    }
+                }
+            }
             log.log(format!(
                 "{} picked up a {}",
                 picker_name,
                 item_name.0.to_lowercase()
             ));
-            if let Some(text) = &edb.items.get_by_name_unchecked(&item_name.0).pickup_text {
-                log.enhance(text);
-            }
         }
 
-        pickups.clear();
+        pickup_actions.clear();
+    }
+}
+
+pub struct ZeroQtyItemCleanup;
+
+impl<'a> System<'a> for ZeroQtyItemCleanup {
+    type SystemData = (ReadStorage<'a, Item>, Entities<'a>);
+
+    fn run(&mut self, (items, entities): Self::SystemData) {
+        for (item_entity, Item { qty, .. }) in (&entities, &items).join() {
+            if qty.0 == 0 {
+                let _ = entities.delete(item_entity);
+            }
+        }
     }
 }
 
 /// Checks to see if there is atleast one `target` item on the `owner`
 pub fn inventory_contains(target: &Name, owner: &Entity, ecs: &World) -> bool {
+    // TODO: make this callable from systems
+    // pt2: check for id instead of name
     let items = ecs.read_storage::<Item>();
     let names = ecs.read_storage::<Name>();
     let in_bags = ecs.read_storage::<InBag>();

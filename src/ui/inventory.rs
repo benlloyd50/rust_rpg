@@ -28,15 +28,20 @@ pub(crate) fn draw_inventory(draw_batch: &mut DrawBatch, ecs: &World) {
     );
 
     // Draw each item in inventory
-    for (offset, (_, _, Name(name), equipped)) in (&items, &in_bags, &names, (&equipped).maybe())
+    for (offset, (item, _, Name(name), equipped)) in (&items, &in_bags, &names, (&equipped).maybe())
         .join()
         .filter(|(_, bag, _, _)| bag.owner == player_entity.0)
         .enumerate()
     {
         let status = if equipped.is_some() { "(E)" } else { "" };
+        let qty = if item.qty.0 > 1 {
+            format!("{}x ", item.qty)
+        } else {
+            "".to_string()
+        };
         draw_batch.print_color(
             Point::new(42, 2 + offset + 1),
-            format!("{:X}| {}{}", offset + 1, status, name),
+            format!("{:X}| {status}{qty}{name}", offset + 1),
             white_fg(to_rgb(INVENTORY_BACKGROUND)),
         );
     }

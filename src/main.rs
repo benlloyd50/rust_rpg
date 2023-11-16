@@ -9,7 +9,7 @@ use debug::{debug_info, debug_input};
 use draw_sprites::{draw_sprite_layers, update_fancy_positions};
 use equipment::EquipActionHandler;
 use game_init::initialize_game_world;
-use items::{ItemPickupHandler, ItemSpawnerSystem};
+use items::{ItemPickupHandler, ItemSpawnerSystem, ZeroQtyItemCleanup};
 use mining::{DamageSystem, RemoveDeadTiles, TileDestructionSystem};
 use monster::{
     check_monster_delay, GoalFindEntities, GoalMoveToEntities, HandleMoveActions,
@@ -151,6 +151,8 @@ impl State {
 
         let mut item_spawner = ItemSpawnerSystem;
         item_spawner.run_now(&self.ecs);
+        let mut zero_qty_item_cleanup = ZeroQtyItemCleanup;
+        zero_qty_item_cleanup.run_now(&self.ecs);
         // println!("Continuous Systems are now finished.");
     }
 
@@ -227,6 +229,8 @@ impl GameState for State {
                         craft_system.run_now(&self.ecs);
                         let mut item_spawner = ItemSpawnerSystem;
                         item_spawner.run_now(&self.ecs);
+                        let mut zero_qty_item_cleanup = ZeroQtyItemCleanup;
+                        zero_qty_item_cleanup.run_now(&self.ecs);
                     }
                     InventoryResponse::StateChange(delta_state) => {
                         new_state = delta_state;

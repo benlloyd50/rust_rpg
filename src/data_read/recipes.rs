@@ -1,4 +1,7 @@
-use crate::crafting::{Ingredient, UseWithRecipe};
+use crate::{
+    crafting::{Ingredient, UseWithRecipe},
+    items::ItemQty,
+};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
@@ -32,11 +35,11 @@ impl RecipeDatabase {
                 ingredients: vec![
                     Ingredient {
                         id: edb.items.get_by_name_unchecked(&r.first.name).identifier,
-                        consume: r.first.consume,
+                        consume: r.first.consume.map_or(None, |amt| Some(ItemQty(amt))),
                     },
                     Ingredient {
                         id: edb.items.get_by_name_unchecked(&r.second.name).identifier,
-                        consume: r.second.consume,
+                        consume: r.second.consume.map_or(None, |amt| Some(ItemQty(amt))),
                     },
                 ],
                 output: edb.items.get_by_name_unchecked(&r.output).identifier,
@@ -55,5 +58,5 @@ struct RawRecipe {
 #[derive(Deserialize, Serialize)]
 struct RawIngredient {
     name: String,
-    consume: bool,
+    consume: Option<usize>,
 }
