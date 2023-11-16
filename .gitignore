@@ -8,6 +8,4 @@ interface_tiles.*
 .vscode
 .idea/
 
-book/
-
 # *.ldtk

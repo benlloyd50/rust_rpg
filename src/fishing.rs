@@ -5,6 +5,8 @@ use crate::{
         DeleteCondition, FinishedActivity, FishAction, FishOnTheLine, Fishable, Name, Renderable,
         WaitingForFish, Water,
     },
+    data_read::prelude::ItemID,
+    items::{ItemSpawner, SpawnType},
     tile_animation::TileAnimationBuilder,
     time::DeltaTime,
     ui::message_log::MessageLog,
@@ -143,21 +145,23 @@ impl<'a> System<'a> for CatchFishSystem {
         Entities<'a>,
         WriteStorage<'a, FishOnTheLine>,
         WriteStorage<'a, FinishedActivity>,
+        WriteExpect<'a, ItemSpawner>,
         WriteExpect<'a, MessageLog>,
         ReadStorage<'a, Name>,
     );
 
     fn run(
         &mut self,
-        (entities, mut hooks, mut finished_activities, mut log, names): Self::SystemData,
+        (entities, mut hooks, mut finished_activities, mut item_spawner, mut log, names): Self::SystemData,
     ) {
         let mut remove_mes = Vec::new();
         for (e, _, name) in (&entities, &hooks, &names).join() {
             remove_mes.push((e, name));
             let _ = finished_activities.insert(e, FinishedActivity);
-        }
-        for (entity, name) in remove_mes.iter() {
             log.enhance(format!("{} caught a really big fish!", name));
+            item_spawner.request(ItemID(3), SpawnType::InBag(e));
+        }
+        for (entity, _) in remove_mes.iter() {
             hooks.remove(*entity);
         }
     }
