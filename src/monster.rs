@@ -4,7 +4,8 @@ use bracket_random::prelude::RandomNumberGenerator;
 use bracket_terminal::prelude::Point;
 use pathfinding::prelude::astar;
 use specs::{
-    Entities, Join, ReadExpect, ReadStorage, System, World, WorldExt, WriteExpect, WriteStorage,
+    Entities, Entity, Join, ReadExpect, ReadStorage, System, World, WorldExt, WriteExpect,
+    WriteStorage,
 };
 
 use crate::{
@@ -98,12 +99,14 @@ pub struct GoalFindEntities;
 impl<'a> System<'a> for GoalFindEntities {
     type SystemData = (
         WriteStorage<'a, GoalMoverAI>,
+        WriteStorage<'a, RandomWalkerAI>,
         ReadStorage<'a, Position>,
         ReadStorage<'a, Name>,
         Entities<'a>,
     );
 
-    fn run(&mut self, (mut goal_movers, positions, names, entities): Self::SystemData) {
+    fn run(&mut self, (mut goal_movers, mut randwalkers, positions, names, entities): Self::SystemData) {
+        let mut remove_mes: Vec<Entity> = vec![];
         for (goal_entity, goal_mover, mover_pos) in (&entities, &mut goal_movers, &positions).join()
         {
             if goal_mover.current.is_some() {
@@ -119,8 +122,15 @@ impl<'a> System<'a> for GoalFindEntities {
                     closest_goal = (Some(entity), dist_from_goal);
                 }
             }
+            if closest_goal.0.is_none() {
+                let _ = randwalkers.insert(goal_entity, RandomWalkerAI);
+                remove_mes.push(goal_entity);
+            }
 
             goal_mover.current = closest_goal.0;
+        }
+        for me in remove_mes.iter() {
+            goal_movers.remove(*me);
         }
     }
 }
@@ -139,7 +149,14 @@ impl<'a> System<'a> for GoalMoveToEntities {
 
     fn run(
         &mut self,
-        (mut wants_to_move, mut break_actions, mut goal_movers, positions, map, entities): Self::SystemData,
+        (
+            mut wants_to_move,
+            mut break_actions,
+            mut goal_movers,
+            positions,
+            map,
+            entities,
+        ): Self::SystemData,
     ) {
         for (entity, goal_mover, mover_pos) in (&entities, &mut goal_movers, &positions).join() {
             if goal_mover.current.is_none() {

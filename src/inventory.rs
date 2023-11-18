@@ -1,8 +1,12 @@
 use bracket_terminal::prelude::{BTerm, VirtualKeyCode as VKC};
+use itertools::Itertools;
 use specs::{Entity, Join, World, WorldExt};
+use specs::{LendJoin, ReadStorage};
 
+use crate::components::{Equipped, Position};
+use crate::data_read::ENTITY_DB;
 use crate::{
-    components::{InBag, Item, Name, SelectedInventoryIdx, WantsToCraft, WantsToEquip},
+    components::{InBag, Item, Name, SelectedInventoryItem, WantsToCraft, WantsToEquip},
     game_init::PlayerEntity,
     ui::message_log::MessageLog,
     AppState,
@@ -20,7 +24,7 @@ pub enum UseMenuResult {
 pub enum InventoryResponse {
     Waiting,
     ActionReady,
-    SecondItemSelected { second_idx: usize },
+    SecondItemSelected { second_item: Entity },
     StateChange(AppState),
 }
 
@@ -33,7 +37,7 @@ pub fn handle_player_input(ecs: &mut World, ctx: &BTerm) -> InventoryResponse {
     match ctx.key {
         None => InventoryResponse::Waiting,
         Some(key) if check_inventory_selection(&ecs) == SelectionStatus::SelectionWithoutAction => {
-            let mut selected_idxs = ecs.write_storage::<SelectedInventoryIdx>();
+            let mut selected_idxs = ecs.write_storage::<SelectedInventoryItem>();
             if let Some(selection) = selected_idxs.get_mut(player_entity) {
                 match key {
                     VKC::U => {
@@ -89,37 +93,48 @@ pub fn handle_player_input(ecs: &mut World, ctx: &BTerm) -> InventoryResponse {
     }
 }
 
+// This function depends on the ui code of getting the iterator
 fn select_item(player_entity: &Entity, idx_selected: usize, ecs: &mut World) -> InventoryResponse {
-    let mut log = ecs.write_resource::<MessageLog>();
-    let in_bags = ecs.read_storage::<InBag>();
-    // why do i gotta join 1 storage? is there a better way?
-    let inv_count = (&in_bags)
-        .join()
-        .filter(|bag| bag.owner == *player_entity)
-        .count();
+    let items: ReadStorage<Item> = ecs.read_storage();
+    let inbags: ReadStorage<InBag> = ecs.read_storage();
+    let names: ReadStorage<Name> = ecs.read_storage();
+    let equipped: ReadStorage<Equipped> = ecs.read_storage();
 
-    if idx_selected + 1 > inv_count {
-        log.log("Index selected is out of bounds of the backapack.");
-        return InventoryResponse::Waiting;
-    }
+    let entities = ecs.entities();
+    let selected_entity = (&entities, &items, &inbags, &names, (&equipped).maybe())
+        // important: this must match in src/ui/inventory.rs until a better solution is found to share code
+        // up to the sorted_by
+        .join()
+        .filter(|(_, _, bag, _, _)| bag.owner == *player_entity)
+        .sorted_by(|a, b| a.3.cmp(b.3))
+        .nth(idx_selected)
+        .map(|(e, _, _, _, _)| e);
 
     match check_inventory_selection(ecs) {
         SelectionStatus::NoSelection => {
-            let mut selected_idxs = ecs.write_storage::<SelectedInventoryIdx>();
-            let _ = selected_idxs.insert(
-                *player_entity,
-                SelectedInventoryIdx {
-                    first_idx: idx_selected,
-                    intended_action: None,
-                },
-            );
+            let mut selected_idxs = ecs.write_storage::<SelectedInventoryItem>();
+            if let Some(first_item) = selected_entity {
+                let _ = selected_idxs.insert(
+                    *player_entity,
+                    SelectedInventoryItem {
+                        first_item,
+                        intended_action: None,
+                    },
+                );
+            } else {
+                let mut log = ecs.write_resource::<MessageLog>();
+                log.log("Index selected is out of bounds of the backapack.");
+            }
+            // good to insert because we know the player does not have one currently
             InventoryResponse::Waiting
         }
         SelectionStatus::SelectionWithoutAction => InventoryResponse::Waiting,
         SelectionStatus::SelectionAndAction => {
             // The first idx will be on the component
-            InventoryResponse::SecondItemSelected {
-                second_idx: idx_selected,
+            if let Some(second_item) = selected_entity {
+                InventoryResponse::SecondItemSelected { second_item }
+            } else {
+                InventoryResponse::Waiting
             }
         }
     }
@@ -127,9 +142,9 @@ fn select_item(player_entity: &Entity, idx_selected: usize, ecs: &mut World) -> 
 
 pub fn handle_one_item_actions(ecs: &mut World) {
     let player_entity = ecs.read_resource::<PlayerEntity>();
-    let mut selected_idxs = ecs.write_storage::<SelectedInventoryIdx>();
+    let mut selected_idxs = ecs.write_storage::<SelectedInventoryItem>();
     let selection = match selected_idxs.get(player_entity.0) {
-        Some(idx) => idx,
+        Some(item) => item,
         None => {
             eprintln!(
                 "Player has no SelectedInventoryIdx component associated when using one item"
@@ -142,24 +157,53 @@ pub fn handle_one_item_actions(ecs: &mut World) {
     match selection.intended_action.as_ref().unwrap() {
         UseMenuResult::Drop => {
             // remove item from bag
-            log.log("Dropped it");
+            let mut items = ecs.write_storage::<Item>();
+            let mut in_bags = ecs.write_storage::<InBag>();
+            let entities = ecs.entities();
+            if let Some((item_entity, dropped_item, _)) =
+                (&entities, &items, &in_bags)
+                    .join()
+                    .find(|(item_entity, _, bag)| {
+                        item_entity == &selection.first_item && bag.owner == player_entity.0
+                    })
+            {
+                in_bags.remove(item_entity);
+                log.log("Dropped it");
+
+                let mut positions = ecs.write_storage::<Position>();
+                if let Some(player_position) = positions.get(player_entity.0) {
+                    if let Some(ground_item) = (&entities, &items, &positions).join().find(|(_,i,p)| p.eq(&player_position) && i.id.eq(&dropped_item.id)) {
+                        let _ = items.insert(ground_item.0, Item::new(ground_item.1.id, ground_item.1.qty + dropped_item.qty));
+                    } else {
+                        let _ = positions.insert(item_entity, *player_position);
+
+                    }
+                }
+
+            }
         }
         UseMenuResult::Examine => {
             //log flavor text
             let items = ecs.read_storage::<Item>();
             let in_bags = ecs.read_storage::<InBag>();
-            let names = ecs.read_storage::<Name>();
-            if let Some((idx, (_, _, Name(name)))) = (&items, &in_bags, &names)
-                .join()
-                .enumerate()
-                .filter(|(idx, (_, bag, _))| {
-                    idx == &selection.first_idx && bag.owner == player_entity.0
-                })
-                .next()
+            let entities = ecs.entities();
+            if let Some((_, item, _)) =
+                (&entities, &items, &in_bags)
+                    .join()
+                    .find(|(item_entity, _, bag)| {
+                        item_entity == &selection.first_item && bag.owner == player_entity.0
+                    })
             {
-                log.log(format!("Examined the {} at {}", name, idx + 1));
+                let examine_text = match &ENTITY_DB.lock().unwrap().items.get_by_id(item.id) {
+                    Some(info) => info.examine_text.clone(),
+                    None => format!("Could not find item with id: {}", item.id),
+                };
+                log.log(examine_text);
             } else {
-                log.log(format!("Couldn't examine idx: {}", selection.first_idx));
+                log.log(format!(
+                    "Couldn't examine entity: {:?}",
+                    selection.first_item
+                ));
             }
         }
         UseMenuResult::Equip => {
@@ -167,10 +211,12 @@ pub fn handle_one_item_actions(ecs: &mut World) {
             let items = ecs.read_storage::<Item>();
             let in_bags = ecs.read_storage::<InBag>();
             let entities = ecs.entities();
-            if let Some((item_entity, _, _)) = (&entities, &items, &in_bags)
-                .join()
-                .filter(|(_, _, bag)| bag.owner == player_entity.0)
-                .nth(selection.first_idx)
+            if let Some((item_entity, _, _)) =
+                (&entities, &items, &in_bags)
+                    .join()
+                    .find(|(item_entity, _, bag)| {
+                        bag.owner == player_entity.0 && selection.first_item == *item_entity
+                    })
             {
                 let mut equip_actions = ecs.write_storage::<WantsToEquip>();
                 let _ = equip_actions.insert(player_entity.0, WantsToEquip { item: item_entity });
@@ -185,9 +231,9 @@ pub fn handle_one_item_actions(ecs: &mut World) {
     selected_idxs.remove(player_entity.0);
 }
 
-pub fn handle_two_item_actions(ecs: &mut World, second_idx: usize) {
+pub fn handle_two_item_actions(ecs: &mut World, second_item: &Entity) {
     let player_entity = ecs.read_resource::<PlayerEntity>();
-    let mut selected_idxs = ecs.write_storage::<SelectedInventoryIdx>();
+    let mut selected_idxs = ecs.write_storage::<SelectedInventoryItem>();
     let selection = match selected_idxs.get(player_entity.0) {
         Some(idx) => idx.clone(),
         None => {
@@ -201,7 +247,7 @@ pub fn handle_two_item_actions(ecs: &mut World, second_idx: usize) {
     // unwrap is safe because this fn is not entered unless we have an action and selection selected
     match selection.intended_action.as_ref().unwrap() {
         UseMenuResult::Craft => {
-            if selection.first_idx == second_idx {
+            if selection.first_item == *second_item {
                 eprintln!("Cannot craft using the same item in your inventory.");
                 return;
             }
@@ -209,8 +255,8 @@ pub fn handle_two_item_actions(ecs: &mut World, second_idx: usize) {
             let _ = wants_to_craft.insert(
                 player_entity.0,
                 WantsToCraft {
-                    first_idx: selection.first_idx,
-                    second_idx,
+                    first_item: selection.first_item,
+                    second_item: *second_item,
                 },
             );
         }
@@ -224,7 +270,7 @@ pub fn handle_two_item_actions(ecs: &mut World, second_idx: usize) {
 
 fn clean_and_exit_inventory(player_entity: &Entity, ecs: &mut World) -> InventoryResponse {
     // TODO: remove temporary inventory related components
-    let mut selected_idxs = ecs.write_storage::<SelectedInventoryIdx>();
+    let mut selected_idxs = ecs.write_storage::<SelectedInventoryItem>();
     selected_idxs.remove(*player_entity);
     InventoryResponse::StateChange(AppState::InGame)
 }
@@ -240,7 +286,7 @@ pub enum SelectionStatus {
 /// Checks if the player has made a selection and an action for the selection
 pub fn check_inventory_selection(ecs: &World) -> SelectionStatus {
     let player_entity = ecs.read_resource::<PlayerEntity>();
-    let selected_idxs = ecs.read_storage::<SelectedInventoryIdx>();
+    let selected_idxs = ecs.read_storage::<SelectedInventoryItem>();
     match selected_idxs.get(player_entity.0) {
         Some(selection) => match &selection.intended_action {
             Some(_unperformed_action) => SelectionStatus::SelectionAndAction,

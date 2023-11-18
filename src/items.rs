@@ -56,16 +56,26 @@ impl ItemSpawner {
         }
     }
 
-    pub fn request(&mut self, item_id: ItemID, spawn_type: SpawnType) {
+    pub fn request(&mut self, id: ItemID, spawn_type: SpawnType) {
         self.requests.push(ItemSpawnRequest {
-            item_id,
+            id,
+            qty: ItemQty(1),
+            spawn_type,
+        });
+    }
+
+    pub fn request_amt(&mut self, id: ItemID, spawn_type: SpawnType, qty: ItemQty) {
+        self.requests.push(ItemSpawnRequest {
+            id,
+            qty,
             spawn_type,
         });
     }
 }
 
 pub struct ItemSpawnRequest {
-    item_id: ItemID,
+    id: ItemID,
+    qty: ItemQty,
     spawn_type: SpawnType,
 }
 
@@ -104,12 +114,12 @@ impl<'a> System<'a> for ItemSpawnerSystem {
         let edb = &ENTITY_DB.lock().unwrap();
 
         for spawn in spawn_requests.requests.iter() {
-            let static_item = match edb.items.get_by_id(spawn.item_id.0) {
+            let static_item = match edb.items.get_by_id(spawn.id) {
                 Some(val) => val,
                 None => {
                     eprintln!(
                         "Spawn request failed because {:?} item id does not exist in database",
-                        spawn.item_id
+                        spawn.id
                     );
                     continue;
                 }
@@ -119,21 +129,21 @@ impl<'a> System<'a> for ItemSpawnerSystem {
             match spawn.spawn_type {
                 SpawnType::OnGround(pos) => {
                     let _ = positions.insert(new_item, pos);
-                    let _ = items.insert(new_item, Item::new(spawn.item_id, ItemQty(1)));
+                    let _ = items.insert(new_item, Item::new(spawn.id, spawn.qty));
                 }
                 SpawnType::InBag(owner) => {
                     match (&entities, &items, &inbags)
                         .join()
-                        .find(|(_, item, bag)| bag.owner == owner && item.id == spawn.item_id)
+                        .find(|(_, item, bag)| bag.owner == owner && item.id == spawn.id)
                     {
                         Some((bagged_entity, bagged_item, _)) => {
                             let _ = items.insert(
                                 bagged_entity,
-                                Item::new(bagged_item.id, bagged_item.qty + ItemQty(1)),
+                                Item::new(bagged_item.id, bagged_item.qty + spawn.qty),
                             );
                         }
                         None => {
-                            let _ = items.insert(new_item, Item::new(spawn.item_id, ItemQty(1)));
+                            let _ = items.insert(new_item, Item::new(spawn.id, spawn.qty));
                             let _ = inbags.insert(new_item, InBag { owner });
                         }
                     }
@@ -216,7 +226,7 @@ impl<'a> System<'a> for ItemPickupHandler {
                         bagged_entity,
                         Item::new(bagged_item.id, bagged_item.qty + ground_item.qty),
                     );
-                    items.remove(ground_entity);
+                    // items.remove(ground_entity); pretty sure not required, testing needed
                     let _ = entities.delete(ground_entity);
                 }
                 None => {

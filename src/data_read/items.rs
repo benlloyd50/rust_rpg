@@ -32,8 +32,8 @@ impl ItemDatabase {
         self.data.iter().find(|i| i.name.eq(name)).unwrap()
     }
 
-    pub fn get_by_id(&self, id: u32) -> Option<&ItemInfo> {
-        self.data.iter().find(|i| i.identifier.0 == id)
+    pub fn get_by_id(&self, id: ItemID) -> Option<&ItemInfo> {
+        self.data.iter().find(|i| i.identifier == id)
     }
 }
 
@@ -42,7 +42,8 @@ pub struct ItemInfo {
     /// Unique id to find the item's static data
     pub identifier: ItemID,
     pub name: String,
-    pub atlas_index: usize,
+    pub examine_text: String,
+    pub atlas_index: u8,
     pub fg: (u8, u8, u8),
     pub pickup_text: Option<String>,
     pub equipable: Option<String>,
@@ -54,12 +55,12 @@ pub struct ItemID(pub u32);
 impl Display for ItemID {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let edb = &ENTITY_DB.lock().unwrap();
-        let temp = format!("Missing name {}", self.0);
-        let name = match edb.items.get_by_id(self.0) {
+        let missing = format!("Missing name {}", self.0);
+        let name = match edb.items.get_by_id(*self) {
             Some(info) => &info.name,
-            None => &temp,
+            None => &missing,
         };
-        write!(f, "{}", name)
+        write!(f, "id: {} | name: {}", self.0, name)
     }
 }
 

@@ -20,7 +20,7 @@ impl TileAnimationBuilder {
 
     pub fn request(
         &mut self,
-        atlas_index: usize,
+        atlas_index: u8,
         x: usize,
         y: usize,
         fg: RGB,
@@ -37,7 +37,7 @@ impl TileAnimationBuilder {
 }
 
 struct TileAnimationRequest {
-    atlas_index: usize,
+    atlas_index: u8,
     at: Position,
     fgbg: ColorPair,
     delete_condition: DeleteCondition,

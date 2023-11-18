@@ -67,7 +67,7 @@ use crate::{
         AttackAction, Blocking, BreakAction, Breakable, DeathDrop, DeleteCondition,
         FinishedActivity, FishAction, FishOnTheLine, Fishable, GoalMoverAI, Grass, HealthStats,
         Interactor, Item, Monster, Name, PickupAction, RandomWalkerAI, Renderable,
-        SelectedInventoryIdx, SufferDamage, Transform, WaitingForFish, WantsToMove, Water,
+        SelectedInventoryItem, SufferDamage, Transform, WaitingForFish, WantsToMove, Water,
     },
     data_read::initialize_game_databases,
     items::ItemSpawner,
@@ -223,8 +223,8 @@ impl GameState for State {
                         let mut equip_system = EquipActionHandler;
                         equip_system.run_now(&self.ecs);
                     }
-                    InventoryResponse::SecondItemSelected { second_idx } => {
-                        handle_two_item_actions(&mut self.ecs, second_idx);
+                    InventoryResponse::SecondItemSelected { second_item } => {
+                        handle_two_item_actions(&mut self.ecs, &second_item);
                         let mut craft_system = HandleCraftingSystem;
                         craft_system.run_now(&self.ecs);
                         let mut item_spawner = ItemSpawnerSystem;
@@ -258,11 +258,12 @@ impl GameState for State {
         delta_time_update(&mut self.ecs, ctx);
         self.ecs.maintain();
 
-        {
-            let current_frame_state = self.ecs.fetch::<AppState>();
-            draw_ui(&self.ecs, &current_frame_state);
-        }
+        // {
+        //     let current_frame_state = self.ecs.fetch::<AppState>();
+        // draw_ui(&self.ecs, &current_frame_state);
+        // }
 
+        draw_ui(&self.ecs, &new_state);
         update_fancy_positions(&self.ecs);
         draw_sprite_layers(&self.ecs);
         render_draw_buffer(ctx).expect("Render error??");
@@ -340,7 +341,7 @@ fn main() -> BError {
     world.register::<Transform>();
     world.register::<Interactor>();
     world.register::<EntityStats>();
-    world.register::<SelectedInventoryIdx>();
+    world.register::<SelectedInventoryItem>();
     world.register::<EquipmentSlots>();
     world.register::<Equipable>();
     world.register::<Equipped>();

@@ -1,9 +1,10 @@
 use bracket_terminal::prelude::{to_char, BTerm, TextAlign, VirtualKeyCode, RGB, RGBA, WHITESMOKE};
-use specs::{Join, World, WorldExt};
+use itertools::Itertools;
+use specs::{Join, ReadStorage, World, WorldExt};
 
 use crate::{
     camera::mouse_to_map_pos,
-    components::{Interactor, Position, SelectedInventoryIdx, Transform},
+    components::{InBag, Interactor, Item, Name, Position, SelectedInventoryItem, Transform},
     game_init::PlayerEntity,
     inventory::UseMenuResult,
     map::Map,
@@ -48,7 +49,7 @@ fn draw_interaction_mode(ctx: &mut BTerm, ecs: &World) {
 
 fn draw_inventory_state(ctx: &mut BTerm, ecs: &World) {
     let player_entity = ecs.read_resource::<PlayerEntity>();
-    let selected_idxs = ecs.read_storage::<SelectedInventoryIdx>();
+    let selected_idxs = ecs.read_storage::<SelectedInventoryItem>();
     let selection_status = match selected_idxs.get(player_entity.0) {
         Some(selection) => {
             let message = match &selection.intended_action {
@@ -62,7 +63,21 @@ fn draw_inventory_state(ctx: &mut BTerm, ecs: &World) {
                 .to_string(),
                 None => "none".to_string(),
             };
-            format!("Selected: {} | Action: {}", selection.first_idx, message)
+
+            let items: ReadStorage<Item> = ecs.read_storage();
+            let inbags: ReadStorage<InBag> = ecs.read_storage();
+            let names: ReadStorage<Name> = ecs.read_storage();
+            let entities = ecs.entities();
+            if let Some(idx_selected) = (&entities, &items, &inbags, &names)
+                .join()
+                .filter(|inv_item| inv_item.2.owner == player_entity.0)
+                .sorted_by(|a, b| a.3.cmp(b.3))
+                .position(|inv_item| inv_item.0 == selection.first_item)
+            {
+                format!("Selected: {} | Action: {}", idx_selected, message)
+            } else {
+                "Inventory selection index mismatch".to_string()
+            }
         }
         None => "No selection made".to_string(),
     };
@@ -83,7 +98,7 @@ pub fn debug_input(ctx: &mut BTerm, ecs: &World) {
         return;
     }
 
-    draw_sprite_under_cursor(ctx);
+    draw_cursor(ctx);
 
     if ctx.left_click {
         print_tile_contents(ctx, ecs);
@@ -94,7 +109,7 @@ pub fn debug_input(ctx: &mut BTerm, ecs: &World) {
     }
 }
 
-fn draw_sprite_under_cursor(ctx: &mut BTerm) {
+fn draw_cursor(ctx: &mut BTerm) {
     let previous_active = ctx.active_console;
     ctx.set_active_console(CL_INTERACTABLES);
     ctx.printer(

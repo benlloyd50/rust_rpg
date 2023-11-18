@@ -22,7 +22,7 @@ pub struct Being {
     pub(crate) is_blocking: bool,
     pub(crate) ai: Option<String>,
     pub(crate) goals: Option<Vec<String>>,
-    pub(crate) atlas_index: usize,
+    pub(crate) atlas_index: u8,
     pub(crate) fg: (u8, u8, u8),
     pub(crate) quips: Option<Vec<String>>,
     pub(crate) stats: Option<OptionalStats>,

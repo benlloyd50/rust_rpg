@@ -4,35 +4,42 @@ use crate::{
 };
 use bracket_terminal::prelude::{ColorPair, DrawBatch};
 use bracket_terminal::prelude::{Point, Rect};
-use specs::{Join, LendJoin, World, WorldExt};
+use specs::{Join, LendJoin, ReadStorage, World, WorldExt};
 
-use crate::{components::SelectedInventoryIdx, game_init::PlayerEntity};
+use crate::{components::SelectedInventoryItem, game_init::PlayerEntity};
 
 use super::drawing::AccentBox;
 
 pub(crate) fn draw_inventory(draw_batch: &mut DrawBatch, ecs: &World) {
     let player_entity = ecs.read_resource::<PlayerEntity>();
-    let items = ecs.read_storage::<Item>();
-    let in_bags = ecs.read_storage::<InBag>();
-    let names = ecs.read_storage::<Name>();
-    let equipped = ecs.read_storage::<Equipped>();
+    let items: ReadStorage<Item> = ecs.read_storage();
+    let inbags: ReadStorage<InBag> = ecs.read_storage();
+    let names: ReadStorage<Name> = ecs.read_storage();
+    let equipped: ReadStorage<Equipped> = ecs.read_storage();
+
+    let entities = ecs.entities();
+    let mut data: Vec<(specs::Entity, &Item, &InBag, &Name, Option<&Equipped>)> =
+        (&entities, &items, &inbags, &names, (&equipped).maybe())
+            // important: this must match in src/inventory.rs until a better solution is found to share code
+            .join()
+            .filter(|(_, _, bag, _, _)| bag.owner == player_entity.0)
+            .collect();
+    data.sort_by(|a, b| a.3.cmp(b.3));
 
     // TODO: show empty in inventory if inv_count == 0
-    let inv_count = (&items, &in_bags, &names)
-        .join()
-        .filter(|(_, bag, _)| bag.owner == player_entity.0)
-        .count();
+    let inv_count = data.len();
     draw_batch.draw_accent_box(
         Rect::with_size(40, 2, 35, inv_count + 1),
         ColorPair::new(INVENTORY_OUTLINE, INVENTORY_BACKGROUND),
     );
 
+    let selected_items = ecs.read_storage::<SelectedInventoryItem>();
+    let selected_item = selected_items
+        .get(player_entity.0)
+        .map(|SelectedInventoryItem { first_item, .. }| first_item);
+
     // Draw each item in inventory
-    for (offset, (item, _, Name(name), equipped)) in (&items, &in_bags, &names, (&equipped).maybe())
-        .join()
-        .filter(|(_, bag, _, _)| bag.owner == player_entity.0)
-        .enumerate()
-    {
+    for (offset, (item_entity, item, _, Name(name), equipped)) in data.iter().enumerate() {
         let status = if equipped.is_some() { "(E)" } else { "" };
         let qty = if item.qty.0 > 1 {
             format!("{}x ", item.qty)
@@ -44,13 +51,9 @@ pub(crate) fn draw_inventory(draw_batch: &mut DrawBatch, ecs: &World) {
             format!("{:X}| {status}{qty}{name}", offset + 1),
             white_fg(to_rgb(INVENTORY_BACKGROUND)),
         );
-    }
 
-    // Draw cursor for selected item
-    let selected_indices = ecs.read_storage::<SelectedInventoryIdx>();
-    if let Some(selection) = selected_indices.get(player_entity.0) {
-        if selection.first_idx < inv_count {
-            draw_batch.print(Point::new(41, 3 + selection.first_idx), ">");
+        if Some(item_entity) == selected_item {
+            draw_batch.print(Point::new(41, 3 + offset), ">");
         }
     }
 }

@@ -106,7 +106,7 @@ pub struct WorldObject {
     /// Unique id to find the world object's static data
     identifier: ObjectID,
     name: String,
-    atlas_index: usize,
+    atlas_index: u8,
     is_blocking: bool,
     death_drop: Option<String>,
     breakable: Option<String>,

@@ -38,12 +38,11 @@ impl<'a> System<'a> for HandleCraftingSystem {
         'outer: for (crafter, craft_action) in (&entities, &craft_actions).join() {
             let crafting_items: Vec<(Entity, &Item)> = (&entities, &items, &in_bags)
                 .join()
-                .enumerate()
-                .filter(|(idx, (_, _, bag))| {
-                    bag.owner == crafter
-                        && (*idx == craft_action.first_idx || *idx == craft_action.second_idx)
+                .filter(|(bagged_entity, _, bag)| {
+                    bag.owner == crafter && (*bagged_entity == craft_action.first_item)
+                        || (*bagged_entity == craft_action.second_item)
                 })
-                .map(|(_, (item_entity, item, _))| (item_entity, item))
+                .map(|(item_entity, item, _)| (item_entity, item))
                 .collect();
 
             #[rustfmt::skip] // not the prettiest way to check

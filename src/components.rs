@@ -10,12 +10,12 @@ use crate::{data_read::prelude::ItemID, indexing::idx_to_point, inventory::UseMe
 #[storage(VecStorage)]
 pub struct Renderable {
     pub color_pair: ColorPair,
-    pub atlas_index: usize,
+    pub atlas_index: u8,
     pub z_priority: u32,
 }
 
 impl Renderable {
-    pub fn new(fg: (u8, u8, u8), bg: (u8, u8, u8), atlas_index: usize, z_priority: u32) -> Self {
+    pub fn new(fg: (u8, u8, u8), bg: (u8, u8, u8), atlas_index: u8, z_priority: u32) -> Self {
         Self {
             color_pair: ColorPair::new(fg, bg),
             atlas_index,
@@ -24,7 +24,7 @@ impl Renderable {
     }
 
     /// Creates a renderable with a clear bg and specified parts
-    pub fn default_bg(atlas_index: usize, fg: (u8, u8, u8), z_priority: u32) -> Self {
+    pub fn default_bg(atlas_index: u8, fg: (u8, u8, u8), z_priority: u32) -> Self {
         Self {
             color_pair: ColorPair::new(fg, RGBA::from_u8(0, 0, 0, 0)),
             atlas_index,
@@ -177,7 +177,7 @@ impl WaitingForFish {
 #[storage(NullStorage)]
 pub struct FishOnTheLine;
 
-#[derive(Component, Clone, PartialEq, Eq)]
+#[derive(Component, Clone, PartialEq, Eq, PartialOrd, Ord)]
 #[storage(VecStorage)]
 pub struct Name(pub String);
 
@@ -319,8 +319,8 @@ impl WantsToMove {
 #[derive(Component)]
 #[storage(VecStorage)]
 pub struct WantsToCraft {
-    pub first_idx: usize,
-    pub second_idx: usize,
+    pub first_item: Entity,
+    pub second_item: Entity,
 }
 
 #[derive(Component)]
@@ -472,7 +472,7 @@ impl Display for InteractorMode {
 
 #[derive(Component, Clone)]
 #[storage(VecStorage)]
-pub struct SelectedInventoryIdx {
-    pub first_idx: usize,
+pub struct SelectedInventoryItem {
+    pub first_item: Entity,
     pub intended_action: Option<UseMenuResult>,
 }
