@@ -1,7 +1,7 @@
 /* Item/Inventory Workflows
  * Items go either on the floor or into an inventory
  * Destructible Rock - when broke -> Item on Floor - when picked up -> Item in Inventory
- * Enemy - when killed -> Item on Florr - ...
+ * Enemy - when killed -> Item on Floor - ...
  * Quest - when finished -> Item in Inventory
  */
 
@@ -64,6 +64,7 @@ impl ItemSpawner {
         });
     }
 
+    #[allow(dead_code)]
     pub fn request_amt(&mut self, id: ItemID, spawn_type: SpawnType, qty: ItemQty) {
         self.requests.push(ItemSpawnRequest {
             id,
@@ -226,7 +227,6 @@ impl<'a> System<'a> for ItemPickupHandler {
                         bagged_entity,
                         Item::new(bagged_item.id, bagged_item.qty + ground_item.qty),
                     );
-                    // items.remove(ground_entity); pretty sure not required, testing needed
                     let _ = entities.delete(ground_entity);
                 }
                 None => {

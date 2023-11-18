@@ -104,29 +104,29 @@ impl<'a> System<'a> for WaitingForFishSystem {
                 waiter.attempts, roll
             ));
 
-            if roll > 80 {
-                finished_fishers.push(e);
-                log.log(format!(
-                    "{} caught a fish wow with {} attempts remaining",
-                    name, waiter.attempts
-                ));
+            if roll < 80 { continue; }
 
-                // To prevent a fisher who is already catching from potentially catching again without waiting properly
-                if fishing_lines.contains(e) {
-                    log.debug(format!("ERROR: entity {} {} already had a fish on their line, cannot add a second fish ABORTING fish", name, e.id()));
-                    fishing_lines.remove(e);
-                    continue;
-                }
-                match fishing_lines.insert(e, FishOnTheLine) {
-                    Ok(_) => {}
-                    Err(err) => {
-                        log.debug(format!(
-                            "ERROR: entity: {} {} failed to add fish on the line: {}",
-                            name,
-                            e.id(),
-                            err
-                        ));
-                    }
+            finished_fishers.push(e);
+            log.log(format!(
+                "{} caught a fish wow with {} attempts remaining",
+                name, waiter.attempts
+            ));
+
+            // To prevent a fisher who is already catching from potentially catching again without waiting properly
+            if fishing_lines.contains(e) {
+                log.debug(format!("ERROR: entity {} {} already had a fish on their line, cannot add a second fish ABORTING fish", name, e.id()));
+                fishing_lines.remove(e);
+                continue;
+            }
+            match fishing_lines.insert(e, FishOnTheLine) {
+                Ok(_) => {}
+                Err(err) => {
+                    log.debug(format!(
+                        "ERROR: entity: {} {} failed to add fish on the line: {}",
+                        name,
+                        e.id(),
+                        err
+                    ));
                 }
             }
         }

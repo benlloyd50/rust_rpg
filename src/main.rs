@@ -129,6 +129,8 @@ impl State {
         waiting_for_fish.run_now(&self.ecs);
         let mut catch_fish = CatchFishSystem;
         catch_fish.run_now(&self.ecs);
+        let mut poll_fishing_tiles = PollFishingTiles;
+        poll_fishing_tiles.run_now(&self.ecs);
 
         let mut mining_sys = TileDestructionSystem;
         mining_sys.run_now(&self.ecs);
@@ -140,12 +142,9 @@ impl State {
         // Request based system run as late as possible in the loop
         let mut tile_anim_spawner = TileAnimationSpawner;
         tile_anim_spawner.run_now(&self.ecs);
-
         let mut tile_anim_cleanup_system = TileAnimationCleanUpSystem;
         tile_anim_cleanup_system.run_now(&self.ecs);
 
-        let mut poll_fishing_tiles = PollFishingTiles;
-        poll_fishing_tiles.run_now(&self.ecs);
         let mut remove_dead_tiles = RemoveDeadTiles;
         remove_dead_tiles.run_now(&self.ecs);
 

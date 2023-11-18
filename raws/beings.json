@@ -42,6 +42,21 @@
             "atlas_index": 18,
             "fg": [255, 255, 255],
             "quips": ["The orc sulks around the campfire with their friends."]
+        },
+        {
+            "identifier": 3,
+            "name": "Fire Wizard",
+            "monster": "",
+            "is_blocking": true,
+            "stats": {
+                "intelligence": 20,
+                "strength": 5,
+                "vitality": 14 
+            },
+            "ai": "random_walk",
+            "atlas_index": 19,
+            "fg": [235, 143, 159],
+            "quips": ["Enflamed by spells bewildering to the novice wizard."]
         }
     ]
 }
