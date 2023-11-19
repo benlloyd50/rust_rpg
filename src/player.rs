@@ -136,16 +136,12 @@ fn try_pickup(ecs: &mut World) -> PlayerResponse {
     let player_entity = ecs.read_resource::<PlayerEntity>();
     let positions = ecs.read_storage::<Position>();
     let map = ecs.fetch::<Map>();
-    let entities = ecs.entities();
 
-    if let Some((player_entity, pos)) = (&entities, &positions)
-        .join()
-        .find(|(e, _)| e.eq(&player_entity.0))
-    {
+    if let Some(pos) = positions.get(player_entity.0) {
         let mut item_iter = map.all_items_at_pos(pos);
         if let Some(item_entity) = item_iter.next() {
             let _ = pickups.insert(
-                player_entity,
+                player_entity.0,
                 PickupAction {
                     item: *item_entity.as_item_entity().unwrap(),
                 },

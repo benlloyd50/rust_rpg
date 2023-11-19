@@ -35,11 +35,11 @@ impl RecipeDatabase {
                 ingredients: vec![
                     Ingredient {
                         id: edb.items.get_by_name_unchecked(&r.first.name).identifier,
-                        consume: r.first.consume.map_or(None, |amt| Some(ItemQty(amt))),
+                        consume: r.first.consume.map(ItemQty),
                     },
                     Ingredient {
                         id: edb.items.get_by_name_unchecked(&r.second.name).identifier,
-                        consume: r.second.consume.map_or(None, |amt| Some(ItemQty(amt))),
+                        consume: r.second.consume.map(ItemQty),
                     },
                 ],
                 output: edb.items.get_by_name_unchecked(&r.output).identifier,

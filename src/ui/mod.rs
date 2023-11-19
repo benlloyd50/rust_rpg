@@ -2,6 +2,7 @@ use bracket_terminal::prelude::DrawBatch;
 use specs::World;
 
 use crate::{
+    config::InventoryConfig,
     inventory::{check_inventory_selection, SelectionStatus},
     AppState, CL_TEXT,
 };
@@ -13,7 +14,7 @@ mod inventory;
 pub(crate) mod message_log;
 mod use_menu;
 
-pub fn draw_ui(ecs: &World, appstate: &AppState) {
+pub fn draw_ui(ecs: &World, appstate: &AppState, cfg: &InventoryConfig) {
     let mut draw_batch = DrawBatch::new();
     draw_batch.target(CL_TEXT).cls();
 
@@ -21,7 +22,7 @@ pub fn draw_ui(ecs: &World, appstate: &AppState) {
 
     match *appstate {
         AppState::PlayerInInventory => {
-            draw_inventory(&mut draw_batch, ecs);
+            draw_inventory(&mut draw_batch, ecs, cfg);
             if check_inventory_selection(ecs) == SelectionStatus::SelectionWithoutAction {
                 draw_use_menu(&mut draw_batch);
             }

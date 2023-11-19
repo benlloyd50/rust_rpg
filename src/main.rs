@@ -1,25 +1,30 @@
 use crate::ui::draw_ui;
 use crate::ui::message_log::MessageLog;
+use std::fs::{self, File};
 use std::time::Duration;
 
 use bracket_terminal::prelude::*;
 use combat::AttackActionHandler;
+use config::ConfigMaster;
 use crafting::HandleCraftingSystem;
 use debug::{debug_info, debug_input};
 use draw_sprites::{draw_sprite_layers, update_fancy_positions};
 use equipment::EquipActionHandler;
 use game_init::initialize_game_world;
 use items::{ItemPickupHandler, ItemSpawnerSystem, ZeroQtyItemCleanup};
+use log::{error, info, warn};
 use mining::{DamageSystem, RemoveDeadTiles, TileDestructionSystem};
 use monster::{
     check_monster_delay, GoalFindEntities, GoalMoveToEntities, HandleMoveActions,
     RandomMonsterMovementSystem,
 };
+use simplelog::{Config, WriteLogger};
 use specs::prelude::*;
 
 mod camera;
 mod colors;
 mod combat;
+mod config;
 mod data_read;
 mod debug;
 mod draw_sprites;
@@ -88,6 +93,7 @@ pub const CL_INTERACTABLES: usize = 1; // Used for the few or so moving items/en
 
 pub struct State {
     ecs: World,
+    cfg: ConfigMaster,
 }
 
 impl State {
@@ -213,7 +219,7 @@ impl GameState for State {
                 self.run_eof_systems();
             }
             AppState::PlayerInInventory => {
-                match handle_player_input(&mut self.ecs, ctx) {
+                match handle_player_input(&mut self.ecs, ctx, &mut self.cfg.inventory) {
                     InventoryResponse::Waiting => {
                         // Player hasn't done anything yet so only run essential systems
                     }
@@ -257,21 +263,27 @@ impl GameState for State {
         delta_time_update(&mut self.ecs, ctx);
         self.ecs.maintain();
 
-        // {
-        //     let current_frame_state = self.ecs.fetch::<AppState>();
-        // draw_ui(&self.ecs, &current_frame_state);
-        // }
-
-        draw_ui(&self.ecs, &new_state);
+        draw_ui(&self.ecs, &new_state, &self.cfg.inventory);
         update_fancy_positions(&self.ecs);
         draw_sprite_layers(&self.ecs);
         render_draw_buffer(ctx).expect("Render error??");
-        debug_info(ctx, &self.ecs);
+        debug_info(ctx, &self.ecs, &self.cfg.inventory);
         debug_input(ctx, &self.ecs);
 
         // Insert the state resource to overwrite it's existing and update the state of the app
         let mut state_writer = self.ecs.write_resource::<AppState>();
         *state_writer = new_state;
+    }
+}
+
+const LOG_FOLDER: &str = "logs/";
+fn create_logger() {
+    let _ = fs::create_dir(LOG_FOLDER);
+    if let Ok(file) = File::create(format!("{}/last_run.rpglog", LOG_FOLDER)){
+        match WriteLogger::init(log::LevelFilter::Info, Config::default(), file) {
+            Ok(_) => info!("Logger init success"),
+            Err(err) => println!("Cannot make WriteLogger: {}", err),
+        }
     }
 }
 
@@ -287,6 +299,11 @@ fn main() -> BError {
     link_resource!(LEVEL_0, "../resources/ldtk/rpg_world_v1.ldtk");
 
     initialize_game_databases();
+    create_logger();
+
+    info!("Gamelog created and starting to load game...\n\tInfo will be logged in this file.");
+    error!("Logging errors in this file.");
+    warn!("Warnings will be tracked in this file.");
 
     // Setup Terminal (incl Window, Input, Font Loading)
     let context = BTermBuilder::new()
@@ -353,6 +370,9 @@ fn main() -> BError {
     world.insert(MessageLog::new());
     world.insert(Map::empty());
 
-    let game_state: State = State { ecs: world };
+    let game_state: State = State {
+        ecs: world,
+        cfg: ConfigMaster::default(),
+    };
     main_loop(context, game_state)
 }

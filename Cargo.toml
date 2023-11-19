@@ -16,3 +16,5 @@ ldtk_map = { path = "../ldtk_map/"}
 lazy_static = "1.4.0"
 pathfinding = "4.3.1"
 itertools = "0.12.0"
+log = "0.4.20"
+simplelog = "0.12.1"

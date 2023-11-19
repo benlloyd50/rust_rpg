@@ -68,7 +68,7 @@ impl Map {
     }
 
     pub fn xy_to_idx(&self, x: usize, y: usize) -> usize {
-        y * self.width + x
+        xy_to_idx_given_width(x, y, self.width)
     }
 
     /// Gets all the entities in the tile that are an item.
@@ -168,6 +168,7 @@ pub fn render_map(ecs: &World, batch: &mut DrawBatch) {
     }
 }
 
-fn xy_to_idx_given_width(x: usize, y: usize, width: usize) -> usize {
+/// If the struct requires the ability to convert xy to 1d idx make it call this
+pub fn xy_to_idx_given_width(x: usize, y: usize, width: usize) -> usize {
     x + y * width
 }

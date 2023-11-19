@@ -4,6 +4,7 @@ use specs::{Entity, Join, World, WorldExt};
 use specs::{LendJoin, ReadStorage};
 
 use crate::components::{Equipped, Position};
+use crate::config::{InventoryConfig, SortMode};
 use crate::data_read::ENTITY_DB;
 use crate::{
     components::{InBag, Item, Name, SelectedInventoryItem, WantsToCraft, WantsToEquip},
@@ -28,7 +29,11 @@ pub enum InventoryResponse {
     StateChange(AppState),
 }
 
-pub fn handle_player_input(ecs: &mut World, ctx: &BTerm) -> InventoryResponse {
+pub fn handle_player_input(
+    ecs: &mut World,
+    ctx: &BTerm,
+    cfg: &mut InventoryConfig,
+) -> InventoryResponse {
     let player_entity: Entity;
     {
         // dirty borrow checker hack to take the value of player entity
@@ -36,7 +41,7 @@ pub fn handle_player_input(ecs: &mut World, ctx: &BTerm) -> InventoryResponse {
     }
     match ctx.key {
         None => InventoryResponse::Waiting,
-        Some(key) if check_inventory_selection(&ecs) == SelectionStatus::SelectionWithoutAction => {
+        Some(key) if check_inventory_selection(ecs) == SelectionStatus::SelectionWithoutAction => {
             let mut selected_idxs = ecs.write_storage::<SelectedInventoryItem>();
             if let Some(selection) = selected_idxs.get_mut(player_entity) {
                 match key {
@@ -69,23 +74,27 @@ pub fn handle_player_input(ecs: &mut World, ctx: &BTerm) -> InventoryResponse {
         }
         Some(key) => {
             match key {
-                VKC::Key1 => select_item(&player_entity, 0, ecs),
-                VKC::Key2 => select_item(&player_entity, 1, ecs),
-                VKC::Key3 => select_item(&player_entity, 2, ecs),
-                VKC::Key4 => select_item(&player_entity, 3, ecs),
-                VKC::Key5 => select_item(&player_entity, 4, ecs),
-                VKC::Key6 => select_item(&player_entity, 5, ecs),
-                VKC::Key7 => select_item(&player_entity, 6, ecs),
-                VKC::Key8 => select_item(&player_entity, 7, ecs),
-                VKC::Key9 => select_item(&player_entity, 8, ecs),
-                VKC::A => select_item(&player_entity, 9, ecs),
-                VKC::B => select_item(&player_entity, 10, ecs),
-                VKC::C => select_item(&player_entity, 11, ecs),
-                VKC::D => select_item(&player_entity, 12, ecs),
-                VKC::E => select_item(&player_entity, 13, ecs),
-                VKC::F => select_item(&player_entity, 14, ecs),
-                VKC::G => select_item(&player_entity, 15, ecs),
-                VKC::H => select_item(&player_entity, 16, ecs),
+                VKC::Key1 => select_item(&player_entity, 0, ecs, cfg),
+                VKC::Key2 => select_item(&player_entity, 1, ecs, cfg),
+                VKC::Key3 => select_item(&player_entity, 2, ecs, cfg),
+                VKC::Key4 => select_item(&player_entity, 3, ecs, cfg),
+                VKC::Key5 => select_item(&player_entity, 4, ecs, cfg),
+                VKC::Key6 => select_item(&player_entity, 5, ecs, cfg),
+                VKC::Key7 => select_item(&player_entity, 6, ecs, cfg),
+                VKC::Key8 => select_item(&player_entity, 7, ecs, cfg),
+                VKC::Key9 => select_item(&player_entity, 8, ecs, cfg),
+                VKC::A => select_item(&player_entity, 9, ecs, cfg),
+                VKC::B => select_item(&player_entity, 10, ecs, cfg),
+                VKC::C => select_item(&player_entity, 11, ecs, cfg),
+                VKC::D => select_item(&player_entity, 12, ecs, cfg),
+                VKC::E => select_item(&player_entity, 13, ecs, cfg),
+                VKC::F => select_item(&player_entity, 14, ecs, cfg),
+                VKC::G => select_item(&player_entity, 15, ecs, cfg),
+                VKC::H => select_item(&player_entity, 16, ecs, cfg),
+                VKC::S => {
+                    cfg.rotate_sort_mode();
+                    InventoryResponse::Waiting
+                }
                 VKC::Escape | VKC::I => clean_and_exit_inventory(&player_entity, ecs),
                 _ => InventoryResponse::Waiting, // Unbound keypress so just ignore it
             }
@@ -94,7 +103,12 @@ pub fn handle_player_input(ecs: &mut World, ctx: &BTerm) -> InventoryResponse {
 }
 
 // This function depends on the ui code of getting the iterator
-fn select_item(player_entity: &Entity, idx_selected: usize, ecs: &mut World) -> InventoryResponse {
+fn select_item(
+    player_entity: &Entity,
+    idx_selected: usize,
+    ecs: &mut World,
+    cfg: &InventoryConfig,
+) -> InventoryResponse {
     let items: ReadStorage<Item> = ecs.read_storage();
     let inbags: ReadStorage<InBag> = ecs.read_storage();
     let names: ReadStorage<Name> = ecs.read_storage();
@@ -106,7 +120,11 @@ fn select_item(player_entity: &Entity, idx_selected: usize, ecs: &mut World) -> 
         // up to the sorted_by
         .join()
         .filter(|(_, _, bag, _, _)| bag.owner == *player_entity)
-        .sorted_by(|a, b| a.3.cmp(b.3))
+        .sorted_by(|a, b| match cfg.sort_mode {
+            SortMode::NameABC => a.3.cmp(b.3),
+            SortMode::IDAsc => a.1.id.cmp(&b.1.id),
+            _ => a.1.id.cmp(&b.1.id),
+        })
         .nth(idx_selected)
         .map(|(e, _, _, _, _)| e);
 
@@ -172,14 +190,18 @@ pub fn handle_one_item_actions(ecs: &mut World) {
 
                 let mut positions = ecs.write_storage::<Position>();
                 if let Some(player_position) = positions.get(player_entity.0) {
-                    if let Some(ground_item) = (&entities, &items, &positions).join().find(|(_,i,p)| p.eq(&player_position) && i.id.eq(&dropped_item.id)) {
-                        let _ = items.insert(ground_item.0, Item::new(ground_item.1.id, ground_item.1.qty + dropped_item.qty));
+                    if let Some(ground_item) = (&entities, &items, &positions)
+                        .join()
+                        .find(|(_, i, p)| p.eq(&player_position) && i.id.eq(&dropped_item.id))
+                    {
+                        let _ = items.insert(
+                            ground_item.0,
+                            Item::new(ground_item.1.id, ground_item.1.qty + dropped_item.qty),
+                        );
                     } else {
                         let _ = positions.insert(item_entity, *player_position);
-
                     }
                 }
-
             }
         }
         UseMenuResult::Examine => {

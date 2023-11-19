@@ -104,7 +104,9 @@ impl<'a> System<'a> for WaitingForFishSystem {
                 waiter.attempts, roll
             ));
 
-            if roll < 80 { continue; }
+            if roll < 80 {
+                continue;
+            }
 
             finished_fishers.push(e);
             log.log(format!(

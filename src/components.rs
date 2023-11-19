@@ -1,4 +1,4 @@
-use crate::{items::ItemQty, stats::Stats};
+use crate::{items::ItemQty, stats::Stats, map::xy_to_idx_given_width};
 use std::{fmt::Display, str::FromStr, time::Duration};
 
 use bracket_terminal::prelude::{ColorPair, Degrees, Point, PointF, RGBA};
@@ -68,8 +68,8 @@ impl Position {
         idx_to_point(idx, width).into()
     }
 
-    pub fn to_idx(&self, width: usize) -> usize {
-        self.y * width + self.x
+    pub fn to_idx(self, width: usize) -> usize {
+        xy_to_idx_given_width(self.x, self.y, width)
     }
 
     pub fn to_point(self) -> Point {

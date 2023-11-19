@@ -105,7 +105,10 @@ impl<'a> System<'a> for GoalFindEntities {
         Entities<'a>,
     );
 
-    fn run(&mut self, (mut goal_movers, mut randwalkers, positions, names, entities): Self::SystemData) {
+    fn run(
+        &mut self,
+        (mut goal_movers, mut randwalkers, positions, names, entities): Self::SystemData,
+    ) {
         let mut remove_mes: Vec<Entity> = vec![];
         for (goal_entity, goal_mover, mover_pos) in (&entities, &mut goal_movers, &positions).join()
         {

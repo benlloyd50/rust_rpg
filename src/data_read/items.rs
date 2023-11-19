@@ -49,7 +49,9 @@ pub struct ItemInfo {
     pub equipable: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Copy, Clone, Debug, Hash, Eq, PartialEq, Default)]
+#[derive(
+    Serialize, Deserialize, Copy, Clone, Debug, Hash, Eq, PartialEq, Default, PartialOrd, Ord,
+)]
 pub struct ItemID(pub u32);
 
 impl Display for ItemID {

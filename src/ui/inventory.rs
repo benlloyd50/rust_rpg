@@ -1,6 +1,7 @@
 use crate::{
     colors::{to_rgb, white_fg, INVENTORY_BACKGROUND, INVENTORY_OUTLINE},
     components::{Equipped, InBag, Item, Name},
+    config::{InventoryConfig, SortMode},
 };
 use bracket_terminal::prelude::{ColorPair, DrawBatch};
 use bracket_terminal::prelude::{Point, Rect};
@@ -10,7 +11,7 @@ use crate::{components::SelectedInventoryItem, game_init::PlayerEntity};
 
 use super::drawing::AccentBox;
 
-pub(crate) fn draw_inventory(draw_batch: &mut DrawBatch, ecs: &World) {
+pub(crate) fn draw_inventory(draw_batch: &mut DrawBatch, ecs: &World, cfg: &InventoryConfig) {
     let player_entity = ecs.read_resource::<PlayerEntity>();
     let items: ReadStorage<Item> = ecs.read_storage();
     let inbags: ReadStorage<InBag> = ecs.read_storage();
@@ -18,13 +19,16 @@ pub(crate) fn draw_inventory(draw_batch: &mut DrawBatch, ecs: &World) {
     let equipped: ReadStorage<Equipped> = ecs.read_storage();
 
     let entities = ecs.entities();
-    let mut data: Vec<(specs::Entity, &Item, &InBag, &Name, Option<&Equipped>)> =
-        (&entities, &items, &inbags, &names, (&equipped).maybe())
-            // important: this must match in src/inventory.rs until a better solution is found to share code
-            .join()
-            .filter(|(_, _, bag, _, _)| bag.owner == player_entity.0)
-            .collect();
-    data.sort_by(|a, b| a.3.cmp(b.3));
+    // important: this must match in src/inventory.rs until a better solution is found to share code
+    let mut data = (&entities, &items, &inbags, &names, (&equipped).maybe())
+        .join()
+        .filter(|(_, _, bag, _, _)| bag.owner == player_entity.0)
+        .collect::<Vec<(specs::Entity, &Item, &InBag, &Name, Option<&Equipped>)>>();
+    data.sort_by(|a, b| match cfg.sort_mode {
+        SortMode::NameABC => a.3.cmp(b.3),
+        SortMode::IDAsc => a.1.id.cmp(&b.1.id),
+        _ => a.1.id.cmp(&b.1.id),
+    });
 
     // TODO: show empty in inventory if inv_count == 0
     let inv_count = data.len();
