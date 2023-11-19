@@ -187,6 +187,11 @@ impl AppState {
     }
 }
 
+fn turn_counter_incr(ecs: &mut World) {
+    let mut tc = ecs.fetch_mut::<TurnCounter>();
+    tc.0 += 1;
+}
+
 impl GameState for State {
     fn tick(&mut self, ctx: &mut BTerm) {
         let mut new_state: AppState;
@@ -210,6 +215,7 @@ impl GameState for State {
                         // Player hasn't done anything yet so only run essential systems
                     }
                     PlayerResponse::TurnAdvance => {
+                        turn_counter_incr(&mut self.ecs);
                         self.run_response_systems();
                     }
                     PlayerResponse::StateChange(delta_state) => {
@@ -274,6 +280,13 @@ impl GameState for State {
         // Insert the state resource to overwrite it's existing and update the state of the app
         let mut state_writer = self.ecs.write_resource::<AppState>();
         *state_writer = new_state;
+    }
+}
+
+struct TurnCounter(pub usize);
+impl TurnCounter {
+    pub fn zero() -> Self {
+        Self(0)
     }
 }
 
@@ -370,6 +383,7 @@ fn main() -> BError {
     world.insert(ItemSpawner::new());
     world.insert(MessageLog::new());
     world.insert(Map::empty());
+    world.insert(TurnCounter::zero());
 
     let game_state: State = State {
         ecs: world,

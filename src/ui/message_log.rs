@@ -2,10 +2,10 @@
 // therefore, drawing the message log is defined in user_interface
 use std::fmt::Display;
 
-use bracket_terminal::prelude::{ColorPair, DrawBatch, Point, Rect, TextAlign, RGBA};
-use specs::World;
+use bracket_terminal::prelude::{ColorPair, DrawBatch, Point, Rect, TextAlign, RGBA, WHITESMOKE};
+use specs::{World, WorldExt};
 
-use crate::colors::{INVENTORY_BACKGROUND, INVENTORY_OUTLINE};
+use crate::{colors::{INVENTORY_BACKGROUND, INVENTORY_OUTLINE}, TurnCounter};
 
 use super::drawing::AccentBox;
 
@@ -25,6 +25,15 @@ pub(crate) fn draw_message_log(draw_batch: &mut DrawBatch, ecs: &World) {
             Some(RGBA::new()),
         );
     }
+}
+
+pub fn draw_turn_counter(draw_batch: &mut DrawBatch, ecs: &World) {
+    let turn_counter = ecs.read_resource::<TurnCounter>();
+    draw_batch.draw_accent_box(
+        Rect::with_size(0, 1, 6 + turn_counter.0.to_string().len(), 2),
+        ColorPair::new(INVENTORY_OUTLINE, INVENTORY_BACKGROUND),
+    );
+    draw_batch.print_color(Point { x: 1, y: 2 }, format!("Turn:{}", turn_counter.0), ColorPair { fg: WHITESMOKE.into(), bg: INVENTORY_BACKGROUND.into() });
 }
 
 /// Resource used for logging to the message console on the screen to the player
