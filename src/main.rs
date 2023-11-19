@@ -33,6 +33,7 @@ mod game_init;
 mod indexing;
 mod inventory;
 mod ui;
+mod droptables;
 use inventory::{
     handle_one_item_actions, handle_player_input, handle_two_item_actions, InventoryResponse,
 };
@@ -65,11 +66,11 @@ use time::delta_time_update;
 
 use crate::components::{
     EntityStats, Equipable, EquipmentSlots, Equipped, InBag, ItemContainer, WantsToCraft,
-    WantsToEquip,
+    WantsToEquip, DeathDrop,
 };
 use crate::{
     components::{
-        AttackAction, Blocking, BreakAction, Breakable, DeathDrop, DeleteCondition,
+        AttackAction, Blocking, BreakAction, Breakable, DeleteCondition,
         FinishedActivity, FishAction, FishOnTheLine, Fishable, GoalMoverAI, Grass, HealthStats,
         Interactor, Item, Monster, Name, PickupAction, RandomWalkerAI, Renderable,
         SelectedInventoryItem, SufferDamage, Transform, WaitingForFish, WantsToMove, Water,

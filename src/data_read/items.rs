@@ -22,7 +22,7 @@ impl ItemDatabase {
         Self { data: Vec::new() }
     }
 
-    pub fn get_by_name(&self, name: &String) -> Option<&ItemInfo> {
+    pub fn get_by_name(&self, name: &str) -> Option<&ItemInfo> {
         self.data.iter().find(|i| i.name.eq(name))
     }
 
@@ -68,12 +68,12 @@ impl Display for ItemID {
 
 // TODO: duplicated in items.rs, this one could probably be removed in favor the resource, ItemSpawner
 pub fn build_item(
-    name: impl ToString,
+    name: &str,
     pos: Option<Position>,
     world: &mut World,
 ) -> Result<Entity, EntityBuildError> {
     let edb = &ENTITY_DB.lock().unwrap();
-    let raw = match edb.items.get_by_name(&name.to_string()) {
+    let raw = match edb.items.get_by_name(name) {
         Some(raw) => raw,
         None => {
             eprintln!("No world object found named: {}", name.to_string());

@@ -1,14 +1,18 @@
 use std::str::FromStr;
 
+use weighted_rand::builder::*;
 use serde::{Deserialize, Serialize};
 use specs::{Builder, Entity, World, WorldExt};
 
+use crate::components::Item;
+use crate::droptables::WeightedDrop;
+use crate::items::ItemQty;
 use crate::{
     components::{
-        Blocking, Breakable, DeathDrop, Grass, HealthStats as HealthStatsComponent, Name, Position,
-        Renderable,
+        Blocking, Breakable, Grass, HealthStats as HealthStatsComponent, Name, Position,
+        Renderable, DeathDrop,
     },
-    z_order::WORLD_OBJECT_Z,
+    z_order::WORLD_OBJECT_Z, 
 };
 
 use super::{EntityBuildError, ENTITY_DB};
@@ -61,15 +65,15 @@ pub fn build_obj(
         builder = builder.with(Blocking);
     }
 
-    if let Some(drop) = &raw.death_drop {
-        let drop_id = match edb.items.get_by_name(drop) {
+    if let Some(drop) = raw.get_random_drop() {
+        let item_id = match edb.items.get_by_name(&drop) {
             Some(info) => &info.identifier,
             None => {
                 eprintln!("No item ID found for {} on world obj {}", drop, &raw.name);
                 return Err(EntityBuildError);
             }
         };
-        builder = builder.with(DeathDrop::new(drop_id));
+        builder = builder.with(DeathDrop(Item::new(*item_id, ItemQty(1))));
     }
 
     if let Some(breakable) = &raw.breakable {
@@ -101,18 +105,38 @@ pub fn build_obj(
     Ok(builder.build())
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct WorldObject {
     /// Unique id to find the world object's static data
     identifier: ObjectID,
     name: String,
     atlas_index: u8,
     is_blocking: bool,
-    death_drop: Option<String>,
+    drop_table: Option<Vec<WeightedDrop>>,
     breakable: Option<String>,
     health_stats: Option<HealthStats>,
     grass: Option<String>,
     foreground: Option<(u8, u8, u8)>,
+}
+
+impl WorldObject {
+    fn get_random_drop(&self) -> Option<String> {
+        if self.drop_table.is_none() {
+            return None
+        }
+
+        if let Some(drops) = &self.drop_table {
+            if drops.is_empty() {
+                return None;
+            }
+            let data: Vec<u32> = drops.iter().map(|d| d.chance).collect();
+            let builder = WalkerTableBuilder::new(&data);
+            let table = builder.build();
+            let idx = table.next();
+            return Some(drops[idx].item.clone());
+        }
+        None
+    }
 }
 
 #[derive(Deserialize, Serialize)]
@@ -123,3 +147,4 @@ struct HealthStats {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ObjectID(pub u32);
+

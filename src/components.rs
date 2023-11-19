@@ -234,18 +234,9 @@ pub struct HealthStats {
     pub defense: usize,
 }
 
-/// An item that will be spawned on the associated entity's death
 #[derive(Component)]
 #[storage(VecStorage)]
-pub struct DeathDrop {
-    pub item_id: ItemID,
-}
-
-impl DeathDrop {
-    pub fn new(item_id: &ItemID) -> Self {
-        Self { item_id: *item_id }
-    }
-}
+pub struct DeathDrop(pub Item);
 
 impl HealthStats {
     pub fn new(max_hp: usize, defense: usize) -> Self {

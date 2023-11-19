@@ -1,12 +1,12 @@
 use crate::{
     components::{
-        BreakAction, Breakable, DeathDrop, EntityStats, HealthStats, Name, Position, SufferDamage,
-        ToolType,
+        BreakAction, Breakable, EntityStats, HealthStats, Name, Position, SufferDamage,
+        ToolType, DeathDrop,
     },
     items::{ItemSpawner, SpawnType},
     ui::message_log::MessageLog,
 };
-use specs::{Entities, Entity, Join, LendJoin, ReadStorage, System, Write, WriteStorage};
+use specs::{Entities, Entity, Join, ReadStorage, System, Write, WriteStorage, LendJoin};
 
 /// Allows tile to be breakable. The tile must contain a breakable and health stats component.
 /// The attacker must contain a strength and have breakactions queued up in their system.
@@ -125,7 +125,7 @@ impl<'a> System<'a> for RemoveDeadTiles {
                 match entities.delete(e) {
                     Ok(..) => {
                         if let Some(item) = maybe_item {
-                            item_spawner.request(item.item_id, SpawnType::OnGround(*pos));
+                            item_spawner.request(item.0.id, SpawnType::OnGround(*pos));
                         }
                     }
                     Err(err) => {

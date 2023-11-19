@@ -1,43 +1,22 @@
 {
     "data": [
         {
-            "identifier": 0,
-            "name": "Neon Green Boulder",
-            "atlas_index": 65,
-            "is_blocking": true,
-            "death_drop": "Fire Flint",
-            "breakable": "Hand",
-            "health_stats": {
-                "max_hp" : 3,
-                "defense": 0
-            },
-            "foreground": [7, 247, 167]
-        },
-        {
             "identifier": 11,
             "name": "Boulder",
             "atlas_index": 65,
             "is_blocking": true,
-            "death_drop": "Flint",
+            "drop_table": [
+                {
+                    "item": "Flint", 
+                    "chance": 1 
+                }
+            ],
             "breakable": "Hand",
             "health_stats": {
                 "max_hp" : 3,
                 "defense": 0
             },
             "foreground": [255, 255, 255]
-        },
-        {
-            "identifier": 10,
-            "name": "Neon Green Boulder",
-            "atlas_index": 65,
-            "is_blocking": true,
-            "death_drop": "Fire Flint",
-            "breakable": "Hand",
-            "health_stats": {
-                "max_hp" : 3,
-                "defense": 0
-            },
-            "foreground": [7, 247, 167]
         },
         {
             "identifier": 12,
@@ -63,7 +42,9 @@
                 "defense": 0
             },
             "foreground": [255, 255, 255],
-            "death_drop": "Stick"
+            "drop_table": [
+                {"item": "Stick", "chance": 1 }
+            ]
         }
     ]
 }
