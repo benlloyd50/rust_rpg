@@ -7,7 +7,11 @@ use crate::{
     AppState, CL_TEXT,
 };
 
-use self::{inventory::draw_inventory, message_log::{draw_message_log, draw_turn_counter}, use_menu::draw_use_menu};
+use self::{
+    inventory::draw_inventory,
+    message_log::{draw_message_log, draw_turn_counter},
+    use_menu::draw_use_menu,
+};
 
 mod drawing;
 mod inventory;

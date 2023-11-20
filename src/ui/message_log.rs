@@ -5,7 +5,10 @@ use std::fmt::Display;
 use bracket_terminal::prelude::{ColorPair, DrawBatch, Point, Rect, TextAlign, RGBA, WHITESMOKE};
 use specs::{World, WorldExt};
 
-use crate::{colors::{INVENTORY_BACKGROUND, INVENTORY_OUTLINE}, TurnCounter};
+use crate::{
+    colors::{INVENTORY_BACKGROUND, INVENTORY_OUTLINE},
+    TurnCounter,
+};
 
 use super::drawing::AccentBox;
 
@@ -33,7 +36,14 @@ pub fn draw_turn_counter(draw_batch: &mut DrawBatch, ecs: &World) {
         Rect::with_size(0, 1, 6 + turn_counter.0.to_string().len(), 2),
         ColorPair::new(INVENTORY_OUTLINE, INVENTORY_BACKGROUND),
     );
-    draw_batch.print_color(Point { x: 1, y: 2 }, format!("Turn:{}", turn_counter.0), ColorPair { fg: WHITESMOKE.into(), bg: INVENTORY_BACKGROUND.into() });
+    draw_batch.print_color(
+        Point { x: 1, y: 2 },
+        format!("Turn:{}", turn_counter.0),
+        ColorPair {
+            fg: WHITESMOKE.into(),
+            bg: INVENTORY_BACKGROUND.into(),
+        },
+    );
 }
 
 /// Resource used for logging to the message console on the screen to the player

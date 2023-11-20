@@ -1,25 +1,39 @@
-use std::fmt::Display;
+use std::fs;
 
 use serde::{Deserialize, Serialize};
-use specs::{Builder, Entity, World, WorldExt};
+use serde_json::from_str;
 
 use crate::{
-    components::{Equipable, EquipmentSlot, Item, Name, Position, Renderable},
-    data_read::EntityBuildError,
-    items::ItemQty,
-    z_order::ITEM_Z,
+    components::{AttackBonus, Equipable},
+    items::{ItemID, ItemInfo},
 };
 
-use super::ENTITY_DB;
-
-#[derive(Deserialize)]
 pub struct ItemDatabase {
     data: Vec<ItemInfo>,
+}
+
+#[derive(Deserialize)]
+pub struct RawItemDatabase {
+    data: Vec<RawItemInfo>,
 }
 
 impl ItemDatabase {
     pub(crate) fn empty() -> Self {
         Self { data: Vec::new() }
+    }
+
+    pub fn load() -> Self {
+        let contents: String = fs::read_to_string("raws/items.json")
+            .expect("Unable to find items.json at `raws/items.json`");
+        let raw_info_db: RawItemDatabase =
+            from_str(&contents).expect("Bad JSON in items.json fix it");
+        ItemDatabase {
+            data: raw_info_db
+                .data
+                .iter()
+                .map(|info| ItemInfo::from(info))
+                .collect(),
+        }
     }
 
     pub fn get_by_name(&self, name: &str) -> Option<&ItemInfo> {
@@ -38,7 +52,7 @@ impl ItemDatabase {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct ItemInfo {
+pub struct RawItemInfo {
     /// Unique id to find the item's static data
     pub identifier: ItemID,
     pub name: String,
@@ -47,75 +61,25 @@ pub struct ItemInfo {
     pub fg: (u8, u8, u8),
     pub pickup_text: Option<String>,
     pub equipable: Option<String>,
+    pub attack_bonus: Option<usize>,
 }
 
-#[derive(
-    Serialize, Deserialize, Copy, Clone, Debug, Hash, Eq, PartialEq, Default, PartialOrd, Ord,
-)]
-pub struct ItemID(pub u32);
-
-impl Display for ItemID {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let edb = &ENTITY_DB.lock().unwrap();
-        let missing = format!("Missing name {}", self.0);
-        let name = match edb.items.get_by_id(*self) {
-            Some(info) => &info.name,
-            None => &missing,
-        };
-        write!(f, "id: {} | name: {}", self.0, name)
-    }
-}
-
-// TODO: duplicated in items.rs, this one could probably be removed in favor the resource, ItemSpawner
-pub fn build_item(
-    name: &str,
-    pos: Option<Position>,
-    world: &mut World,
-) -> Result<Entity, EntityBuildError> {
-    let edb = &ENTITY_DB.lock().unwrap();
-    let raw = match edb.items.get_by_name(name) {
-        Some(raw) => raw,
-        None => {
-            eprintln!("No world object found named: {}", name.to_string());
-            return Err(EntityBuildError);
+impl ItemInfo {
+    fn from(value: &RawItemInfo) -> Self {
+        Self {
+            identifier: value.identifier,
+            name: value.name.clone(),
+            examine_text: value.examine_text.clone(),
+            atlas_index: value.atlas_index,
+            fg: value.fg,
+            pickup_text: value.pickup_text.clone(),
+            equipable: value
+                .equipable
+                .clone()
+                .map_or(None, |e| Some(Equipable::from_str(&e))),
+            attack_bonus: value
+                .attack_bonus
+                .map_or(None, |bonus| Some(AttackBonus(bonus as i32))),
         }
-    };
-    let mut builder = world
-        .create_entity()
-        .with(Item::new(raw.identifier, ItemQty(1)))
-        .with(Name::new(&raw.name))
-        .with(Renderable::default_bg(raw.atlas_index, raw.fg, ITEM_Z));
-
-    if let Some(pos) = pos {
-        builder = builder.with(pos);
     }
-
-    if let Some(equipable) = &raw.equipable {
-        builder = match equipable.as_str() {
-            "Hand" => builder.with(Equipable {
-                slot: EquipmentSlot::Hand,
-            }),
-            "Torso" => builder.with(Equipable {
-                slot: EquipmentSlot::Torso,
-            }),
-            "Head" => builder.with(Equipable {
-                slot: EquipmentSlot::Head,
-            }),
-            "Legs" => builder.with(Equipable {
-                slot: EquipmentSlot::Legs,
-            }),
-            "Feet" => builder.with(Equipable {
-                slot: EquipmentSlot::Feet,
-            }),
-            "Tail" => builder.with(Equipable {
-                slot: EquipmentSlot::Tail,
-            }),
-            _ => {
-                eprintln!("{} is not a valid name for an equipment slot", equipable);
-                builder
-            }
-        };
-    }
-
-    Ok(builder.build())
 }

@@ -10,7 +10,6 @@ mod world_objs;
 /// ```
 pub mod prelude {
     pub use crate::data_read::beings::build_being;
-    pub use crate::data_read::items::{build_item, ItemID};
     pub use crate::data_read::levels::load_simple_ldtk_level;
     pub use crate::data_read::recipes::RECIPE_DB;
     pub use crate::data_read::world_objs::build_obj;
@@ -57,9 +56,7 @@ impl GameData {
 pub fn initialize_game_databases() {
     let mut game_db = GameData::new();
 
-    let contents: String = fs::read_to_string("raws/items.json")
-        .expect("Unable to find items.json at `raws/items.json`");
-    let items: ItemDatabase = from_str(&contents).expect("Bad JSON in items.json fix it");
+    let items = ItemDatabase::load();
     game_db.items = items;
 
     let contents: String = fs::read_to_string("raws/world_objs.json")

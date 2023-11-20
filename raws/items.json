@@ -34,7 +34,8 @@
             "examine_text": "This is usable for poking things",
             "atlas_index": 97,
             "fg": [255, 255, 255],
-            "equipable": "Hand"
+            "equipable": "Hand",
+            "attack_bonus": 1
         },
         {
             "identifier": 190,
@@ -42,7 +43,8 @@
             "examine_text": "Crude enough to bash in a face",
             "atlas_index": 115,
             "fg": [255, 255, 255],
-            "equipable": "Hand"
+            "equipable": "Hand",
+            "attack_bonus": 2
         },
         {
             "identifier": 201,

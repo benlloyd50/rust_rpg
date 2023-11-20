@@ -1,7 +1,11 @@
 use bracket_terminal::prelude::{ColorPair, DrawBatch, Point, Rect, TextAlign};
 use specs::{World, WorldExt};
 
-use crate::{colors::{to_rgb, INVENTORY_BACKGROUND, INVENTORY_OUTLINE}, components::{SelectedInventoryItem, Equipable}, game_init::PlayerEntity};
+use crate::{
+    colors::{to_rgb, INVENTORY_BACKGROUND, INVENTORY_OUTLINE},
+    components::{Equipable, SelectedInventoryItem},
+    game_init::PlayerEntity,
+};
 
 use super::drawing::AccentBox;
 

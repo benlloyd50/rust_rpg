@@ -1,10 +1,10 @@
-use crate::{items::ItemQty, stats::Stats, map::xy_to_idx_given_width};
+use crate::{items::ItemQty, map::xy_to_idx_given_width, stats::Stats};
 use std::{fmt::Display, str::FromStr, time::Duration};
 
 use bracket_terminal::prelude::{ColorPair, Degrees, Point, PointF, RGBA};
 use specs::{Component, Entity, NullStorage, VecStorage};
 
-use crate::{data_read::prelude::ItemID, indexing::idx_to_point, inventory::UseMenuResult};
+use crate::{indexing::idx_to_point, inventory::UseMenuResult, items::ItemID};
 
 #[derive(Debug, Component)]
 #[storage(VecStorage)]
@@ -95,8 +95,6 @@ impl Display for Position {
 #[storage(VecStorage)]
 pub struct EntityStats {
     pub set: Stats,
-
-    pub stat_limit: usize,
 }
 
 pub struct StatsError;
@@ -121,10 +119,7 @@ impl EntityStats {
             charisma: cha,
         };
         if stats.get_total() < stat_limit {
-            Ok(Self {
-                set: stats,
-                stat_limit: stats.get_total(),
-            })
+            Ok(Self { set: stats })
         } else {
             Err(StatsError)
         }
@@ -133,10 +128,7 @@ impl EntityStats {
 
 impl From<Stats> for EntityStats {
     fn from(stats: Stats) -> Self {
-        Self {
-            set: stats,
-            stat_limit: 100,
-        }
+        Self { set: stats }
     }
 }
 
@@ -364,13 +356,34 @@ pub struct Equipped {
     pub on: Entity,
 }
 
-#[derive(Component)]
+#[derive(Component, Clone)]
 #[storage(VecStorage)]
 pub struct Equipable {
     pub slot: EquipmentSlot,
 }
 
-#[derive(PartialEq)]
+impl Equipable {
+    pub fn from_str(str: &str) -> Self {
+        let slot = match str {
+            "Hand" => EquipmentSlot::Hand,
+            "Torso" => EquipmentSlot::Torso,
+            "Head" => EquipmentSlot::Head,
+            "Legs" => EquipmentSlot::Legs,
+            "Feet" => EquipmentSlot::Feet,
+            "Tail" => EquipmentSlot::Tail,
+            _ => {
+                eprintln!(
+                    "{} is not a valid name for an equipment slot, using Head instead",
+                    str
+                );
+                EquipmentSlot::Head
+            }
+        };
+        Equipable { slot }
+    }
+}
+
+#[derive(PartialEq, Clone)]
 pub enum EquipmentSlot {
     Hand,
     Torso,
@@ -448,7 +461,6 @@ impl Interactor {
 pub enum InteractorMode {
     Reactive,
     Agressive,
-    // Reactive,
 }
 
 impl Display for InteractorMode {
@@ -467,3 +479,7 @@ pub struct SelectedInventoryItem {
     pub first_item: Entity,
     pub intended_action: Option<UseMenuResult>,
 }
+
+#[derive(Component, Clone)]
+#[storage(VecStorage)]
+pub struct AttackBonus(pub i32);

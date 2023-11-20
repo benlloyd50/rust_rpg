@@ -1,18 +1,18 @@
 use std::str::FromStr;
 
-use weighted_rand::builder::*;
 use serde::{Deserialize, Serialize};
 use specs::{Builder, Entity, World, WorldExt};
+use weighted_rand::builder::*;
 
 use crate::components::Item;
 use crate::droptables::WeightedDrop;
 use crate::items::ItemQty;
 use crate::{
     components::{
-        Blocking, Breakable, Grass, HealthStats as HealthStatsComponent, Name, Position,
-        Renderable, DeathDrop,
+        Blocking, Breakable, DeathDrop, Grass, HealthStats as HealthStatsComponent, Name, Position,
+        Renderable,
     },
-    z_order::WORLD_OBJECT_Z, 
+    z_order::WORLD_OBJECT_Z,
 };
 
 use super::{EntityBuildError, ENTITY_DB};
@@ -122,7 +122,7 @@ pub struct WorldObject {
 impl WorldObject {
     fn get_random_drop(&self) -> Option<String> {
         if self.drop_table.is_none() {
-            return None
+            return None;
         }
 
         if let Some(drops) = &self.drop_table {
@@ -147,4 +147,3 @@ struct HealthStats {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ObjectID(pub u32);
-

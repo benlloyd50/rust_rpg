@@ -2,8 +2,8 @@ use specs::{Entities, Entity, Join, ReadStorage, System, Write, WriteStorage};
 
 use crate::{
     components::{InBag, Item, WantsToCraft},
-    data_read::prelude::{ItemID, RECIPE_DB},
-    items::{ItemQty, ItemSpawner, SpawnType},
+    data_read::prelude::RECIPE_DB,
+    items::{ItemID, ItemQty, ItemSpawner, SpawnType},
     ui::message_log::MessageLog,
 };
 

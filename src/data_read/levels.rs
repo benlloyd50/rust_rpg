@@ -1,12 +1,13 @@
 use crate::{
     components::{Blocking, Position, Water},
     indexing::idx_to_point,
+    items::build_item,
     map::{Map, WorldTile},
 };
 use ldtk_map::prelude::*;
 use specs::{Builder, World, WorldExt};
 
-use super::prelude::{build_being, build_item, build_obj};
+use super::prelude::{build_being, build_obj};
 
 const LEVEL_ZERO: &str = "Level_0";
 

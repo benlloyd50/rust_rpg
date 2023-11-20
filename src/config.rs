@@ -28,7 +28,7 @@ pub enum SortMode {
     _IDDesc,
     _Category,
 }
-impl Display for  SortMode {
+impl Display for SortMode {
     /// Limited to 3 characters for nice formatting
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let sort_mode = match self {

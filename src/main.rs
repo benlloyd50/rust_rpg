@@ -1,6 +1,6 @@
 use crate::ui::draw_ui;
 use crate::ui::message_log::MessageLog;
-use std::fs::{self, File};
+use std::fs::{self, OpenOptions};
 use std::time::Duration;
 
 use bracket_terminal::prelude::*;
@@ -28,12 +28,12 @@ mod config;
 mod data_read;
 mod debug;
 mod draw_sprites;
+mod droptables;
 mod equipment;
 mod game_init;
 mod indexing;
 mod inventory;
 mod ui;
-mod droptables;
 use inventory::{
     handle_one_item_actions, handle_player_input, handle_two_item_actions, InventoryResponse,
 };
@@ -65,15 +65,15 @@ use tile_animation::TileAnimationSpawner;
 use time::delta_time_update;
 
 use crate::components::{
-    EntityStats, Equipable, EquipmentSlots, Equipped, InBag, ItemContainer, WantsToCraft,
-    WantsToEquip, DeathDrop,
+    AttackBonus, DeathDrop, EntityStats, Equipable, EquipmentSlots, Equipped, InBag, ItemContainer,
+    WantsToCraft, WantsToEquip,
 };
 use crate::{
     components::{
-        AttackAction, Blocking, BreakAction, Breakable, DeleteCondition,
-        FinishedActivity, FishAction, FishOnTheLine, Fishable, GoalMoverAI, Grass, HealthStats,
-        Interactor, Item, Monster, Name, PickupAction, RandomWalkerAI, Renderable,
-        SelectedInventoryItem, SufferDamage, Transform, WaitingForFish, WantsToMove, Water,
+        AttackAction, Blocking, BreakAction, Breakable, DeleteCondition, FinishedActivity,
+        FishAction, FishOnTheLine, Fishable, GoalMoverAI, Grass, HealthStats, Interactor, Item,
+        Monster, Name, PickupAction, RandomWalkerAI, Renderable, SelectedInventoryItem,
+        SufferDamage, Transform, WaitingForFish, WantsToMove, Water,
     },
     data_read::initialize_game_databases,
     items::ItemSpawner,
@@ -293,7 +293,8 @@ impl TurnCounter {
 const LOG_FOLDER: &str = "logs/";
 fn create_logger() {
     let _ = fs::create_dir(LOG_FOLDER);
-    if let Ok(file) = File::create(format!("{}/last_run.rpglog", LOG_FOLDER)){
+    let path = format!("{}/last_run.rpglog", LOG_FOLDER);
+    if let Ok(file) = OpenOptions::new().create(true).append(true).open(path) {
         match WriteLogger::init(log::LevelFilter::Info, Config::default(), file) {
             Ok(_) => info!("Logger init success"),
             Err(err) => println!("Cannot make WriteLogger: {}", err),
@@ -375,6 +376,7 @@ fn main() -> BError {
     world.register::<EquipmentSlots>();
     world.register::<Equipable>();
     world.register::<Equipped>();
+    world.register::<AttackBonus>();
 
     // Resource Initialization, the ECS needs a basic definition of every resource that will be in the game
     world.insert(AppState::GameStartup);

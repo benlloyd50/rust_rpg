@@ -1,7 +1,10 @@
-use specs::{Join, ReadStorage, System, Write, WriteStorage};
+use specs::{Entities, Join, ReadStorage, System, Write, WriteStorage};
 
 use crate::{
-    components::{AttackAction, EntityStats, HealthStats, Name, SufferDamage},
+    components::{
+        AttackAction, AttackBonus, EntityStats, Equipped, HealthStats, InBag, Item, Name,
+        SufferDamage,
+    },
     ui::message_log::MessageLog,
 };
 
@@ -15,20 +18,52 @@ impl<'a> System<'a> for AttackActionHandler {
         ReadStorage<'a, EntityStats>,
         ReadStorage<'a, HealthStats>,
         ReadStorage<'a, Name>,
+        ReadStorage<'a, AttackBonus>,
+        ReadStorage<'a, Item>,
+        ReadStorage<'a, InBag>,
+        ReadStorage<'a, Equipped>,
+        Entities<'a>,
     );
 
     fn run(
         &mut self,
-        (mut attack_actions, mut suffer_damage, mut log, stats, health_stats, names): Self::SystemData,
+        (
+            mut attack_actions,
+            mut suffer_damage,
+            mut log,
+            stats,
+            health_stats,
+            names,
+            attack_bonus,
+            items,
+            inbags,
+            equipped,
+            entities,
+        ): Self::SystemData,
     ) {
-        for (stats_set, action, name) in (&stats, &attack_actions, &names).join() {
+        for (attacker, stats_set, action, name) in
+            (&entities, &stats, &attack_actions, &names).join()
+        {
             if let Some(target_stats) = health_stats.get(action.target) {
                 if target_stats.defense > stats_set.set.strength {
                     log.log("Took no damage because defense is greater");
                     continue;
                 }
                 let target_name = names.get(action.target).unwrap();
-                let damage = stats_set.set.strength - target_stats.defense;
+                let mut damage = stats_set.set.strength - target_stats.defense;
+
+                // collect all attack bonuses
+                for (bonus, _, _, _) in (&attack_bonus, &items, &inbags, &equipped)
+                    .join()
+                    .filter(|(_, _, bag, _)| bag.owner == attacker)
+                {
+                    damage = if bonus.0 >= 0 {
+                        damage + bonus.0 as usize
+                    } else {
+                        damage.saturating_sub(bonus.0.abs() as usize)
+                    };
+                }
+
                 log.log(format!(
                     "{} dealt {} damage to {}",
                     name, damage, target_name
