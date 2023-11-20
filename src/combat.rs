@@ -2,8 +2,7 @@ use specs::{Entities, Join, ReadStorage, System, Write, WriteStorage};
 
 use crate::{
     components::{
-        AttackAction, AttackBonus, EntityStats, Equipped, HealthStats, InBag, Item, Name,
-        SufferDamage,
+        AttackAction, AttackBonus, EntityStats, Equipped, HealthStats, Name, SufferDamage,
     },
     ui::message_log::MessageLog,
 };
@@ -19,8 +18,6 @@ impl<'a> System<'a> for AttackActionHandler {
         ReadStorage<'a, HealthStats>,
         ReadStorage<'a, Name>,
         ReadStorage<'a, AttackBonus>,
-        ReadStorage<'a, Item>,
-        ReadStorage<'a, InBag>,
         ReadStorage<'a, Equipped>,
         Entities<'a>,
     );
@@ -35,8 +32,6 @@ impl<'a> System<'a> for AttackActionHandler {
             health_stats,
             names,
             attack_bonus,
-            items,
-            inbags,
             equipped,
             entities,
         ): Self::SystemData,
@@ -53,9 +48,9 @@ impl<'a> System<'a> for AttackActionHandler {
                 let mut damage = stats_set.set.strength - target_stats.defense;
 
                 // collect all attack bonuses
-                for (bonus, _, _, _) in (&attack_bonus, &items, &inbags, &equipped)
+                for (bonus, _) in (&attack_bonus, &equipped)
                     .join()
-                    .filter(|(_, _, bag, _)| bag.owner == attacker)
+                    .filter(|(_, equip)| equip.on == attacker)
                 {
                     damage = if bonus.0 >= 0 {
                         damage + bonus.0 as usize
