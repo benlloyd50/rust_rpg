@@ -206,13 +206,15 @@ pub struct RandomWalkerAI;
 pub struct GoalMoverAI {
     pub current: Option<Entity>,
     pub desires: Vec<Name>,
+    pub goal_range: usize,
 }
 
 impl GoalMoverAI {
-    pub fn with_desires(desires: &[Name]) -> Self {
+    pub fn with_desires(desires: &[Name], goal_range: usize) -> Self {
         Self {
             current: None,
             desires: desires.to_vec(),
+            goal_range,
         }
     }
 }

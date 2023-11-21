@@ -5,7 +5,7 @@
             "name": "Bahhhby",
             "monster": "",
             "is_blocking": true,
-            "ai": "random_walk",
+            "ai": { "start_mode": "random_walk"},
             "atlas_index": 16,
             "fg": [255, 255, 255],
             "quips": ["Blissful bahhhby bites down on the bountiful brush."]
@@ -15,10 +15,13 @@
             "name": "Greg Goat",
             "monster": "",
             "is_blocking": true,
-            "ai": "goal",
-            "goals": [
-                "Grass"
-            ],
+            "ai": {
+                "start_mode": "goal",
+                "goal_range": 0,
+                "goals": [
+                    "Grass"
+                ]
+            },
             "stats": {
                 "intelligence": 4,
                 "strength": 17,
@@ -38,7 +41,11 @@
                 "strength": 10,
                 "vitality": 15
             },
-            "ai": "random_walk",
+            "ai": {
+                "start_mode": "goal",
+                "goal_range": 8,
+                "goals": ["Player"]
+            },
             "atlas_index": 18,
             "fg": [255, 255, 255],
             "quips": ["The orc sulks around the campfire with their friends."]
@@ -53,7 +60,7 @@
                 "strength": 5,
                 "vitality": 14 
             },
-            "ai": "random_walk",
+            "ai": { "start_mode": "random_walk"},
             "atlas_index": 19,
             "fg": [235, 143, 159],
             "quips": ["Enflamed by spells bewildering to the novice wizard."]

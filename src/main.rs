@@ -12,13 +12,13 @@ use draw_sprites::{draw_sprite_layers, update_fancy_positions};
 use equipment::EquipActionHandler;
 use game_init::initialize_game_world;
 use items::{ItemPickupHandler, ItemSpawnerSystem, ZeroQtyItemCleanup};
-use log::{error, info, warn};
+use log::{error, info, warn, LevelFilter};
 use mining::{DamageSystem, RemoveDeadTiles, TileDestructionSystem};
 use monster::{
     check_monster_delay, GoalFindEntities, GoalMoveToEntities, HandleMoveActions,
     RandomMonsterMovementSystem,
 };
-use simplelog::{Config, WriteLogger};
+use simplelog::{Config, WriteLogger, CombinedLogger, TermLogger, TerminalMode, ColorChoice};
 use specs::prelude::*;
 
 mod camera;
@@ -295,10 +295,19 @@ fn create_logger() {
     let _ = fs::create_dir(LOG_FOLDER);
     let path = format!("{}/last_run.rpglog", LOG_FOLDER);
     if let Ok(file) = OpenOptions::new().create(true).append(true).open(path) {
-        match WriteLogger::init(log::LevelFilter::Info, Config::default(), file) {
-            Ok(_) => info!("Logger init success"),
-            Err(err) => println!("Cannot make WriteLogger: {}", err),
-        }
+        let file_logger = WriteLogger::new(log::LevelFilter::Info, Config::default(), file);
+        CombinedLogger::init(vec![
+            TermLogger::new(
+                LevelFilter::Debug,
+                Config::default(),
+                TerminalMode::Mixed,
+                ColorChoice::Auto,
+            ),
+            file_logger,
+        ]).unwrap();
+        info!("Logger initialized");
+    } else {
+        println!("Logging initialization failure");
     }
 }
 
@@ -313,12 +322,12 @@ fn main() -> BError {
     link_resource!(TERRAIN_FOREST, "resources/terrain_forest.png");
     link_resource!(LEVEL_0, "../resources/ldtk/rpg_world_v1.ldtk");
 
-    initialize_game_databases();
     create_logger();
-
-    info!("Gamelog created and starting to load game...\n\tInfo will be logged in this file.");
-    error!("Logging errors in this file.");
+    info!("Info will be tracked in this file.");
+    error!("Errors will be tracked in this file.");
     warn!("Warnings will be tracked in this file.");
+
+    initialize_game_databases();
 
     // Setup Terminal (incl Window, Input, Font Loading)
     let context = BTermBuilder::new()

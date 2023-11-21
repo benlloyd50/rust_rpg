@@ -39,7 +39,7 @@ pub fn initialize_game_world(ecs: &mut World) {
         .with(player_stats)
         .with(player_stats.set.get_health_stats())
         .with(Renderable::new(WHITE, BLACK, 2, PLAYER_Z))
-        .with(Name("Tester".to_string()))
+        .with(Name("Player".to_string()))
         .build();
     ecs.insert(PlayerEntity(player_entity));
 

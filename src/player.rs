@@ -81,8 +81,9 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) -> PlayerRespons
                         return PlayerResponse::Waiting;
                     }
                     InteractorMode::Agressive => {
-                        attack_actions
-                            .insert(player_entity, AttackAction { target: *blocker })
+                        // attack_actions
+                        break_actions
+                            .insert(player_entity, BreakAction { target: *blocker })
                             .expect("Attack action could not be added to player entity");
                         return PlayerResponse::TurnAdvance;
                     }

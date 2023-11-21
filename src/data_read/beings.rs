@@ -14,18 +14,24 @@ pub struct BeingDatabase {
     data: Vec<Being>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 pub struct Being {
     pub(crate) identifier: BeingID,
     pub(crate) name: String,
     pub(crate) monster: Option<String>,
+    pub(crate) ai: Option<AIDefinition>,
     pub(crate) is_blocking: bool,
-    pub(crate) ai: Option<String>,
-    pub(crate) goals: Option<Vec<String>>,
     pub(crate) atlas_index: u8,
     pub(crate) fg: (u8, u8, u8),
     pub(crate) quips: Option<Vec<String>>,
     pub(crate) stats: Option<OptionalStats>,
+}
+
+#[derive(Deserialize)]
+pub struct AIDefinition {
+    pub(crate) start_mode: String,
+    pub(crate) goals: Option<Vec<String>>,
+    pub(crate) goal_range: Option<usize>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -76,18 +82,18 @@ pub fn build_being(
         builder = builder.with(Blocking);
     }
 
-    if let Some(ai_type) = &raw.ai {
-        builder = match ai_type.as_str() {
+    if let Some(ai_def) = &raw.ai {
+        builder = match ai_def.start_mode.as_str() {
             "random_walk" => builder.with(RandomWalkerAI),
             "goal" => {
-                let goals = match &raw.goals {
+                let goals = match &ai_def.goals {
                     Some(goals) => goals
                         .iter()
                         .map(|goal| Name(goal.to_string()))
                         .collect::<Vec<Name>>(),
                     None => panic!("{} has Goal ai type but no defined goals", &raw.name),
                 };
-                builder.with(GoalMoverAI::with_desires(&goals))
+                builder.with(GoalMoverAI::with_desires(&goals, ai_def.goal_range.unwrap()))
             }
             _ => builder,
         };

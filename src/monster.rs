@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use bracket_random::prelude::RandomNumberGenerator;
 use bracket_terminal::prelude::Point;
+use log::info;
 use pathfinding::prelude::astar;
 use specs::{
     Entities, Entity, Join, ReadExpect, ReadStorage, System, World, WorldExt, WriteExpect,
@@ -110,24 +111,29 @@ impl<'a> System<'a> for GoalFindEntities {
         (mut goal_movers, mut randwalkers, positions, names, entities): Self::SystemData,
     ) {
         let mut remove_mes: Vec<Entity> = vec![];
-        for (goal_entity, goal_mover, mover_pos) in (&entities, &mut goal_movers, &positions).join()
+        for (goal_entity, goal_mover, mover_pos, mover_name) in (&entities, &mut goal_movers, &positions, &names).join()
         {
             if goal_mover.current.is_some() {
                 continue;
             }
             let mut closest_goal = (None, 1000000);
-            for (entity, _, pos) in (&entities, &names, &positions)
+            let data: Vec<_> = (&entities, &names, &positions)
                 .join()
                 .filter(|(e, n, _)| goal_mover.desires.contains(n) && e.ne(&goal_entity))
-            {
-                let dist_from_goal = distance(mover_pos, pos);
-                if dist_from_goal < closest_goal.1 {
-                    closest_goal = (Some(entity), dist_from_goal);
-                }
-            }
-            if closest_goal.0.is_none() {
+                .collect();
+            if data.len() == 0 { 
+                info!("No goals remain for {}, switching to randomwalk", mover_name);
                 let _ = randwalkers.insert(goal_entity, RandomWalkerAI);
                 remove_mes.push(goal_entity);
+            }
+
+            for (entity, _, pos) in data
+            {
+                let dist_from_goal = distance(mover_pos, pos);
+                let goal_within_range = (dist_from_goal as usize) < goal_mover.goal_range || goal_mover.goal_range == 0;
+                if goal_within_range && dist_from_goal < closest_goal.1 {
+                    closest_goal = (Some(entity), dist_from_goal);
+                }
             }
 
             goal_mover.current = closest_goal.0;
