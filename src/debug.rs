@@ -1,5 +1,6 @@
 use bracket_terminal::prelude::{to_char, BTerm, TextAlign, VirtualKeyCode, RGB, RGBA, WHITESMOKE};
 use itertools::Itertools;
+use log::error;
 use specs::{Join, ReadStorage, World, WorldExt};
 
 use crate::{
@@ -32,7 +33,7 @@ fn draw_interaction_mode(ctx: &mut BTerm, ecs: &World) {
     let player_interactor = match interactors.get(player_entity.0) {
         Some(p) => p,
         None => {
-            eprintln!("Player entity does not have interactor component");
+            error!("Player entity does not have interactor component, deleted?");
             return;
         }
     };

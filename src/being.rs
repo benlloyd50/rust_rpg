@@ -5,12 +5,14 @@ use bracket_terminal::prelude::Point;
 use log::info;
 use pathfinding::prelude::astar;
 use specs::{
-    Entities, Entity, Join, ReadExpect, ReadStorage, System, World, WorldExt, WriteExpect,
-    WriteStorage,
+    shred::PanicHandler, Entities, Entity, Join, ReadExpect, ReadStorage, System, World, WorldExt,
+    Write, WriteExpect, WriteStorage,
 };
 
 use crate::{
-    components::{BreakAction, GoalMoverAI, Monster, Name, Position, RandomWalkerAI, WantsToMove},
+    components::{
+        AttackAction, BreakAction, GoalMoverAI, Name, Position, RandomWalkerAI, WantsToMove,
+    },
     data_read::ENTITY_DB,
     map::{distance, is_goal, successors, Map, TileEntity},
     time::DeltaTime,
@@ -24,65 +26,63 @@ pub struct RandomMonsterMovementSystem;
 impl<'a> System<'a> for RandomMonsterMovementSystem {
     type SystemData = (
         WriteStorage<'a, Position>,
-        ReadStorage<'a, Monster>,
+        WriteStorage<'a, BreakAction>,
         ReadStorage<'a, Name>,
         ReadStorage<'a, RandomWalkerAI>,
         WriteExpect<'a, MessageLog>,
         ReadExpect<'a, Map>,
+        Entities<'a>,
     );
 
-    fn run(&mut self, (mut positions, mons, names, randwalks, mut log, map): Self::SystemData) {
+    fn run(
+        &mut self,
+        (mut positions, mut break_actions, names, randwalks, mut log, map, entities): Self::SystemData,
+    ) {
         let mut rng = RandomNumberGenerator::new();
-        for (pos, _, name, _) in (&mut positions, &mons, &names, &randwalks).join() {
-            match rng.range(0, 100) {
-                0..=10 => {
-                    try_move_monster(1, 0, &map, pos);
+        for (entity, pos, name, _) in (&entities, &mut positions, &names, &randwalks).join() {
+            let delta: Point = match rng.range::<u32>(0, 100) {
+                0..=10 => Point::new(1, 0),
+                11..=20 => Point::new(0, 1),
+                21..=30 => Point::new(0, -1),
+                31..=40 => Point::new(-1, 0),
+                41..=97 => {
+                    continue;
                 }
-                11..=20 => {
-                    try_move_monster(0, 1, &map, pos);
+                98..=99 => {
+                    say_random_quip(&name, &mut log);
+                    continue;
                 }
-                21..=30 => {
-                    try_move_monster(0, -1, &map, pos);
-                }
-                31..=40 => {
-                    try_move_monster(-1, 0, &map, pos);
-                }
-                79 => {
-                    let edb = &ENTITY_DB.lock().unwrap();
-                    if let Some(monster) = edb.beings.get_by_name(&name.0) {
-                        if let Some(quip) = monster.quips.as_ref().and_then(|quips| quips.first()) {
-                            log.enhance(quip)
-                        }
-                    }
-                }
-                _ => {}
+                _ => unreachable!("rng.range(0, 100) should have range of "),
+            };
+
+            let target_pos = Point::new(pos.x as i32 + delta.x, pos.y as i32 + delta.y);
+            if !map.in_bounds(target_pos) {
+                return;
             }
+
+            if let Some(tile) = map.first_entity_in_pos(&Position::from(target_pos)) {
+                match tile {
+                    TileEntity::Item(_) => {}
+                    TileEntity::Breakable(target) => {
+                        let _ = break_actions.insert(entity, BreakAction { target: *target });
+                    }
+                    _ => return,
+                }
+            }
+
+            pos.x = target_pos.x as usize;
+            pos.y = target_pos.y as usize;
         }
     }
 }
 
-fn try_move_monster(delta_x: i32, delta_y: i32, map: &Map, monster_pos: &mut Position) {
-    let target_pos = Point::new(
-        monster_pos.x as i32 + delta_x,
-        monster_pos.y as i32 + delta_y,
-    );
-    if target_pos.x < 0
-        || target_pos.y < 0
-        || target_pos.x >= map.width as i32
-        || target_pos.y >= map.height as i32
-    {
-        return;
-    }
-
-    if let Some(tile) = map.first_entity_in_pos(&Position::from(target_pos)) {
-        match tile {
-            TileEntity::Item(_) => {}
-            _ => return,
+fn say_random_quip(name: &Name, log: &mut Write<MessageLog, PanicHandler>) {
+    let edb = &ENTITY_DB.lock().unwrap();
+    if let Some(monster) = edb.beings.get_by_name(&name.0) {
+        if let Some(quip) = monster.quips.as_ref().and_then(|quips| quips.first()) {
+            log.enhance(quip)
         }
     }
-
-    monster_pos.x = target_pos.x as usize;
-    monster_pos.y = target_pos.y as usize;
 }
 
 const MONSTER_ACTION_DELAY: Duration = Duration::from_secs(1);
@@ -111,7 +111,8 @@ impl<'a> System<'a> for GoalFindEntities {
         (mut goal_movers, mut randwalkers, positions, names, entities): Self::SystemData,
     ) {
         let mut remove_mes: Vec<Entity> = vec![];
-        for (goal_entity, goal_mover, mover_pos, mover_name) in (&entities, &mut goal_movers, &positions, &names).join()
+        for (goal_entity, goal_mover, mover_pos, mover_name) in
+            (&entities, &mut goal_movers, &positions, &names).join()
         {
             if goal_mover.current.is_some() {
                 continue;
@@ -121,16 +122,19 @@ impl<'a> System<'a> for GoalFindEntities {
                 .join()
                 .filter(|(e, n, _)| goal_mover.desires.contains(n) && e.ne(&goal_entity))
                 .collect();
-            if data.len() == 0 { 
-                info!("No goals remain for {}, switching to randomwalk", mover_name);
+            if data.len() == 0 {
+                info!(
+                    "No goals remain for {}, switching to randomwalk",
+                    mover_name
+                );
                 let _ = randwalkers.insert(goal_entity, RandomWalkerAI);
                 remove_mes.push(goal_entity);
             }
 
-            for (entity, _, pos) in data
-            {
+            for (entity, _, pos) in data {
                 let dist_from_goal = distance(mover_pos, pos);
-                let goal_within_range = (dist_from_goal as usize) < goal_mover.goal_range || goal_mover.goal_range == 0;
+                let goal_within_range =
+                    (dist_from_goal as usize) < goal_mover.goal_range || goal_mover.goal_range == 0;
                 if goal_within_range && dist_from_goal < closest_goal.1 {
                     closest_goal = (Some(entity), dist_from_goal);
                 }
@@ -149,9 +153,10 @@ pub struct GoalMoveToEntities;
 impl<'a> System<'a> for GoalMoveToEntities {
     type SystemData = (
         WriteStorage<'a, WantsToMove>,
-        WriteStorage<'a, BreakAction>,
+        WriteStorage<'a, AttackAction>,
         WriteStorage<'a, GoalMoverAI>,
         ReadStorage<'a, Position>,
+        ReadStorage<'a, Name>,
         ReadExpect<'a, Map>,
         Entities<'a>,
     );
@@ -160,14 +165,17 @@ impl<'a> System<'a> for GoalMoveToEntities {
         &mut self,
         (
             mut wants_to_move,
-            mut break_actions,
+            mut attack_actions,
             mut goal_movers,
             positions,
+            names,
             map,
             entities,
         ): Self::SystemData,
     ) {
-        for (entity, goal_mover, mover_pos) in (&entities, &mut goal_movers, &positions).join() {
+        for (entity, goal_mover, mover_pos, mover_name) in
+            (&entities, &mut goal_movers, &positions, &names).join()
+        {
             if goal_mover.current.is_none() {
                 continue;
             }
@@ -180,12 +188,17 @@ impl<'a> System<'a> for GoalMoveToEntities {
             };
 
             if distance(mover_pos, goal_pos) < 2 {
-                let _ = break_actions.insert(
+                let _ = attack_actions.insert(
                     entity,
-                    BreakAction {
+                    AttackAction {
                         target: goal_mover.current.unwrap(), /* cant be none */
                     },
                 );
+                let missing_name = Name::new("Missing");
+                let target_name = names
+                    .get(goal_mover.current.unwrap())
+                    .unwrap_or(&missing_name);
+                info!("{} tries to attack {}", mover_name, target_name);
                 continue;
             }
             let path: (Vec<Position>, u32) = match astar(

@@ -10,6 +10,7 @@ use crate::{
     AppState, Position,
 };
 use bracket_terminal::prelude::{BTerm, Point, VirtualKeyCode as VKC};
+use log::info;
 use specs::{prelude::*, Component};
 use std::process::exit;
 
@@ -54,23 +55,14 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) -> PlayerRespons
     let mut positions = ecs.write_storage::<Position>();
     let players = ecs.read_storage::<Player>();
     let interactors = ecs.read_storage::<Interactor>();
-    let map = ecs.fetch::<Map>();
     let entities = ecs.entities();
-    let mut break_actions = ecs.write_storage::<BreakAction>();
-    let mut fish_actions = ecs.write_storage::<FishAction>();
-    let mut attack_actions = ecs.write_storage::<AttackAction>();
-
     for (player_entity, pos, interactor, _) in
         (&entities, &mut positions, &interactors, &players).join()
     {
         let target_pos = Point::new(pos.x as i32 + delta_x, pos.y as i32 + delta_y);
 
-        // check target_pos is in map bounds
-        if target_pos.x < 0
-            || target_pos.y < 0
-            || target_pos.x >= map.width as i32
-            || target_pos.y >= map.height as i32
-        {
+        let map = ecs.fetch::<Map>();
+        if !map.in_bounds(target_pos) {
             return PlayerResponse::Waiting;
         }
 
@@ -82,16 +74,16 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) -> PlayerRespons
                     }
                     InteractorMode::Agressive => {
                         // attack_actions
-                        break_actions
-                            .insert(player_entity, BreakAction { target: *blocker })
+                        ecs.write_storage::<AttackAction>()
+                            .insert(player_entity, AttackAction { target: *blocker })
                             .expect("Attack action could not be added to player entity");
                         return PlayerResponse::TurnAdvance;
                     }
                 },
                 TileEntity::Fishable(_entity) => {
-                    println!("Attempting to fish at {}, {}", target_pos.x, target_pos.y);
+                    info!("Attempting to fish at {}, {}", target_pos.x, target_pos.y);
                     if inventory_contains(&Name::new("Fishing Rod"), &player_entity, ecs) {
-                        fish_actions
+                        ecs.write_storage::<FishAction>()
                             .insert(
                                 player_entity,
                                 FishAction {
@@ -103,13 +95,13 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) -> PlayerRespons
                     }
                 }
                 TileEntity::Breakable(entity) => {
-                    println!(
+                    info!(
                         "Map is breakable at {}, {} : id: {}",
                         target_pos.x,
                         target_pos.y,
                         entity.id()
                     );
-                    break_actions
+                    ecs.write_storage::<BreakAction>()
                         .insert(player_entity, BreakAction { target: *entity })
                         .expect("Break action could not be added to player entity");
                     return PlayerResponse::TurnAdvance;

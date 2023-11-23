@@ -93,7 +93,10 @@ pub fn build_being(
                         .collect::<Vec<Name>>(),
                     None => panic!("{} has Goal ai type but no defined goals", &raw.name),
                 };
-                builder.with(GoalMoverAI::with_desires(&goals, ai_def.goal_range.unwrap()))
+                builder.with(GoalMoverAI::with_desires(
+                    &goals,
+                    ai_def.goal_range.unwrap(),
+                ))
             }
             _ => builder,
         };

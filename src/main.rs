@@ -3,6 +3,10 @@ use crate::ui::message_log::MessageLog;
 use std::fs::{self, OpenOptions};
 use std::time::Duration;
 
+use being::{
+    check_monster_delay, GoalFindEntities, GoalMoveToEntities, HandleMoveActions,
+    RandomMonsterMovementSystem,
+};
 use bracket_terminal::prelude::*;
 use combat::AttackActionHandler;
 use config::ConfigMaster;
@@ -14,11 +18,7 @@ use game_init::initialize_game_world;
 use items::{ItemPickupHandler, ItemSpawnerSystem, ZeroQtyItemCleanup};
 use log::{error, info, warn, LevelFilter};
 use mining::{DamageSystem, RemoveDeadTiles, TileDestructionSystem};
-use monster::{
-    check_monster_delay, GoalFindEntities, GoalMoveToEntities, HandleMoveActions,
-    RandomMonsterMovementSystem,
-};
-use simplelog::{Config, WriteLogger, CombinedLogger, TermLogger, TerminalMode, ColorChoice};
+use simplelog::{ColorChoice, CombinedLogger, Config, TermLogger, TerminalMode, WriteLogger};
 use specs::prelude::*;
 
 mod camera;
@@ -37,9 +37,9 @@ mod ui;
 use inventory::{
     handle_one_item_actions, handle_player_input, handle_two_item_actions, InventoryResponse,
 };
+mod being;
 mod items;
 mod mining;
-mod monster;
 mod player;
 mod stats;
 mod tile_animation;
@@ -304,7 +304,8 @@ fn create_logger() {
                 ColorChoice::Auto,
             ),
             file_logger,
-        ]).unwrap();
+        ])
+        .unwrap();
         info!("Logger initialized");
     } else {
         println!("Logging initialization failure");

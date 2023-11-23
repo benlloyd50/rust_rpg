@@ -22,26 +22,36 @@ impl<'a> System<'a> for TileDestructionSystem {
         ReadStorage<'a, Breakable>,
         ReadStorage<'a, HealthStats>,
         ReadStorage<'a, Name>,
+        Entities<'a>,
     );
 
     fn run(
         &mut self,
-        (mut break_actions, mut suffer_damage, mut log, stats, breakable, health_stats, names): Self::SystemData,
+        (
+            mut break_actions,
+            mut suffer_damage,
+            mut log,
+            stats,
+            breakable,
+            health_stats,
+            names,
+            entities,
+        ): Self::SystemData,
     ) {
         for (stats, action, name) in (&stats, &break_actions, &names).join() {
-            if let Some(target_breakable) = breakable.get(action.target) {
+            if let Some((_, tile_name, target_breakable, target_stats)) =
+                (&entities, &names, &breakable, &health_stats)
+                    .join()
+                    .find(|(e, _, _, _)| *e == action.target)
+            {
                 if !inventory_contains_tool(&target_breakable.by) {
-                    log.log("You do not own the correct tool for this destructible.");
+                    log.log(format!("You do not own the correct tool for this {name}."));
                     continue;
                 }
-            }
-
-            if let Some(target_stats) = health_stats.get(action.target) {
                 if target_stats.defense > stats.set.strength {
                     log.log("Took no damage because defense is greater");
                     continue;
                 }
-                let tile_name = names.get(action.target).unwrap();
 
                 let damage = stats.set.strength - target_stats.defense;
                 log.log(format!(
@@ -49,8 +59,6 @@ impl<'a> System<'a> for TileDestructionSystem {
                     name.0, damage, tile_name.0
                 ));
                 SufferDamage::new_damage(&mut suffer_damage, action.target, -(damage as i32));
-            } else {
-                log.debug(format!("{} entity has no health stats", action.target.id()));
             }
         }
 
