@@ -17,6 +17,7 @@ pub mod prelude {
 }
 
 use lazy_static::lazy_static;
+use log::debug;
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
 use std::{fs, sync::Mutex};
@@ -54,6 +55,7 @@ impl GameData {
 
 /// Creates global instances of static data present in the `raws/` folder
 pub fn initialize_game_databases() {
+    debug!("startup: starting to load game databases");
     let mut game_db = GameData::new();
 
     let items = ItemDatabase::load();
@@ -72,6 +74,7 @@ pub fn initialize_game_databases() {
 
     ENTITY_DB.lock().unwrap().load(game_db);
     RECIPE_DB.lock().unwrap().load();
+    debug!("startup: finished loading game databases");
 }
 
 #[derive(Deserialize, Serialize, Debug)]

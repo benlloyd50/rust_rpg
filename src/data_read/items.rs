@@ -1,10 +1,10 @@
 use std::fs;
 
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::from_str;
 
 use crate::{
-    components::{AttackBonus, Equipable},
+    components::{AttackBonus, Consumable, Equipable},
     items::{ItemID, ItemInfo},
 };
 
@@ -51,7 +51,7 @@ impl ItemDatabase {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct RawItemInfo {
     /// Unique id to find the item's static data
     pub identifier: ItemID,
@@ -62,6 +62,13 @@ pub struct RawItemInfo {
     pub pickup_text: Option<String>,
     pub equipable: Option<String>,
     pub attack_bonus: Option<usize>,
+    pub consumable: Option<RawConsumable>,
+}
+
+#[derive(Deserialize, Clone)]
+pub struct RawConsumable {
+    pub effect: String,
+    pub amount: Option<usize>,
 }
 
 impl ItemInfo {
@@ -80,6 +87,9 @@ impl ItemInfo {
             attack_bonus: value
                 .attack_bonus
                 .map_or(None, |bonus| Some(AttackBonus(bonus as i32))),
+            consumable: value.consumable.clone().map_or(None, |rc| {
+                Some(Consumable::from_str(&rc.effect, rc.amount.unwrap()))
+            }),
         }
     }
 }

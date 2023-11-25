@@ -10,16 +10,18 @@ use std::{
     ops::{Add, Sub},
 };
 
+use log::error;
 use serde::{Deserialize, Serialize};
-use specs::{
-    Builder, Entities, Entity, Join, ReadStorage, System, World, WorldExt, Write, WriteStorage,
-};
+use specs::{Entities, Entity, Join, ReadStorage, System, World, WorldExt, Write, WriteStorage};
 
 use crate::{
-    components::{AttackBonus, Equipable, InBag, Item, Name, PickupAction, Position, Renderable},
-    data_read::{prelude::*, EntityBuildError},
+    components::{
+        AttackBonus, Consumable, ConsumeAction, Equipable, HealAction, InBag, Item, Name,
+        PickupAction, Position, Renderable,
+    },
+    data_read::prelude::*,
     ui::message_log::MessageLog,
-    z_order::ITEM_Z,
+    z_order::ITEM_Z, storage_utils::MaybeInsert,
 };
 
 #[derive(Default, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -101,6 +103,7 @@ impl<'a> System<'a> for ItemSpawnerSystem {
         WriteStorage<'a, Name>,
         WriteStorage<'a, Equipable>,
         WriteStorage<'a, AttackBonus>,
+        WriteStorage<'a, Consumable>,
     );
 
     fn run(
@@ -115,6 +118,7 @@ impl<'a> System<'a> for ItemSpawnerSystem {
             mut names,
             mut equipables,
             mut attack_bonus,
+            mut consumables,
         ): Self::SystemData,
     ) {
         let edb = &ENTITY_DB.lock().unwrap();
@@ -123,7 +127,7 @@ impl<'a> System<'a> for ItemSpawnerSystem {
             let static_item = match edb.items.get_by_id(spawn.id) {
                 Some(val) => val,
                 None => {
-                    eprintln!(
+                    error!(
                         "Spawn request failed because {:?} item id does not exist in database",
                         spawn.id
                     );
@@ -156,14 +160,9 @@ impl<'a> System<'a> for ItemSpawnerSystem {
                 }
             }
 
-            // TODO: duplicated in data_read/items.rs
-            if let Some(equipable) = &static_item.equipable {
-                let _ = equipables.insert(new_item, equipable.clone());
-            }
-
-            if let Some(attack) = &static_item.attack_bonus {
-                let _ = attack_bonus.insert(new_item, attack.clone());
-            }
+            equipables.maybe_insert(new_item, static_item.equipable.clone());
+            consumables.maybe_insert(new_item, static_item.consumable.clone());
+            attack_bonus.maybe_insert(new_item, static_item.attack_bonus.clone());
 
             let _ = renderables.insert(
                 new_item,
@@ -281,6 +280,7 @@ pub struct ItemInfo {
     pub pickup_text: Option<String>,
     pub equipable: Option<Equipable>,
     pub attack_bonus: Option<AttackBonus>,
+    pub consumable: Option<Consumable>,
 }
 
 #[derive(
@@ -300,36 +300,35 @@ impl Display for ItemID {
     }
 }
 
-// TODO: duplicated in items.rs, this one could probably be removed in favor the resource, ItemSpawner
-pub fn build_item(
-    name: &str,
-    pos: Option<Position>,
-    world: &mut World,
-) -> Result<Entity, EntityBuildError> {
-    let edb = &ENTITY_DB.lock().unwrap();
-    let raw = match edb.items.get_by_name(name) {
-        Some(raw) => raw,
-        None => {
-            eprintln!("No world object found named: {}", name.to_string());
-            return Err(EntityBuildError);
+pub struct ConsumeHandler;
+
+impl<'a> System<'a> for ConsumeHandler {
+    type SystemData = (
+        WriteStorage<'a, ConsumeAction>,
+        WriteStorage<'a, HealAction>,
+        WriteStorage<'a, Item>,
+        ReadStorage<'a, Consumable>,
+        Entities<'a>,
+    );
+
+    fn run(
+        &mut self,
+        (mut consume_actions, mut heal_actions, mut items, consumables, entities): Self::SystemData,
+    ) {
+        for (consumer, consume) in (&entities, &consume_actions).join() {
+            let (_, item, consumable) = match (&entities, &mut items, &consumables).join().find(|(e, _, _)| *e == consume.consuming) {
+                Some(i) => i,
+                None => continue,
+            };
+            match consumable {
+                Consumable::InstantRegen(amount) => {
+                    let _ = heal_actions.insert(consumer, HealAction { amount: *amount });
+                    item.qty.0 = item.qty.0.saturating_sub(1);
+                }
+            }
+
         }
-    };
-    let mut builder = world
-        .create_entity()
-        .with(Item::new(raw.identifier, ItemQty(1)))
-        .with(Name::new(&raw.name))
-        .with(Renderable::default_bg(raw.atlas_index, raw.fg, ITEM_Z));
 
-    if let Some(pos) = pos {
-        builder = builder.with(pos);
+        consume_actions.clear();
     }
-
-    if let Some(equipable) = &raw.equipable {
-        builder = builder.with(equipable.clone());
-    }
-    if let Some(attack) = &raw.attack_bonus {
-        builder = builder.with(attack.clone());
-    }
-
-    Ok(builder.build())
 }

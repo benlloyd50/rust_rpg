@@ -1,4 +1,5 @@
 use bracket_terminal::prelude::BLACK;
+use log::debug;
 use specs::{Builder, Entity, World, WorldExt};
 
 pub const WHITE: (u8, u8, u8) = (255, 255, 255);
@@ -24,8 +25,10 @@ impl Default for PlayerEntity {
 }
 
 pub fn initialize_game_world(ecs: &mut World) {
+    debug!("startup: map loading");
     let map = load_simple_ldtk_level(ecs);
     ecs.insert(map);
+    debug!("startup: map loaded");
 
     let player_stats = get_random_stats();
     let player_entity = ecs
@@ -42,9 +45,11 @@ pub fn initialize_game_world(ecs: &mut World) {
         .with(Name("Player".to_string()))
         .build();
     ecs.insert(PlayerEntity(player_entity));
+    debug!("startup: player loaded");
 
     build_being("Bahhhby", Position::new(5, 15), ecs).ok();
     let greg = build_being("Greg Goat", Position::new(12, 19), ecs).unwrap();
     let mut transforms = ecs.write_storage::<Transform>();
     let _ = transforms.insert(greg, Transform::new(12.0, 19.0, 0.0, 1.0, 1.0));
+    debug!("startup: sample beings loaded");
 }

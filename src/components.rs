@@ -224,13 +224,9 @@ impl GoalMoverAI {
 #[allow(dead_code)]
 pub struct HealthStats {
     pub hp: usize,
-    max_hp: usize,
+    pub max_hp: usize,
     pub defense: usize,
 }
-
-#[derive(Component)]
-#[storage(VecStorage)]
-pub struct DeathDrop(pub Item);
 
 impl HealthStats {
     pub fn new(max_hp: usize, defense: usize) -> Self {
@@ -240,7 +236,15 @@ impl HealthStats {
             defense,
         }
     }
+
+    pub fn add_health(&mut self, amt: usize) {
+        self.hp = usize::min(self.hp + amt, self.max_hp);
+    }
 }
+
+#[derive(Component)]
+#[storage(VecStorage)]
+pub struct DeathDrop(pub Item);
 
 #[derive(Debug, Component)]
 #[storage(VecStorage)]
@@ -291,11 +295,11 @@ pub struct AttackAction {
 
 #[derive(Debug, Component)]
 #[storage(VecStorage)]
-pub struct WantsToMove {
+pub struct MoveAction {
     pub new_pos: Position,
 }
 
-impl WantsToMove {
+impl MoveAction {
     pub fn new(pos: Position) -> Self {
         Self { new_pos: pos }
     }
@@ -303,15 +307,21 @@ impl WantsToMove {
 
 #[derive(Component)]
 #[storage(VecStorage)]
-pub struct WantsToCraft {
+pub struct CraftAction {
     pub first_item: Entity,
     pub second_item: Entity,
 }
 
 #[derive(Component)]
 #[storage(VecStorage)]
-pub struct WantsToEquip {
+pub struct EquipAction {
     pub item: Entity,
+}
+
+#[derive(Component)]
+#[storage(VecStorage)]
+pub struct HealAction {
+    pub amount: usize,
 }
 
 #[derive(Debug, Component)]
@@ -350,6 +360,34 @@ impl Item {
 #[storage(VecStorage)]
 pub struct InBag {
     pub owner: Entity,
+}
+
+#[derive(Component, Clone)]
+#[storage(VecStorage)]
+pub enum Consumable {
+    InstantRegen(usize),
+    // Effect
+}
+
+impl Consumable {
+    pub fn from_str(str: &str, amt: usize) -> Self {
+        match str {
+            "instant_regen" => Self::InstantRegen(amt),
+            _ => panic!("Bad string based to consumable."),
+        }
+    }
+}
+
+#[derive(Component)]
+#[storage(VecStorage)]
+pub struct ConsumeAction {
+    pub consuming: Entity,
+}
+
+impl ConsumeAction {
+    pub fn new(target: &Entity) -> Self {
+        Self { consuming: *target }
+    }
 }
 
 #[derive(Component)]

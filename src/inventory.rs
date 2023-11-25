@@ -3,11 +3,11 @@ use itertools::Itertools;
 use specs::{Entity, Join, World, WorldExt};
 use specs::{LendJoin, ReadStorage};
 
-use crate::components::{Equipped, Position};
+use crate::components::{ConsumeAction, Equipped, Position};
 use crate::config::{InventoryConfig, SortMode};
 use crate::data_read::ENTITY_DB;
 use crate::{
-    components::{InBag, Item, Name, SelectedInventoryItem, WantsToCraft, WantsToEquip},
+    components::{CraftAction, EquipAction, InBag, Item, Name, SelectedInventoryItem},
     game_init::PlayerEntity,
     ui::message_log::MessageLog,
     AppState,
@@ -19,6 +19,7 @@ pub enum UseMenuResult {
     Drop,
     Examine,
     Equip,
+    Consume,
     Cancel,
 }
 
@@ -60,6 +61,10 @@ pub fn handle_player_input(
                     }
                     VKC::Q => {
                         selection.intended_action = Some(UseMenuResult::Equip);
+                        InventoryResponse::ActionReady
+                    }
+                    VKC::C => {
+                        selection.intended_action = Some(UseMenuResult::Consume);
                         InventoryResponse::ActionReady
                     }
                     VKC::Escape => {
@@ -170,21 +175,20 @@ pub fn handle_one_item_actions(ecs: &mut World) {
             return;
         }
     };
+    let mut items = ecs.write_storage::<Item>();
+    let mut in_bags = ecs.write_storage::<InBag>();
+    let entities = ecs.entities();
+    let items_in_player_bag = (&entities, &items, &in_bags)
+        .join()
+        .find(|(item_entity, _, bag)| {
+            item_entity == &selection.first_item && bag.owner == player_entity.0
+        });
 
     let mut log = ecs.write_resource::<MessageLog>();
     match selection.intended_action.as_ref().unwrap() {
         UseMenuResult::Drop => {
             // remove item from bag
-            let mut items = ecs.write_storage::<Item>();
-            let mut in_bags = ecs.write_storage::<InBag>();
-            let entities = ecs.entities();
-            if let Some((item_entity, dropped_item, _)) =
-                (&entities, &items, &in_bags)
-                    .join()
-                    .find(|(item_entity, _, bag)| {
-                        item_entity == &selection.first_item && bag.owner == player_entity.0
-                    })
-            {
+            if let Some((item_entity, dropped_item, _)) = items_in_player_bag {
                 in_bags.remove(item_entity);
                 log.log("Dropped it");
 
@@ -206,16 +210,7 @@ pub fn handle_one_item_actions(ecs: &mut World) {
         }
         UseMenuResult::Examine => {
             //log flavor text
-            let items = ecs.read_storage::<Item>();
-            let in_bags = ecs.read_storage::<InBag>();
-            let entities = ecs.entities();
-            if let Some((_, item, _)) =
-                (&entities, &items, &in_bags)
-                    .join()
-                    .find(|(item_entity, _, bag)| {
-                        item_entity == &selection.first_item && bag.owner == player_entity.0
-                    })
-            {
+            if let Some((_, item, _)) = items_in_player_bag {
                 let examine_text = match &ENTITY_DB.lock().unwrap().items.get_by_id(item.id) {
                     Some(info) => info.examine_text.clone(),
                     None => format!("Could not find item with id: {}", item.id),
@@ -230,18 +225,15 @@ pub fn handle_one_item_actions(ecs: &mut World) {
         }
         UseMenuResult::Equip => {
             // get the item at the selected idx and create action for it
-            let items = ecs.read_storage::<Item>();
-            let in_bags = ecs.read_storage::<InBag>();
-            let entities = ecs.entities();
-            if let Some((item_entity, _, _)) =
-                (&entities, &items, &in_bags)
-                    .join()
-                    .find(|(item_entity, _, bag)| {
-                        bag.owner == player_entity.0 && selection.first_item == *item_entity
-                    })
-            {
-                let mut equip_actions = ecs.write_storage::<WantsToEquip>();
-                let _ = equip_actions.insert(player_entity.0, WantsToEquip { item: item_entity });
+            if let Some((item_entity, _, _)) = items_in_player_bag {
+                let mut equip_actions = ecs.write_storage::<EquipAction>();
+                let _ = equip_actions.insert(player_entity.0, EquipAction { item: item_entity });
+            }
+        }
+        UseMenuResult::Consume => {
+            if let Some((item_entity, _, _)) = items_in_player_bag {
+                let mut equip_actions = ecs.write_storage::<ConsumeAction>();
+                let _ = equip_actions.insert(player_entity.0, ConsumeAction::new(&item_entity));
             }
         }
         UseMenuResult::Craft => {
@@ -273,10 +265,10 @@ pub fn handle_two_item_actions(ecs: &mut World, second_item: &Entity) {
                 eprintln!("Cannot craft using the same item in your inventory.");
                 return;
             }
-            let mut wants_to_craft = ecs.write_storage::<WantsToCraft>();
-            let _ = wants_to_craft.insert(
+            let mut craft_actions = ecs.write_storage::<CraftAction>();
+            let _ = craft_actions.insert(
                 player_entity.0,
-                WantsToCraft {
+                CraftAction {
                     first_item: selection.first_item,
                     second_item: *second_item,
                 },

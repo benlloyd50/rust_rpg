@@ -26,7 +26,11 @@
             "name": "Jumbo Bass",
             "examine_text": "All 12 spieces have conglomorated into this 1 ultimate bass.",
             "atlas_index": 35,
-            "fg": [255, 255, 255]
+            "fg": [255, 255, 255],
+            "consumable": {
+                "effect": "instant_regen",
+                "amount": 4
+            }
         },
         {
             "identifier": 100,

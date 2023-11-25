@@ -3,7 +3,7 @@ use specs::{World, WorldExt};
 
 use crate::{
     colors::{to_rgb, INVENTORY_BACKGROUND, INVENTORY_OUTLINE},
-    components::{Equipable, SelectedInventoryItem},
+    components::{Consumable, Equipable, SelectedInventoryItem},
     game_init::PlayerEntity,
 };
 
@@ -16,12 +16,18 @@ const BASE_ACTIONS: [&str; 4] = [
     "#[lightgray]<Esc>#[]",
 ];
 const EQUIP_ACTION: &str = "#[]E#[orange]q#[]uip";
+const CONSUME_ACTION: &str = "#[orange]C#[]onsume";
 
 pub fn draw_use_menu(draw_batch: &mut DrawBatch, ecs: &World) {
     let selected_items = ecs.read_storage::<SelectedInventoryItem>();
     let player_entity = ecs.read_resource::<PlayerEntity>();
     let mut use_menu_actions = BASE_ACTIONS.to_vec();
     let selected_inv = selected_items.get(player_entity.0).unwrap();
+
+    let consumables = ecs.read_storage::<Consumable>();
+    if let Some(_) = consumables.get(selected_inv.first_item) {
+        use_menu_actions.insert(3, CONSUME_ACTION);
+    }
 
     let equipables = ecs.read_storage::<Equipable>();
     if let Some(_) = equipables.get(selected_inv.first_item) {

@@ -1,6 +1,6 @@
+use crate::logger::create_logger;
 use crate::ui::draw_ui;
 use crate::ui::message_log::MessageLog;
-use std::fs::{self, OpenOptions};
 use std::time::Duration;
 
 use being::{
@@ -8,17 +8,16 @@ use being::{
     RandomMonsterMovementSystem,
 };
 use bracket_terminal::prelude::*;
-use combat::AttackActionHandler;
+use combat::{AttackActionHandler, HealActionHandler};
 use config::ConfigMaster;
 use crafting::HandleCraftingSystem;
 use debug::{debug_info, debug_input};
 use draw_sprites::{draw_sprite_layers, update_fancy_positions};
 use equipment::EquipActionHandler;
 use game_init::initialize_game_world;
-use items::{ItemPickupHandler, ItemSpawnerSystem, ZeroQtyItemCleanup};
-use log::{error, info, warn, LevelFilter};
+use items::{ConsumeHandler, ItemPickupHandler, ItemSpawnerSystem, ZeroQtyItemCleanup};
+use log::{error, info, warn};
 use mining::{DamageSystem, RemoveDeadTiles, TileDestructionSystem};
-use simplelog::{ColorChoice, CombinedLogger, Config, TermLogger, TerminalMode, WriteLogger};
 use specs::prelude::*;
 
 mod camera;
@@ -33,6 +32,8 @@ mod equipment;
 mod game_init;
 mod indexing;
 mod inventory;
+mod logger;
+mod storage_utils;
 mod ui;
 use inventory::{
     handle_one_item_actions, handle_player_input, handle_two_item_actions, InventoryResponse,
@@ -65,15 +66,15 @@ use tile_animation::TileAnimationSpawner;
 use time::delta_time_update;
 
 use crate::components::{
-    AttackBonus, DeathDrop, EntityStats, Equipable, EquipmentSlots, Equipped, InBag, ItemContainer,
-    WantsToCraft, WantsToEquip,
+    AttackBonus, Consumable, ConsumeAction, CraftAction, DeathDrop, EntityStats, EquipAction,
+    Equipable, EquipmentSlots, Equipped, HealAction, InBag, ItemContainer,
 };
 use crate::{
     components::{
         AttackAction, Blocking, BreakAction, Breakable, DeleteCondition, FinishedActivity,
         FishAction, FishOnTheLine, Fishable, GoalMoverAI, Grass, HealthStats, Interactor, Item,
-        Monster, Name, PickupAction, RandomWalkerAI, Renderable, SelectedInventoryItem,
-        SufferDamage, Transform, WaitingForFish, WantsToMove, Water,
+        Monster, MoveAction, Name, PickupAction, RandomWalkerAI, Renderable, SelectedInventoryItem,
+        SufferDamage, Transform, WaitingForFish, Water,
     },
     data_read::initialize_game_databases,
     items::ItemSpawner,
@@ -139,14 +140,19 @@ impl State {
         let mut poll_fishing_tiles = PollFishingTiles;
         poll_fishing_tiles.run_now(&self.ecs);
 
-        let mut mining_sys = TileDestructionSystem;
-        mining_sys.run_now(&self.ecs);
+        let mut destruction_sys = TileDestructionSystem;
+        destruction_sys.run_now(&self.ecs);
+        let mut heal_handler = HealActionHandler;
+        heal_handler.run_now(&self.ecs);
         let mut damage_sys = DamageSystem;
         damage_sys.run_now(&self.ecs);
         let mut item_pickup_handler = ItemPickupHandler;
         item_pickup_handler.run_now(&self.ecs);
+        let mut item_spawner = ItemSpawnerSystem;
+        item_spawner.run_now(&self.ecs);
+        let mut zero_qty_item_cleanup = ZeroQtyItemCleanup;
+        zero_qty_item_cleanup.run_now(&self.ecs);
 
-        // Request based system run as late as possible in the loop
         let mut tile_anim_spawner = TileAnimationSpawner;
         tile_anim_spawner.run_now(&self.ecs);
         let mut tile_anim_cleanup_system = TileAnimationCleanUpSystem;
@@ -154,11 +160,6 @@ impl State {
 
         let mut remove_dead_tiles = RemoveDeadTiles;
         remove_dead_tiles.run_now(&self.ecs);
-
-        let mut item_spawner = ItemSpawnerSystem;
-        item_spawner.run_now(&self.ecs);
-        let mut zero_qty_item_cleanup = ZeroQtyItemCleanup;
-        zero_qty_item_cleanup.run_now(&self.ecs);
         // println!("Continuous Systems are now finished.");
     }
 
@@ -203,8 +204,12 @@ impl GameState for State {
 
         match new_state {
             AppState::GameStartup => {
+                info!("Game startup occured");
                 initialize_game_world(&mut self.ecs);
+                let mut item_spawner = ItemSpawnerSystem;
+                item_spawner.run_now(&self.ecs);
                 new_state = AppState::InGame;
+                info!("Switching to ingame state");
             }
             AppState::InMenu => {
                 todo!("player input will control the menu, when menus are implemented")
@@ -234,6 +239,12 @@ impl GameState for State {
                         handle_one_item_actions(&mut self.ecs);
                         let mut equip_system = EquipActionHandler;
                         equip_system.run_now(&self.ecs);
+                        let mut consume_handler = ConsumeHandler;
+                        consume_handler.run_now(&self.ecs);
+                        let mut heal_handler = HealActionHandler;
+                        heal_handler.run_now(&self.ecs);
+                        let mut damage_sys = DamageSystem;
+                        damage_sys.run_now(&self.ecs);
                     }
                     InventoryResponse::SecondItemSelected { second_item } => {
                         handle_two_item_actions(&mut self.ecs, &second_item);
@@ -287,28 +298,6 @@ struct TurnCounter(pub usize);
 impl TurnCounter {
     pub fn zero() -> Self {
         Self(0)
-    }
-}
-
-const LOG_FOLDER: &str = "logs/";
-fn create_logger() {
-    let _ = fs::create_dir(LOG_FOLDER);
-    let path = format!("{}/last_run.rpglog", LOG_FOLDER);
-    if let Ok(file) = OpenOptions::new().create(true).append(true).open(path) {
-        let file_logger = WriteLogger::new(log::LevelFilter::Info, Config::default(), file);
-        CombinedLogger::init(vec![
-            TermLogger::new(
-                LevelFilter::Debug,
-                Config::default(),
-                TerminalMode::Mixed,
-                ColorChoice::Auto,
-            ),
-            file_logger,
-        ])
-        .unwrap();
-        info!("Logger initialized");
-    } else {
-        println!("Logging initialization failure");
     }
 }
 
@@ -376,9 +365,9 @@ fn main() -> BError {
     world.register::<Grass>();
     world.register::<InBag>();
     world.register::<ItemContainer>();
-    world.register::<WantsToMove>();
-    world.register::<WantsToCraft>();
-    world.register::<WantsToEquip>();
+    world.register::<MoveAction>();
+    world.register::<CraftAction>();
+    world.register::<EquipAction>();
     world.register::<Transform>();
     world.register::<Interactor>();
     world.register::<EntityStats>();
@@ -387,6 +376,9 @@ fn main() -> BError {
     world.register::<Equipable>();
     world.register::<Equipped>();
     world.register::<AttackBonus>();
+    world.register::<Consumable>();
+    world.register::<ConsumeAction>();
+    world.register::<HealAction>();
 
     // Resource Initialization, the ECS needs a basic definition of every resource that will be in the game
     world.insert(AppState::GameStartup);

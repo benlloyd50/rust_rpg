@@ -9,13 +9,13 @@ use std::mem::discriminant;
 
 use specs::{Entities, Join, ReadStorage, System, WriteStorage};
 
-use crate::components::{Equipable, EquipmentSlots, Equipped, WantsToEquip};
+use crate::components::{EquipAction, Equipable, EquipmentSlots, Equipped};
 
 pub struct EquipActionHandler;
 
 impl<'a> System<'a> for EquipActionHandler {
     type SystemData = (
-        WriteStorage<'a, WantsToEquip>,
+        WriteStorage<'a, EquipAction>,
         WriteStorage<'a, Equipped>,
         ReadStorage<'a, EquipmentSlots>,
         ReadStorage<'a, Equipable>,

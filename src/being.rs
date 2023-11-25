@@ -11,7 +11,7 @@ use specs::{
 
 use crate::{
     components::{
-        AttackAction, BreakAction, GoalMoverAI, Name, Position, RandomWalkerAI, WantsToMove,
+        AttackAction, BreakAction, GoalMoverAI, MoveAction, Name, Position, RandomWalkerAI,
     },
     data_read::ENTITY_DB,
     map::{distance, is_goal, successors, Map, TileEntity},
@@ -152,7 +152,7 @@ pub struct GoalMoveToEntities;
 
 impl<'a> System<'a> for GoalMoveToEntities {
     type SystemData = (
-        WriteStorage<'a, WantsToMove>,
+        WriteStorage<'a, MoveAction>,
         WriteStorage<'a, AttackAction>,
         WriteStorage<'a, GoalMoverAI>,
         ReadStorage<'a, Position>,
@@ -164,7 +164,7 @@ impl<'a> System<'a> for GoalMoveToEntities {
     fn run(
         &mut self,
         (
-            mut wants_to_move,
+            mut move_actions,
             mut attack_actions,
             mut goal_movers,
             positions,
@@ -214,7 +214,7 @@ impl<'a> System<'a> for GoalMoveToEntities {
             };
             if path.0.len() > 1 {
                 let new_position = path.0[1];
-                let _ = wants_to_move.insert(entity, WantsToMove::new(new_position));
+                let _ = move_actions.insert(entity, MoveAction::new(new_position));
             }
         }
     }
@@ -223,13 +223,13 @@ impl<'a> System<'a> for GoalMoveToEntities {
 pub struct HandleMoveActions;
 
 impl<'a> System<'a> for HandleMoveActions {
-    type SystemData = (WriteStorage<'a, WantsToMove>, WriteStorage<'a, Position>);
+    type SystemData = (WriteStorage<'a, MoveAction>, WriteStorage<'a, Position>);
 
-    fn run(&mut self, (mut wants_to_move, mut positions): Self::SystemData) {
-        for (want, pos) in (&wants_to_move, &mut positions).join() {
+    fn run(&mut self, (mut move_actions, mut positions): Self::SystemData) {
+        for (want, pos) in (&move_actions, &mut positions).join() {
             *pos = want.new_pos;
         }
 
-        wants_to_move.clear();
+        move_actions.clear();
     }
 }

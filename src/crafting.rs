@@ -1,7 +1,7 @@
 use specs::{Entities, Entity, Join, ReadStorage, System, Write, WriteStorage};
 
 use crate::{
-    components::{InBag, Item, WantsToCraft},
+    components::{CraftAction, InBag, Item},
     data_read::prelude::RECIPE_DB,
     items::{ItemID, ItemQty, ItemSpawner, SpawnType},
     ui::message_log::MessageLog,
@@ -21,7 +21,7 @@ pub struct HandleCraftingSystem;
 
 impl<'a> System<'a> for HandleCraftingSystem {
     type SystemData = (
-        WriteStorage<'a, WantsToCraft>,
+        WriteStorage<'a, CraftAction>,
         Write<'a, ItemSpawner>,
         Write<'a, MessageLog>,
         WriteStorage<'a, Item>,

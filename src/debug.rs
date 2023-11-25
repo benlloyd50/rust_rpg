@@ -5,7 +5,9 @@ use specs::{Join, ReadStorage, World, WorldExt};
 
 use crate::{
     camera::mouse_to_map_pos,
-    components::{InBag, Interactor, Item, Name, Position, SelectedInventoryItem, Transform},
+    components::{
+        HealthStats, InBag, Interactor, Item, Name, Position, SelectedInventoryItem, Transform,
+    },
     config::{InventoryConfig, SortMode},
     game_init::PlayerEntity,
     inventory::UseMenuResult,
@@ -23,6 +25,21 @@ const CLEAR: RGBA = RGBA {
 pub fn debug_info(ctx: &mut BTerm, ecs: &World, cfg: &InventoryConfig) {
     draw_interaction_mode(ctx, ecs);
     draw_inventory_state(ctx, ecs, cfg);
+    draw_health(ctx, ecs);
+}
+
+fn draw_health(ctx: &mut BTerm, ecs: &World) {
+    let player_entity = ecs.read_resource::<PlayerEntity>();
+    let health_stats = ecs.read_storage::<HealthStats>();
+    if let Some(stats) = health_stats.get(player_entity.0) {
+        ctx.printer(
+            2,
+            6,
+            format!("#[white]{}/{}#[]", stats.hp, stats.max_hp),
+            TextAlign::Left,
+            None,
+        );
+    }
 }
 
 // NOTE: This may be better in user interface once we figure out a cool way to display it, maybe an
@@ -37,7 +54,6 @@ fn draw_interaction_mode(ctx: &mut BTerm, ecs: &World) {
             return;
         }
     };
-    let previous_active = ctx.active_console;
     ctx.set_active_console(CL_TEXT);
     ctx.print_color(
         1,
@@ -46,7 +62,6 @@ fn draw_interaction_mode(ctx: &mut BTerm, ecs: &World) {
         RGB::from_u8(61, 84, 107),
         format!("> {} <", player_interactor.mode),
     );
-    ctx.set_active_console(previous_active);
 }
 
 fn draw_inventory_state(ctx: &mut BTerm, ecs: &World, cfg: &InventoryConfig) {
@@ -60,6 +75,7 @@ fn draw_inventory_state(ctx: &mut BTerm, ecs: &World, cfg: &InventoryConfig) {
                     UseMenuResult::Craft => "Craft",
                     UseMenuResult::Equip => "Equip",
                     UseMenuResult::Cancel => "Cancel",
+                    UseMenuResult::Consume => "Consume",
                     UseMenuResult::Examine => "Examine",
                 }
                 .to_string(),
@@ -86,9 +102,7 @@ fn draw_inventory_state(ctx: &mut BTerm, ecs: &World, cfg: &InventoryConfig) {
         }
         None => "No selection made".to_string(),
     };
-    let previous_active = ctx.active_console;
     ctx.set_active_console(CL_TEXT);
-
     ctx.print_color(
         1,
         49,
@@ -99,8 +113,6 @@ fn draw_inventory_state(ctx: &mut BTerm, ecs: &World, cfg: &InventoryConfig) {
 
     let sort_mode = cfg.sort_mode.to_string();
     ctx.print_color(41, 49, WHITESMOKE, RGB::from_u8(61, 84, 107), sort_mode);
-
-    ctx.set_active_console(previous_active);
 }
 
 pub fn debug_input(ctx: &mut BTerm, ecs: &World) {
@@ -120,7 +132,6 @@ pub fn debug_input(ctx: &mut BTerm, ecs: &World) {
 }
 
 fn draw_cursor(ctx: &mut BTerm) {
-    let previous_active = ctx.active_console;
     ctx.set_active_console(CL_INTERACTABLES);
     ctx.printer(
         ctx.mouse_pos().0,
@@ -129,7 +140,6 @@ fn draw_cursor(ctx: &mut BTerm) {
         TextAlign::Left,
         Some(CLEAR),
     );
-    ctx.set_active_console(previous_active);
 }
 
 fn print_position(ecs: &World) {

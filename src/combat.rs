@@ -2,7 +2,8 @@ use specs::{Entities, Join, ReadStorage, System, Write, WriteStorage};
 
 use crate::{
     components::{
-        AttackAction, AttackBonus, EntityStats, Equipped, HealthStats, Name, SufferDamage,
+        AttackAction, AttackBonus, EntityStats, Equipped, HealAction, HealthStats, Name,
+        SufferDamage,
     },
     ui::message_log::MessageLog,
 };
@@ -67,5 +68,19 @@ impl<'a> System<'a> for AttackActionHandler {
             }
         }
         attack_actions.clear();
+    }
+}
+
+pub struct HealActionHandler;
+
+impl<'a> System<'a> for HealActionHandler {
+    type SystemData = (WriteStorage<'a, HealAction>, WriteStorage<'a, HealthStats>);
+
+    fn run(&mut self, (mut heal_actions, mut healths): Self::SystemData) {
+        for (healing, health) in (&heal_actions, &mut healths).join() {
+            health.add_health(healing.amount);
+        }
+
+        heal_actions.clear();
     }
 }
