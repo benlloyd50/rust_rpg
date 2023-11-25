@@ -20,8 +20,9 @@ use crate::{
         PickupAction, Position, Renderable,
     },
     data_read::prelude::*,
+    storage_utils::MaybeInsert,
     ui::message_log::MessageLog,
-    z_order::ITEM_Z, storage_utils::MaybeInsert,
+    z_order::ITEM_Z,
 };
 
 #[derive(Default, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -316,7 +317,10 @@ impl<'a> System<'a> for ConsumeHandler {
         (mut consume_actions, mut heal_actions, mut items, consumables, entities): Self::SystemData,
     ) {
         for (consumer, consume) in (&entities, &consume_actions).join() {
-            let (_, item, consumable) = match (&entities, &mut items, &consumables).join().find(|(e, _, _)| *e == consume.consuming) {
+            let (_, item, consumable) = match (&entities, &mut items, &consumables)
+                .join()
+                .find(|(e, _, _)| *e == consume.consuming)
+            {
                 Some(i) => i,
                 None => continue,
             };
@@ -326,7 +330,6 @@ impl<'a> System<'a> for ConsumeHandler {
                     item.qty.0 = item.qty.0.saturating_sub(1);
                 }
             }
-
         }
 
         consume_actions.clear();
