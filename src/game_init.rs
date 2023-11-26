@@ -10,6 +10,7 @@ use crate::{
         Transform,
     },
     data_read::prelude::{build_being, load_simple_ldtk_level},
+    items::{ItemID, ItemSpawner, SpawnType},
     player::Player,
     stats::get_random_stats,
     z_order::PLAYER_Z,
@@ -46,6 +47,11 @@ pub fn initialize_game_world(ecs: &mut World) {
         .build();
     ecs.insert(PlayerEntity(player_entity));
     debug!("startup: player loaded");
+
+    {
+        let mut item_spawner = ecs.write_resource::<ItemSpawner>();
+        item_spawner.request(ItemID(201), SpawnType::InBag(player_entity));
+    }
 
     build_being("Bahhhby", Position::new(5, 15), ecs).ok();
     let greg = build_being("Greg Goat", Position::new(12, 19), ecs).unwrap();

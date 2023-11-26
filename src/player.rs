@@ -1,7 +1,7 @@
 use crate::{
     components::{
-        AttackAction, BreakAction, FinishedActivity, FishAction, Interactor, InteractorMode, Name,
-        PickupAction,
+        AttackAction, BreakAction, FinishedActivity, FishAction, GameAction, Interactor,
+        InteractorMode, Name, PickupAction,
     },
     game_init::PlayerEntity,
     items::inventory_contains,
@@ -169,4 +169,20 @@ pub fn check_player_activity(ecs: &mut World) -> bool {
     let players = ecs.read_storage::<Player>();
     let mut finished_activities = ecs.write_storage::<FinishedActivity>();
     (&players, &mut finished_activities).join().next().is_some()
+}
+
+pub fn check_player_activity_input(ecs: &mut World, ctx: &mut BTerm) {
+    if ctx.key.is_none() {
+        return;
+    }
+
+    match ctx.key.unwrap() {
+        VKC::Space => {
+            info!("Player pressed game action");
+            let mut game_actions = ecs.write_storage::<GameAction>();
+            let player_entity = ecs.read_resource::<PlayerEntity>();
+            let _ = game_actions.insert(player_entity.0, GameAction);
+        }
+        _ => {}
+    }
 }

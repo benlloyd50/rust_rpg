@@ -2,9 +2,10 @@ use std::time::Duration;
 
 use crate::{
     components::{
-        DeleteCondition, FinishedActivity, FishAction, FishOnTheLine, Fishable, Name, Renderable,
-        WaitingForFish, Water,
+        Cursor, DeleteCondition, FinishedActivity, FishAction, FishOnTheLine, Fishable,
+        FishingMinigame, GameAction, GoalBar, Name, Renderable, WaitingForFish, Water,
     },
+    game_init::PlayerEntity,
     items::{ItemID, ItemSpawner, SpawnType},
     tile_animation::TileAnimationBuilder,
     time::DeltaTime,
@@ -16,6 +17,7 @@ pub const WHITE: (u8, u8, u8) = (255, 255, 255);
 
 use bracket_random::prelude::*;
 use bracket_terminal::prelude::BLACK;
+use log::info;
 use specs::{Entities, Join, Read, ReadStorage, System, Write, WriteExpect, WriteStorage};
 
 pub struct SetupFishingActions;
@@ -69,7 +71,9 @@ impl<'a> System<'a> for WaitingForFishSystem {
         Entities<'a>,
         WriteStorage<'a, WaitingForFish>,
         WriteStorage<'a, FishOnTheLine>,
+        WriteStorage<'a, FishingMinigame>,
         WriteStorage<'a, FinishedActivity>,
+        Read<'a, PlayerEntity>,
         Read<'a, DeltaTime>,
         WriteExpect<'a, MessageLog>,
         ReadStorage<'a, Name>,
@@ -77,7 +81,17 @@ impl<'a> System<'a> for WaitingForFishSystem {
 
     fn run(
         &mut self,
-        (entities, mut waiters, mut fishing_lines, mut finished_activities, dt, mut log, names): Self::SystemData,
+        (
+            entities,
+            mut waiters,
+            mut fishing_lines,
+            mut minigames,
+            mut finished_activities,
+            p_entity,
+            dt,
+            mut log,
+            names,
+        ): Self::SystemData,
     ) {
         let mut rng = RandomNumberGenerator::new();
         let mut finished_fishers = Vec::new();
@@ -107,20 +121,35 @@ impl<'a> System<'a> for WaitingForFishSystem {
                 continue;
             }
 
+            // Bite on the line
             finished_fishers.push(e);
-            log.log(format!(
-                "{} caught a fish wow with {} attempts remaining",
-                name, waiter.attempts
-            ));
-
-            // To prevent a fisher who is already catching from potentially catching again without waiting properly
-            if fishing_lines.contains(e) {
-                log.debug(format!("ERROR: entity {} {} already had a fish on their line, cannot add a second fish ABORTING fish", name, e.id()));
-                fishing_lines.remove(e);
-                continue;
+            if e == p_entity.0 {
+                let _ = minigames.insert(
+                    e,
+                    FishingMinigame {
+                        cursor: Cursor::new(25.0),
+                        goal_bar: GoalBar {
+                            goal: 5,
+                            bar_width: 18,
+                            goal_width: 3,
+                        },
+                    },
+                );
+            } else {
+                info!("{} caught a fish, o cool", name);
+                log.log(format!(
+                    "{} caught a fish wow with {} attempts remaining",
+                    name, waiter.attempts
+                ));
             }
+
             match fishing_lines.insert(e, FishOnTheLine) {
-                Ok(_) => {}
+                Ok(existing_fish) => {
+                    if let Some(fish) = existing_fish {
+                        log.debug(format!("ERROR: entity {} {} already had a fish on their line, cannot add a second fish ABORTING fish", name, e.id()));
+                        let _ = fishing_lines.insert(e, fish);
+                    }
+                }
                 Err(err) => {
                     log.debug(format!(
                         "ERROR: entity: {} {} failed to add fish on the line: {}",
@@ -134,8 +163,70 @@ impl<'a> System<'a> for WaitingForFishSystem {
 
         for finished in finished_fishers.iter() {
             waiters.remove(*finished);
+            if *finished == p_entity.0 && minigames.contains(p_entity.0) {
+                info!("Player entering minigame state");
+                continue;
+            }
             let _ = finished_activities.insert(*finished, FinishedActivity);
         }
+    }
+}
+
+pub struct FishingMinigameUpdate;
+
+impl<'a> System<'a> for FishingMinigameUpdate {
+    type SystemData = (WriteStorage<'a, FishingMinigame>, Read<'a, DeltaTime>);
+
+    fn run(&mut self, (mut minigames, dt): Self::SystemData) {
+        for minigame in (&mut minigames).join() {
+            let seconds_past = dt.0.as_millis() as f32 / 1000.0;
+            minigame.cursor.position += minigame.cursor.speed * seconds_past;
+
+            if minigame.cursor.position >= minigame.goal_bar.bar_width as f32 {
+                minigame.cursor.position = 0.0;
+            }
+        }
+    }
+}
+
+pub struct FishingMinigameCheck;
+
+impl<'a> System<'a> for FishingMinigameCheck {
+    type SystemData = (
+        WriteStorage<'a, GameAction>,
+        WriteStorage<'a, FinishedActivity>,
+        Read<'a, PlayerEntity>,
+        ReadStorage<'a, FishOnTheLine>,
+        ReadStorage<'a, FishingMinigame>,
+        Entities<'a>,
+    );
+
+    fn run(
+        &mut self,
+        (mut game_actions, mut finished_activities, p_entity,  hooks, minigame, entities): Self::SystemData,
+    ) {
+        if let Some((fisher, _action, _, game, ())) = (
+            &entities,
+            &game_actions,
+            &hooks,
+            &minigame,
+            !&finished_activities,
+        )
+            .join()
+            .find(|(e, _, _, _, _)| *e == p_entity.0)
+        {
+            info!("Game action read, checking if in_pos");
+            let idx = game.cursor.bar_position();
+            let goal = game.goal_bar.goal;
+            let goals = (goal..(goal + game.goal_bar.goal_width)).collect::<Vec<usize>>();
+            if goals.contains(&idx) {
+                info!("Goal was hit on time");
+                // button was hit on time
+                let _ = finished_activities.insert(fisher, FinishedActivity);
+            }
+        }
+
+        game_actions.clear();
     }
 }
 
@@ -145,25 +236,26 @@ impl<'a> System<'a> for CatchFishSystem {
     type SystemData = (
         Entities<'a>,
         WriteStorage<'a, FishOnTheLine>,
-        WriteStorage<'a, FinishedActivity>,
+        WriteStorage<'a, FishingMinigame>,
         WriteExpect<'a, ItemSpawner>,
         WriteExpect<'a, MessageLog>,
+        ReadStorage<'a, FinishedActivity>,
         ReadStorage<'a, Name>,
     );
 
     fn run(
         &mut self,
-        (entities, mut hooks, mut finished_activities, mut item_spawner, mut log, names): Self::SystemData,
+        (entities, mut hooks, mut minigames, mut item_spawner, mut log, finished_activities, names): Self::SystemData,
     ) {
         let mut remove_mes = Vec::new();
-        for (e, _, name) in (&entities, &hooks, &names).join() {
+        for (e, _, name, _) in (&entities, &hooks, &names, &finished_activities).join() {
             remove_mes.push((e, name));
-            let _ = finished_activities.insert(e, FinishedActivity);
             log.enhance(format!("{} caught a really big fish!", name));
             item_spawner.request(ItemID(3), SpawnType::InBag(e));
         }
         for (entity, _) in remove_mes.iter() {
             hooks.remove(*entity);
+            minigames.remove(*entity);
         }
     }
 }

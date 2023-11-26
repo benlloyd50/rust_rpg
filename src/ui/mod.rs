@@ -8,12 +8,14 @@ use crate::{
 };
 
 use self::{
+    fishing::draw_fishing,
     inventory::draw_inventory,
     message_log::{draw_message_log, draw_turn_counter},
     use_menu::draw_use_menu,
 };
 
 mod drawing;
+mod fishing;
 mod inventory;
 pub(crate) mod message_log;
 mod use_menu;
@@ -31,6 +33,9 @@ pub fn draw_ui(ecs: &World, appstate: &AppState, cfg: &InventoryConfig) {
             if check_inventory_selection(ecs) == SelectionStatus::SelectionWithoutAction {
                 draw_use_menu(&mut draw_batch, ecs);
             }
+        }
+        AppState::ActivityBound { .. } => {
+            draw_fishing(&mut draw_batch, ecs);
         }
         _ => {}
     }

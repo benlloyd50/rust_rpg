@@ -47,7 +47,9 @@ mod tile_animation;
 mod z_order;
 use tile_animation::TileAnimationCleanUpSystem;
 mod time;
-use player::{check_player_activity, manage_player_input, PlayerResponse};
+use player::{
+    check_player_activity, check_player_activity_input, manage_player_input, PlayerResponse,
+};
 mod map;
 use map::Map;
 mod components;
@@ -56,8 +58,8 @@ mod crafting;
 mod fishing;
 
 use fishing::{
-    CatchFishSystem, PollFishingTiles, SetupFishingActions, UpdateFishingTiles,
-    WaitingForFishSystem,
+    CatchFishSystem, FishingMinigameCheck, FishingMinigameUpdate, PollFishingTiles,
+    SetupFishingActions, UpdateFishingTiles, WaitingForFishSystem,
 };
 use indexing::{
     IndexBlockedTiles, IndexBreakableTiles, IndexFishableTiles, IndexItemTiles, IndexReset,
@@ -67,7 +69,8 @@ use time::delta_time_update;
 
 use crate::components::{
     AttackBonus, Consumable, ConsumeAction, CraftAction, DeathDrop, EntityStats, EquipAction,
-    Equipable, EquipmentSlots, Equipped, HealAction, InBag, ItemContainer,
+    Equipable, EquipmentSlots, Equipped, FishingMinigame, GameAction, HealAction, InBag,
+    ItemContainer,
 };
 use crate::{
     components::{
@@ -100,7 +103,6 @@ pub struct State {
 
 impl State {
     fn run_response_systems(&mut self) {
-        // println!("Response Systems are now running.");
         let mut randomwalker = RandomMonsterMovementSystem;
         randomwalker.run_now(&self.ecs);
         let mut find_goals = GoalFindEntities;
@@ -114,12 +116,10 @@ impl State {
 
         let mut update_fishing_tiles = UpdateFishingTiles;
         update_fishing_tiles.run_now(&self.ecs);
-        // println!("Response Systems are now finished.");
     }
 
     fn run_continuous_systems(&mut self, _ctx: &mut BTerm) {
-        // println!("Continuous Systems are now running.");
-        // Indexing systems
+        // Indexing Systems ===============================>
         let mut index_reset = IndexReset;
         index_reset.run_now(&self.ecs);
         let mut index_blocking = IndexBlockedTiles;
@@ -131,36 +131,43 @@ impl State {
         let mut index_items = IndexItemTiles;
         index_items.run_now(&self.ecs);
 
+        // Fishing Systems ==================================>
         let mut setup_fishing_actions = SetupFishingActions;
         setup_fishing_actions.run_now(&self.ecs);
         let mut waiting_for_fish = WaitingForFishSystem;
         waiting_for_fish.run_now(&self.ecs);
+        let mut fish_mini_update = FishingMinigameUpdate;
+        fish_mini_update.run_now(&self.ecs);
+        let mut fish_mini_check = FishingMinigameCheck;
+        fish_mini_check.run_now(&self.ecs);
         let mut catch_fish = CatchFishSystem;
         catch_fish.run_now(&self.ecs);
         let mut poll_fishing_tiles = PollFishingTiles;
         poll_fishing_tiles.run_now(&self.ecs);
 
-        let mut destruction_sys = TileDestructionSystem;
-        destruction_sys.run_now(&self.ecs);
+        // Misc Systems ==================================>
         let mut heal_handler = HealActionHandler;
         heal_handler.run_now(&self.ecs);
+        let mut destruction_sys = TileDestructionSystem;
+        destruction_sys.run_now(&self.ecs);
         let mut damage_sys = DamageSystem;
         damage_sys.run_now(&self.ecs);
         let mut item_pickup_handler = ItemPickupHandler;
         item_pickup_handler.run_now(&self.ecs);
         let mut item_spawner = ItemSpawnerSystem;
         item_spawner.run_now(&self.ecs);
-        let mut zero_qty_item_cleanup = ZeroQtyItemCleanup;
-        zero_qty_item_cleanup.run_now(&self.ecs);
 
+        // Animation Systems =========================================>
         let mut tile_anim_spawner = TileAnimationSpawner;
         tile_anim_spawner.run_now(&self.ecs);
         let mut tile_anim_cleanup_system = TileAnimationCleanUpSystem;
         tile_anim_cleanup_system.run_now(&self.ecs);
 
+        // Cleanup Systems =======================================>
+        let mut zero_qty_item_cleanup = ZeroQtyItemCleanup;
+        zero_qty_item_cleanup.run_now(&self.ecs);
         let mut remove_dead_tiles = RemoveDeadTiles;
         remove_dead_tiles.run_now(&self.ecs);
-        // println!("Continuous Systems are now finished.");
     }
 
     /// Systems that need to be ran after most other systems are finished EOF - end of frame
@@ -261,6 +268,7 @@ impl GameState for State {
                 }
             }
             AppState::ActivityBound { mut response_delay } => {
+                check_player_activity_input(&mut self.ecs, ctx);
                 // if the player finishes we run final systems and change state
                 self.run_continuous_systems(ctx);
                 new_state = if check_player_activity(&mut self.ecs) {
@@ -379,6 +387,8 @@ fn main() -> BError {
     world.register::<Consumable>();
     world.register::<ConsumeAction>();
     world.register::<HealAction>();
+    world.register::<GameAction>();
+    world.register::<FishingMinigame>();
 
     // Resource Initialization, the ECS needs a basic definition of every resource that will be in the game
     world.insert(AppState::GameStartup);

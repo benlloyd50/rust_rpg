@@ -167,6 +167,7 @@ impl WaitingForFish {
 
 #[derive(Component, Default)]
 #[storage(NullStorage)]
+// TODO: put type of fish on this, ItemID will probably do
 pub struct FishOnTheLine;
 
 #[derive(Component, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -523,3 +524,56 @@ pub struct SelectedInventoryItem {
 #[derive(Component, Clone)]
 #[storage(VecStorage)]
 pub struct AttackBonus(pub i32);
+
+#[derive(Component)]
+#[storage(NullStorage)]
+pub struct GameAction;
+
+#[derive(Component)]
+#[storage(VecStorage)]
+pub struct FishingMinigame {
+    pub cursor: Cursor,
+    pub goal_bar: GoalBar,
+}
+
+pub struct Cursor {
+    /// The precise location of the cursor in the world
+    pub position: f32,
+    /// Speed = blocks per sec
+    pub speed: f32,
+}
+
+impl Cursor {
+    pub fn new(speed: f32) -> Self {
+        Self {
+            position: 0.0,
+            speed,
+        }
+    }
+
+    /// Where the cursor is on the bar
+    pub fn bar_position(&self) -> usize {
+        self.position.trunc() as usize
+    }
+}
+
+pub struct GoalBar {
+    /// Index at which the goal is located at
+    pub goal: usize,
+    /// Size of the goals
+    pub goal_width: usize,
+    /// The width of the goal bar
+    pub bar_width: usize,
+}
+
+impl Display for GoalBar {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut bar =
+            "#[white]".to_string() + &(0..self.bar_width).map(|_| " ").collect::<String>() + "#[]";
+        let goal_str = "#[orange]".to_string()
+            + &(0..self.goal_width).map(|_| " ").collect::<String>()
+            + "#[]";
+        bar.replace_range(self.goal + 6..self.goal + goal_str.len() + 6, &goal_str);
+        write!(f, "{}", bar)
+    }
+}
