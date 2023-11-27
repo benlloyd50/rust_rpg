@@ -51,6 +51,7 @@ pub fn initialize_game_world(ecs: &mut World) {
     {
         let mut item_spawner = ecs.write_resource::<ItemSpawner>();
         item_spawner.request(ItemID(201), SpawnType::InBag(player_entity));
+        // item_spawner.request(ItemID(100), SpawnType::InBag(greg));
     }
 
     build_being("Bahhhby", Position::new(5, 15), ecs).ok();

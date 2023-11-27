@@ -4,7 +4,7 @@ use crate::ui::message_log::MessageLog;
 use std::time::Duration;
 
 use being::{
-    check_monster_ready, GoalFindEntities, GoalMoveToEntities, HandleMoveActions,
+    GoalFindEntities, GoalMoveToEntities, HandleMoveActions,
     RandomMonsterMovementSystem,
 };
 use bracket_terminal::prelude::*;
@@ -105,7 +105,6 @@ pub struct State {
 
 impl State {
     fn run_response_systems(&mut self) {
-        turn_counter_incr(&mut self.ecs);
         let mut randomwalker = RandomMonsterMovementSystem;
         randomwalker.run_now(&self.ecs);
         let mut find_goals = GoalFindEntities;
@@ -182,7 +181,6 @@ impl State {
 /// Defines the app's state for the game
 #[derive(Clone, Copy)]
 pub enum AppState {
-    InMenu,
     InGame,
     ActivityBound { response_delay: Duration }, // can only perform a specific acitivity that is currently happening
     GameStartup,
@@ -219,10 +217,7 @@ impl GameState for State {
                 let mut item_spawner = ItemSpawnerSystem;
                 item_spawner.run_now(&self.ecs);
                 new_state = AppState::InGame;
-                info!("Switching to ingame state");
-            }
-            AppState::InMenu => {
-                todo!("player input will control the menu, when menus are implemented")
+                info!("Game startup finished. Switching to ingame state");
             }
             AppState::InGame => {
                 match manage_player_input(&mut self.ecs, ctx) {
@@ -230,6 +225,7 @@ impl GameState for State {
                         // Player hasn't done anything yet so only run essential systems
                     }
                     PlayerResponse::TurnAdvance => {
+                        turn_counter_incr(&mut self.ecs);
                         self.run_response_systems();
                     }
                     PlayerResponse::StateChange(delta_state) => {
@@ -259,26 +255,24 @@ impl GameState for State {
                         handle_two_item_actions(&mut self.ecs, &second_item);
                         let mut craft_system = HandleCraftingSystem;
                         craft_system.run_now(&self.ecs);
-                        let mut item_spawner = ItemSpawnerSystem;
-                        item_spawner.run_now(&self.ecs);
-                        let mut zero_qty_item_cleanup = ZeroQtyItemCleanup;
-                        zero_qty_item_cleanup.run_now(&self.ecs);
                     }
                     InventoryResponse::StateChange(delta_state) => {
                         new_state = delta_state;
                     }
                 }
+                let mut item_spawner = ItemSpawnerSystem;
+                item_spawner.run_now(&self.ecs);
+                let mut zero_qty_item_cleanup = ZeroQtyItemCleanup;
+                zero_qty_item_cleanup.run_now(&self.ecs);
             }
-            AppState::ActivityBound { mut response_delay } => {
+            AppState::ActivityBound { response_delay } => {
                 check_player_activity_input(&mut self.ecs, ctx);
-                // if the player finishes we run final systems and change state
                 self.run_continuous_systems(ctx);
+
                 new_state = if check_player_finished(&mut self.ecs) {
-                    AppState::InGame
-                } else if check_monster_ready(&self.ecs, &mut response_delay) {
-                    // if the monster delay timer is past its due then monsters do their thing
+                    turn_counter_incr(&mut self.ecs);
                     self.run_response_systems();
-                    AppState::activity_bound()
+                    AppState::InGame
                 } else {
                     AppState::ActivityBound { response_delay }
                 };

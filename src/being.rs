@@ -1,12 +1,10 @@
-use std::time::Duration;
-
 use bracket_random::prelude::RandomNumberGenerator;
 use bracket_terminal::prelude::Point;
 use log::info;
 use pathfinding::prelude::astar;
 use specs::{
-    shred::PanicHandler, Entities, Entity, Join, ReadExpect, ReadStorage, System, World, WorldExt,
-    Write, WriteExpect, WriteStorage,
+    shred::PanicHandler, Entities, Entity, Join, ReadExpect, ReadStorage,
+    Write, WriteExpect, WriteStorage, System,
 };
 
 use crate::{
@@ -15,7 +13,6 @@ use crate::{
     },
     data_read::ENTITY_DB,
     map::{distance, is_goal, successors, Map, TileEntity},
-    time::DeltaTime,
     ui::message_log::MessageLog,
 };
 
@@ -83,16 +80,6 @@ fn say_random_quip(name: &Name, log: &mut Write<MessageLog, PanicHandler>) {
             log.enhance(quip)
         }
     }
-}
-
-const MONSTER_ACTION_DELAY: Duration = Duration::from_secs(1);
-
-/// Delays all monster entities from moving while player is activity bound
-pub fn check_monster_ready(ecs: &World, monster_delay: &mut Duration) -> bool {
-    let delta_time = ecs.read_resource::<DeltaTime>();
-    *monster_delay = monster_delay.checked_add(delta_time.0).unwrap();
-
-    *monster_delay >= MONSTER_ACTION_DELAY
 }
 
 pub struct GoalFindEntities;

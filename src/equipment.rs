@@ -53,7 +53,6 @@ impl<'a> System<'a> for EquipActionHandler {
             match equippeds.get(equip.item) {
                 Some(_) => {
                     // if the item is, then just remove
-                    println!("unequipped");
                     equippeds.remove(equip.item);
                 }
                 None => {
@@ -61,7 +60,6 @@ impl<'a> System<'a> for EquipActionHandler {
                     if !can_equip {
                         continue;
                     }
-                    println!("equipped");
                     let _ = equippeds.insert(equip.item, Equipped { on: equipper });
                 }
             }
