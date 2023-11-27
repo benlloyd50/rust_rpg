@@ -4,11 +4,11 @@ use specs::World;
 use crate::{
     config::InventoryConfig,
     inventory::{check_inventory_selection, SelectionStatus},
-    AppState, CL_TEXT,
+    AppState, CL_EFFECTS, CL_EFFECTS2, CL_TEXT,
 };
 
 use self::{
-    fishing::draw_fishing,
+    fishing::draw_fishing_bar,
     inventory::draw_inventory,
     message_log::{draw_message_log, draw_turn_counter},
     use_menu::draw_use_menu,
@@ -22,6 +22,8 @@ mod use_menu;
 
 pub fn draw_ui(ecs: &World, appstate: &AppState, cfg: &InventoryConfig) {
     let mut draw_batch = DrawBatch::new();
+    draw_batch.target(CL_EFFECTS).cls();
+    draw_batch.target(CL_EFFECTS2).cls();
     draw_batch.target(CL_TEXT).cls();
 
     draw_message_log(&mut draw_batch, ecs);
@@ -35,7 +37,7 @@ pub fn draw_ui(ecs: &World, appstate: &AppState, cfg: &InventoryConfig) {
             }
         }
         AppState::ActivityBound { .. } => {
-            draw_fishing(&mut draw_batch, ecs);
+            draw_fishing_bar(&mut draw_batch, ecs);
         }
         _ => {}
     }

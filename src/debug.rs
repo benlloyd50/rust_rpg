@@ -15,7 +15,7 @@ use crate::{
     CL_INTERACTABLES, CL_TEXT, CL_WORLD,
 };
 
-const CLEAR: RGBA = RGBA {
+pub const CLEAR: RGBA = RGBA {
     r: 0.0,
     g: 0.0,
     b: 0.0,

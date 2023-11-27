@@ -4,7 +4,7 @@ use crate::ui::message_log::MessageLog;
 use std::time::Duration;
 
 use being::{
-    check_monster_delay, GoalFindEntities, GoalMoveToEntities, HandleMoveActions,
+    check_monster_ready, GoalFindEntities, GoalMoveToEntities, HandleMoveActions,
     RandomMonsterMovementSystem,
 };
 use bracket_terminal::prelude::*;
@@ -48,7 +48,7 @@ mod z_order;
 use tile_animation::TileAnimationCleanUpSystem;
 mod time;
 use player::{
-    check_player_activity, check_player_activity_input, manage_player_input, PlayerResponse,
+    check_player_activity_input, check_player_finished, manage_player_input, PlayerResponse,
 };
 mod map;
 use map::Map;
@@ -92,7 +92,9 @@ pub const DISPLAY_HEIGHT: usize = 30;
 // Double for size of ui since it's scaled down
 
 // CL - Console layer, represents the indices for each console
-pub const CL_TEXT: usize = 2; // Used for UI
+pub const CL_EFFECTS2: usize = 3; // Used for special effect tiles on top of other effects
+pub const CL_EFFECTS: usize = 2; // Used for special effect tiles
+pub const CL_TEXT: usize = 4; // Used for UI
 pub const CL_WORLD: usize = 0; // Used for terrain tiles
 pub const CL_INTERACTABLES: usize = 1; // Used for the few or so moving items/entities on screen
 
@@ -103,6 +105,7 @@ pub struct State {
 
 impl State {
     fn run_response_systems(&mut self) {
+        turn_counter_incr(&mut self.ecs);
         let mut randomwalker = RandomMonsterMovementSystem;
         randomwalker.run_now(&self.ecs);
         let mut find_goals = GoalFindEntities;
@@ -227,7 +230,6 @@ impl GameState for State {
                         // Player hasn't done anything yet so only run essential systems
                     }
                     PlayerResponse::TurnAdvance => {
-                        turn_counter_incr(&mut self.ecs);
                         self.run_response_systems();
                     }
                     PlayerResponse::StateChange(delta_state) => {
@@ -271,9 +273,9 @@ impl GameState for State {
                 check_player_activity_input(&mut self.ecs, ctx);
                 // if the player finishes we run final systems and change state
                 self.run_continuous_systems(ctx);
-                new_state = if check_player_activity(&mut self.ecs) {
+                new_state = if check_player_finished(&mut self.ecs) {
                     AppState::InGame
-                } else if check_monster_delay(&self.ecs, &mut response_delay) {
+                } else if check_monster_ready(&self.ecs, &mut response_delay) {
                     // if the monster delay timer is past its due then monsters do their thing
                     self.run_response_systems();
                     AppState::activity_bound()
@@ -286,11 +288,11 @@ impl GameState for State {
         }
 
         // Essential Systems ran every frame
+        update_fancy_positions(&self.ecs);
         delta_time_update(&mut self.ecs, ctx);
         self.ecs.maintain();
 
         draw_ui(&self.ecs, &new_state, &self.cfg.inventory);
-        update_fancy_positions(&self.ecs);
         draw_sprite_layers(&self.ecs);
         render_draw_buffer(ctx).expect("Render error??");
         debug_info(ctx, &self.ecs, &self.cfg.inventory);
@@ -310,12 +312,14 @@ impl TurnCounter {
 }
 
 embedded_resource!(TILE_FONT, "../resources/interactable_tiles.png");
+embedded_resource!(TILE_EFFECT, "../resources/effects_tiles.png");
 embedded_resource!(CHAR_FONT, "../resources/terminal8x8.png");
 embedded_resource!(TERRAIN_FOREST, "../resources/terrain_forest.png");
 embedded_resource!(LEVEL_0, "../resources/ldtk/rpg_world_v1.ldtk");
 
 fn main() -> BError {
     link_resource!(TILE_FONT, "resources/interactable_tiles.png");
+    link_resource!(TILE_EFFECT, "resources/effects_tiles.png");
     link_resource!(CHAR_FONT, "resources/terminal8x8.png");
     link_resource!(TERRAIN_FOREST, "resources/terrain_forest.png");
     link_resource!(LEVEL_0, "../resources/ldtk/rpg_world_v1.ldtk");
@@ -331,16 +335,21 @@ fn main() -> BError {
     let context = BTermBuilder::new()
         .with_title("Tile RPG")
         .with_fps_cap(60.0)
+        .with_font("effects_tiles.png", 8u32, 8u32)
         .with_font("terminal8x8.png", 8u32, 8u32)
         .with_font("interactable_tiles.png", 8u32, 8u32)
         .with_font("terrain_forest.png", 8u32, 8u32)
         .with_dimensions(160, 120)
         .with_simple_console(DISPLAY_WIDTH, DISPLAY_HEIGHT, "terrain_forest.png")
         .with_fancy_console(DISPLAY_WIDTH, DISPLAY_HEIGHT, "interactable_tiles.png")
+        .with_fancy_console(DISPLAY_WIDTH, DISPLAY_HEIGHT, "effects_tiles.png")
+        .with_fancy_console(DISPLAY_WIDTH, DISPLAY_HEIGHT, "effects_tiles.png")
         .with_fancy_console(DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2, "terminal8x8.png")
         .build()?;
 
-    register_palette_color("orange", RGB::from_u8(209, 95, 38));
+    register_palette_color("orange", RGB::from_u8(230, 113, 70));
+    register_palette_color("red", RGB::from_u8(183, 65, 50));
+    register_palette_color("bright_green", RGB::from_u8(52, 156, 88));
     register_palette_color("white", RGB::from_u8(222, 222, 222));
     register_palette_color("lightgray", RGB::from_u8(161, 161, 161));
 

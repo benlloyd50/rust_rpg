@@ -165,7 +165,7 @@ fn switch_interaction_mode(ecs: &mut World) {
 
 /// Checks if the main player entity has a FinishedActivity component on it so we can return to
 /// InGame state. Will not work nicely if we have multiple player entities, which we shouldn't ever
-pub fn check_player_activity(ecs: &mut World) -> bool {
+pub fn check_player_finished(ecs: &mut World) -> bool {
     let players = ecs.read_storage::<Player>();
     let mut finished_activities = ecs.write_storage::<FinishedActivity>();
     (&players, &mut finished_activities).join().next().is_some()

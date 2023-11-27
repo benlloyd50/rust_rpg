@@ -7,7 +7,7 @@ use specs::{World, WorldExt};
 
 use crate::{
     colors::{INVENTORY_BACKGROUND, INVENTORY_OUTLINE},
-    TurnCounter,
+    TurnCounter, CL_TEXT,
 };
 
 use super::drawing::AccentBox;
@@ -15,6 +15,7 @@ use super::drawing::AccentBox;
 pub(crate) fn draw_message_log(draw_batch: &mut DrawBatch, ecs: &World) {
     let log = ecs.fetch::<MessageLog>();
 
+    draw_batch.target(CL_TEXT);
     draw_batch.draw_accent_box(
         Rect::with_size(-1, 50, 70, 10),
         ColorPair::new(INVENTORY_OUTLINE, INVENTORY_BACKGROUND),
@@ -32,6 +33,7 @@ pub(crate) fn draw_message_log(draw_batch: &mut DrawBatch, ecs: &World) {
 
 pub fn draw_turn_counter(draw_batch: &mut DrawBatch, ecs: &World) {
     let turn_counter = ecs.read_resource::<TurnCounter>();
+    draw_batch.target(CL_TEXT);
     draw_batch.draw_accent_box(
         Rect::with_size(0, 1, 6 + turn_counter.0.to_string().len(), 2),
         ColorPair::new(INVENTORY_OUTLINE, INVENTORY_BACKGROUND),

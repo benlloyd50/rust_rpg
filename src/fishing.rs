@@ -2,8 +2,8 @@ use std::time::Duration;
 
 use crate::{
     components::{
-        Cursor, DeleteCondition, FinishedActivity, FishAction, FishOnTheLine, Fishable,
-        FishingMinigame, GameAction, GoalBar, Name, Renderable, WaitingForFish, Water,
+        DeleteCondition, FinishedActivity, FishAction, FishOnTheLine, Fishable, FishingMinigame,
+        GameAction, Name, Renderable, WaitingForFish, Water,
     },
     game_init::PlayerEntity,
     items::{ItemID, ItemSpawner, SpawnType},
@@ -133,6 +133,7 @@ impl<'a> System<'a> for WaitingForFishSystem {
                             bar_width: 18,
                             goal_width: 3,
                         },
+                        attempts_left: 3,
                     },
                 );
             } else {
@@ -195,21 +196,30 @@ impl<'a> System<'a> for FishingMinigameCheck {
     type SystemData = (
         WriteStorage<'a, GameAction>,
         WriteStorage<'a, FinishedActivity>,
+        WriteStorage<'a, FishingMinigame>,
+        WriteStorage<'a, FishOnTheLine>,
+        Write<'a, MessageLog>,
         Read<'a, PlayerEntity>,
-        ReadStorage<'a, FishOnTheLine>,
-        ReadStorage<'a, FishingMinigame>,
         Entities<'a>,
     );
 
     fn run(
         &mut self,
-        (mut game_actions, mut finished_activities, p_entity,  hooks, minigame, entities): Self::SystemData,
+        (
+            mut game_actions,
+            mut finished_activities,
+            mut minigames,
+            mut hooks,
+            mut log,
+            p_entity,
+            entities,
+        ): Self::SystemData,
     ) {
-        if let Some((fisher, _action, _, game, ())) = (
+        if let Some((fisher, _, _, game, ())) = (
             &entities,
             &game_actions,
             &hooks,
-            &minigame,
+            &mut minigames,
             !&finished_activities,
         )
             .join()
@@ -220,9 +230,18 @@ impl<'a> System<'a> for FishingMinigameCheck {
             let goal = game.goal_bar.goal;
             let goals = (goal..(goal + game.goal_bar.goal_width)).collect::<Vec<usize>>();
             if goals.contains(&idx) {
-                info!("Goal was hit on time");
                 // button was hit on time
+                log.log("#[bright_green]Success!#[]");
                 let _ = finished_activities.insert(fisher, FinishedActivity);
+            } else {
+                log.log("#[orange]Missed#[] the fish zone.");
+                game.attempts_left = game.attempts_left.saturating_sub(1);
+                if game.attempts_left == 0 {
+                    log.log("#[red]Ahhh, the fish got away.#[]");
+                    hooks.remove(fisher);
+                    minigames.remove(fisher);
+                    let _ = finished_activities.insert(fisher, FinishedActivity);
+                }
             }
         }
 
@@ -262,7 +281,8 @@ impl<'a> System<'a> for CatchFishSystem {
 
 pub struct UpdateFishingTiles;
 
-pub const BUBBLE_SPAWN_RATE: usize = 9000;
+// pub const BUBBLE_SPAWN_RATE: usize = 9000;
+pub const BUBBLE_SPAWN_RATE: usize = 1000;
 pub const BUBBLE_LIFETIME_SECS: u64 = 10;
 impl<'a> System<'a> for UpdateFishingTiles {
     type SystemData = (
@@ -277,7 +297,6 @@ impl<'a> System<'a> for UpdateFishingTiles {
         let mut new_bubbles = Vec::new();
         for (_, _, entity) in (!(&fishables), &waters, &entities).join() {
             if rng.range(0, BUBBLE_SPAWN_RATE) < 3 {
-                println!("Oh a new bubble");
                 new_bubbles.push(entity);
             }
         }
@@ -318,4 +337,34 @@ impl<'a> System<'a> for PollFishingTiles {
             fishables.remove(me);
         }
     }
+}
+
+pub struct Cursor {
+    /// The precise location of the cursor in the world
+    pub position: f32,
+    /// Speed = blocks per sec
+    pub speed: f32,
+}
+
+impl Cursor {
+    pub fn new(speed: f32) -> Self {
+        Self {
+            position: 0.0,
+            speed,
+        }
+    }
+
+    /// Where the cursor is on the bar
+    pub fn bar_position(&self) -> usize {
+        self.position.trunc() as usize
+    }
+}
+
+pub struct GoalBar {
+    /// Index at which the goal is located at
+    pub goal: usize,
+    /// Size of the goals
+    pub goal_width: usize,
+    /// The width of the goal bar
+    pub bar_width: usize,
 }

@@ -88,7 +88,7 @@ fn say_random_quip(name: &Name, log: &mut Write<MessageLog, PanicHandler>) {
 const MONSTER_ACTION_DELAY: Duration = Duration::from_secs(1);
 
 /// Delays all monster entities from moving while player is activity bound
-pub fn check_monster_delay(ecs: &World, monster_delay: &mut Duration) -> bool {
+pub fn check_monster_ready(ecs: &World, monster_delay: &mut Duration) -> bool {
     let delta_time = ecs.read_resource::<DeltaTime>();
     *monster_delay = monster_delay.checked_add(delta_time.0).unwrap();
 
