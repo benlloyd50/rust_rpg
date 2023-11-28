@@ -197,10 +197,6 @@ impl Display for Name {
     }
 }
 
-#[derive(Component, Default)]
-#[storage(NullStorage)]
-pub struct Monster;
-
 /// Makes the entity walk around in a random cardinal direction
 #[derive(Component, Default)]
 #[storage(NullStorage)]

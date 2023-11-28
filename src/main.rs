@@ -76,7 +76,7 @@ use crate::{
     components::{
         AttackAction, Blocking, BreakAction, Breakable, DeleteCondition, FinishedActivity,
         FishAction, FishOnTheLine, Fishable, GoalMoverAI, Grass, HealthStats, Interactor, Item,
-        Monster, MoveAction, Name, PickupAction, RandomWalkerAI, Renderable, SelectedInventoryItem,
+        MoveAction, Name, PickupAction, RandomWalkerAI, Renderable, SelectedInventoryItem,
         SufferDamage, Transform, WaitingForFish, Water,
     },
     data_read::initialize_game_databases,
@@ -367,7 +367,6 @@ fn main() -> BError {
     world.register::<DeleteCondition>();
     world.register::<FinishedActivity>();
     world.register::<Name>();
-    world.register::<Monster>();
     world.register::<RandomWalkerAI>();
     world.register::<GoalMoverAI>();
     world.register::<DeathDrop>();

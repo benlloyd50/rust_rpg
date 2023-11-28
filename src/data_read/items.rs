@@ -31,7 +31,7 @@ impl ItemDatabase {
             data: raw_info_db
                 .data
                 .iter()
-                .map(|info| ItemInfo::from(info))
+                .map(|info| ItemInfo::from_raw(info))
                 .collect(),
         }
     }
@@ -72,7 +72,7 @@ pub struct RawConsumable {
 }
 
 impl ItemInfo {
-    fn from(value: &RawItemInfo) -> Self {
+    fn from_raw(value: &RawItemInfo) -> Self {
         Self {
             identifier: value.identifier,
             name: value.name.clone(),

@@ -67,10 +67,7 @@ pub fn initialize_game_databases() {
         from_str(&contents).expect("Bad JSON in world_objs.json fix it");
     game_db.world_objs = world_objs;
 
-    let contents: String = fs::read_to_string("raws/beings.json")
-        .expect("Unable to find beings.json at `raws/beings.json`");
-    let beings: BeingDatabase = from_str(&contents).expect("Bad JSON in beings.json fix it");
-    game_db.beings = beings;
+    game_db.beings = BeingDatabase::load();
 
     ENTITY_DB.lock().unwrap().load(game_db);
     RECIPE_DB.lock().unwrap().load();

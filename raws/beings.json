@@ -3,7 +3,6 @@
         {
             "identifier": 0,
             "name": "Bahhhby",
-            "monster": "",
             "is_blocking": true,
             "ai": { "start_mode": "random_walk"},
             "atlas_index": 16,
@@ -13,7 +12,6 @@
         {
             "identifier": 1,
             "name": "Greg Goat",
-            "monster": "",
             "is_blocking": true,
             "ai": {
                 "start_mode": "goal",
@@ -34,7 +32,6 @@
         {
             "identifier": 2,
             "name": "Orc",
-            "monster": "",
             "is_blocking": true,
             "stats": {
                 "intelligence": 9,
@@ -53,7 +50,6 @@
         {
             "identifier": 3,
             "name": "Fire Wizard",
-            "monster": "",
             "is_blocking": true,
             "stats": {
                 "intelligence": 20,

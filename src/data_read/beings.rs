@@ -1,8 +1,11 @@
+use std::fs;
+
 use serde::Deserialize;
+use serde_json::from_str;
 use specs::{Builder, Entity, World, WorldExt};
 
 use crate::{
-    components::{Blocking, GoalMoverAI, Monster, Name, Position, RandomWalkerAI, Renderable},
+    components::{Blocking, GoalMoverAI, Name, Position, RandomWalkerAI, Renderable},
     stats::EntityStatsBuilder,
     z_order::BEING_Z,
 };
@@ -18,7 +21,6 @@ pub struct BeingDatabase {
 pub struct Being {
     pub(crate) identifier: BeingID,
     pub(crate) name: String,
-    pub(crate) monster: Option<String>,
     pub(crate) ai: Option<AIDefinition>,
     pub(crate) is_blocking: bool,
     pub(crate) atlas_index: u8,
@@ -40,6 +42,13 @@ pub struct BeingID(pub u32);
 impl BeingDatabase {
     pub(crate) fn empty() -> Self {
         Self { data: Vec::new() }
+    }
+    
+    pub fn load() -> Self {
+        let contents: String = fs::read_to_string("raws/beings.json")
+            .expect("Unable to find beings.json at `raws/beings.json`");
+        let beings: BeingDatabase = from_str(&contents).expect("Bad JSON in beings.json fix it");
+        beings
     }
 
     pub fn get_by_name(&self, name: &String) -> Option<&Being> {
@@ -73,10 +82,6 @@ pub fn build_being(
         .with(Name::new(&raw.name))
         .with(pos)
         .with(Renderable::default_bg(raw.atlas_index, raw.fg, BEING_Z));
-
-    if raw.monster.is_some() {
-        builder = builder.with(Monster);
-    }
 
     if raw.is_blocking {
         builder = builder.with(Blocking);
