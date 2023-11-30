@@ -43,7 +43,7 @@ impl BeingDatabase {
     pub(crate) fn empty() -> Self {
         Self { data: Vec::new() }
     }
-    
+
     pub fn load() -> Self {
         let contents: String = fs::read_to_string("raws/beings.json")
             .expect("Unable to find beings.json at `raws/beings.json`");

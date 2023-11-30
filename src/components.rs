@@ -19,6 +19,14 @@ pub struct Renderable {
     pub z_priority: u32,
 }
 
+/// Marking an entity with this means that it will continue to exist when a level switch changes.
+/// This ensures certain things continue as normal since not all entities should be destroyed.
+/// These are the entities that should be persistent at all times:
+/// Player, Items with InBag that have owner == player, Camera
+#[derive(Component)]
+#[storage(NullStorage)]
+pub struct Persistent;
+
 impl Renderable {
     pub fn new(fg: (u8, u8, u8), bg: (u8, u8, u8), atlas_index: u8, z_priority: u32) -> Self {
         Self {
@@ -80,6 +88,10 @@ impl Position {
     pub fn to_point(self) -> Point {
         Point::new(self.x, self.y)
     }
+
+    pub const fn zero() -> Self {
+        Self { x: 0, y: 0 }
+    }
 }
 
 impl From<Point> for Position {
@@ -87,6 +99,15 @@ impl From<Point> for Position {
     /// proper context. i.e. dont use this when dealing with delta point values (-1, -1)
     fn from(value: Point) -> Self {
         Self::new(value.x as usize, value.y as usize)
+    }
+}
+
+impl From<(usize, usize)> for Position {
+    fn from(value: (usize, usize)) -> Self {
+        Self {
+            x: value.0,
+            y: value.1,
+        }
     }
 }
 

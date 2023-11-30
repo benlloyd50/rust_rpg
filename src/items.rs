@@ -62,6 +62,16 @@ impl ItemSpawner {
         }
     }
 
+    pub fn request_named(&mut self, name: &str, spawn_type: SpawnType) {
+        let edb = &ENTITY_DB.lock().unwrap();
+        let id = edb.items.get_by_name(name).unwrap().identifier;
+        self.requests.push(ItemSpawnRequest {
+            id,
+            qty: ItemQty(1),
+            spawn_type,
+        });
+    }
+
     pub fn request(&mut self, id: ItemID, spawn_type: SpawnType) {
         self.requests.push(ItemSpawnRequest {
             id,

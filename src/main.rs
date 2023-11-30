@@ -1,12 +1,10 @@
+use crate::game_init::{load_map, cleanup_old_map, move_player_to};
 use crate::logger::create_logger;
 use crate::ui::draw_ui;
 use crate::ui::message_log::MessageLog;
 use std::time::Duration;
 
-use being::{
-    GoalFindEntities, GoalMoveToEntities, HandleMoveActions,
-    RandomMonsterMovementSystem,
-};
+use being::{GoalFindEntities, GoalMoveToEntities, HandleMoveActions, RandomMonsterMovementSystem};
 use bracket_terminal::prelude::*;
 use combat::{AttackActionHandler, HealActionHandler};
 use config::ConfigMaster;
@@ -14,9 +12,9 @@ use crafting::HandleCraftingSystem;
 use debug::{debug_info, debug_input};
 use draw_sprites::{draw_sprite_layers, update_fancy_positions};
 use equipment::EquipActionHandler;
-use game_init::initialize_game_world;
+use game_init::initialize_new_game_world;
 use items::{ConsumeHandler, ItemPickupHandler, ItemSpawnerSystem, ZeroQtyItemCleanup};
-use log::{error, info, warn};
+use log::{debug, error, info, warn};
 use mining::{DamageSystem, RemoveDeadTiles, TileDestructionSystem};
 use specs::prelude::*;
 
@@ -70,7 +68,7 @@ use time::delta_time_update;
 use crate::components::{
     AttackBonus, Consumable, ConsumeAction, CraftAction, DeathDrop, EntityStats, EquipAction,
     Equipable, EquipmentSlots, Equipped, FishingMinigame, GameAction, HealAction, InBag,
-    ItemContainer,
+    ItemContainer, Persistent,
 };
 use crate::{
     components::{
@@ -90,13 +88,6 @@ use crate::{
 pub const DISPLAY_WIDTH: usize = 40;
 pub const DISPLAY_HEIGHT: usize = 30;
 // Double for size of ui since it's scaled down
-
-// CL - Console layer, represents the indices for each console
-pub const CL_EFFECTS2: usize = 3; // Used for special effect tiles on top of other effects
-pub const CL_EFFECTS: usize = 2; // Used for special effect tiles
-pub const CL_TEXT: usize = 4; // Used for UI
-pub const CL_WORLD: usize = 0; // Used for terrain tiles
-pub const CL_INTERACTABLES: usize = 1; // Used for the few or so moving items/entities on screen
 
 pub struct State {
     ecs: World,
@@ -179,11 +170,12 @@ impl State {
 }
 
 /// Defines the app's state for the game
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub enum AppState {
+    GameStartup,
+    MapChange { level_name: String, player_world_pos: Position},
     InGame,
     ActivityBound { response_delay: Duration }, // can only perform a specific acitivity that is currently happening
-    GameStartup,
     PlayerInInventory,
 }
 
@@ -206,14 +198,14 @@ impl GameState for State {
         let mut new_state: AppState;
         {
             // this is in a new scope because we need to mutate self (the ecs) later in the fn
-            let current_state = self.ecs.fetch::<AppState>();
-            new_state = *current_state;
+            let current_state = self.ecs.fetch_mut::<AppState>();
+            new_state = current_state.clone();
         }
 
         match new_state {
             AppState::GameStartup => {
                 info!("Game startup occured");
-                initialize_game_world(&mut self.ecs);
+                initialize_new_game_world(&mut self.ecs, ctx);
                 let mut item_spawner = ItemSpawnerSystem;
                 item_spawner.run_now(&self.ecs);
                 new_state = AppState::InGame;
@@ -279,6 +271,13 @@ impl GameState for State {
 
                 self.run_eof_systems();
             }
+            AppState::MapChange { level_name, player_world_pos } => {
+                debug!("going to {}", level_name);
+                cleanup_old_map(&mut self.ecs);
+                load_map(&level_name, &mut self.ecs, ctx);
+                move_player_to(&player_world_pos, &mut self.ecs);
+                new_state = AppState::InGame;
+            }
         }
 
         // Essential Systems ran every frame
@@ -305,18 +304,34 @@ impl TurnCounter {
     }
 }
 
+// CL - Console layer, represents the indices for each console
+pub const CL_EFFECTS2: usize = 3; // Used for special effect tiles on top of other effects
+pub const CL_EFFECTS: usize = 2; // Used for special effect tiles
+pub const CL_TEXT: usize = 4; // Used for UI
+pub const CL_WORLD: usize = 0; // Used for terrain tiles
+pub const CL_INTERACTABLES: usize = 1; // Used for the few or so moving items/entities on screen
+
+// FONTS - the indices are based on the order the fonts are added in the context init
+pub const FONT_EFFECTS: usize = 0;
+pub const FONT_TEXT: usize = 1;
+pub const FONT_INTERACTABLES: usize = 2;
+pub const FONT_TERRAIN_FOREST: usize = 3;
+pub const FONT_TERRAIN_TOWN_FOREST: usize = 4;
+
 embedded_resource!(TILE_FONT, "../resources/interactable_tiles.png");
 embedded_resource!(TILE_EFFECT, "../resources/effects_tiles.png");
 embedded_resource!(CHAR_FONT, "../resources/terminal8x8.png");
 embedded_resource!(TERRAIN_FOREST, "../resources/terrain_forest.png");
-embedded_resource!(LEVEL_0, "../resources/ldtk/rpg_world_v1.ldtk");
+embedded_resource!(TERRAIN_TOWN_FOREST, "../resources/terrain_town_forest.png");
+embedded_resource!(LDTK_WORLD, "../resources/ldtk/rpg_world_v2.ldtk");
 
 fn main() -> BError {
     link_resource!(TILE_FONT, "resources/interactable_tiles.png");
     link_resource!(TILE_EFFECT, "resources/effects_tiles.png");
     link_resource!(CHAR_FONT, "resources/terminal8x8.png");
     link_resource!(TERRAIN_FOREST, "resources/terrain_forest.png");
-    link_resource!(LEVEL_0, "../resources/ldtk/rpg_world_v1.ldtk");
+    link_resource!(TERRAIN_TOWN_FOREST, "resources/terrain_town_forest.png");
+    link_resource!(LDTK_WORLD, "../resources/ldtk/rpg_world_v2.ldtk");
 
     create_logger();
     info!("Info will be tracked in this file.");
@@ -333,6 +348,7 @@ fn main() -> BError {
         .with_font("terminal8x8.png", 8u32, 8u32)
         .with_font("interactable_tiles.png", 8u32, 8u32)
         .with_font("terrain_forest.png", 8u32, 8u32)
+        .with_font("terrain_town_forest.png", 8u32, 8u32)
         .with_dimensions(160, 120)
         .with_simple_console(DISPLAY_WIDTH, DISPLAY_HEIGHT, "terrain_forest.png")
         .with_fancy_console(DISPLAY_WIDTH, DISPLAY_HEIGHT, "interactable_tiles.png")
@@ -391,6 +407,7 @@ fn main() -> BError {
     world.register::<HealAction>();
     world.register::<GameAction>();
     world.register::<FishingMinigame>();
+    world.register::<Persistent>();
 
     // Resource Initialization, the ECS needs a basic definition of every resource that will be in the game
     world.insert(AppState::GameStartup);

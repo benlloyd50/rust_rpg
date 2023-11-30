@@ -9,11 +9,19 @@ pub struct Map {
     pub tile_entities: Vec<Vec<TileEntity>>,
     pub width: usize,
     pub height: usize,
+    pub world_coords: Position,
+    pub tile_atlas_index: usize,
 }
 
 #[derive(Clone)]
 pub struct WorldTile {
     pub atlas_index: usize,
+}
+
+impl WorldTile {
+    pub fn default() -> Self {
+        Self { atlas_index: 4 }
+    }
 }
 
 /// Defines the type of entity existing in a tile for quick lookup and action handling
@@ -42,12 +50,6 @@ impl TileEntity {
     }
 }
 
-impl WorldTile {
-    pub fn default() -> Self {
-        Self { atlas_index: 4 }
-    }
-}
-
 impl Map {
     pub fn empty() -> Self {
         Self {
@@ -55,20 +57,32 @@ impl Map {
             tile_entities: vec![],
             width: 0,
             height: 0,
+            world_coords: Position::zero(),
+            tile_atlas_index: 0,
         }
     }
 
-    pub fn new(width: usize, height: usize) -> Self {
+    pub fn new(width: usize, height: usize, world_coords: (usize, usize)) -> Self {
         Map {
             tiles: vec![WorldTile::default(); width * height],
             tile_entities: vec![vec![]; width * height],
             width,
             height,
+            world_coords: world_coords.into(),
+            tile_atlas_index: 0,
         }
     }
 
     pub fn xy_to_idx(&self, x: usize, y: usize) -> usize {
         xy_to_idx_given_width(x, y, self.width)
+    }
+    
+    pub fn world_x(&self) -> usize {
+        self.world_coords.x
+    }
+
+    pub fn world_y(&self) -> usize {
+        self.world_coords.y
     }
 
     /// Gets all the entities in the tile that are an item.
@@ -100,7 +114,7 @@ impl Map {
     }
 
     pub fn in_bounds(&self, pos: Point) -> bool {
-        pos.x > 0 && pos.x < self.width as i32 && pos.y > 0 && pos.y < self.height as i32
+        pos.x >= 0 && pos.x < self.width as i32 && pos.y >= 0 && pos.y < self.height as i32
     }
 }
 
@@ -148,19 +162,11 @@ pub fn render_map(ecs: &World, batch: &mut DrawBatch) {
                 xy_to_idx_given_width(0, 2, 16)
             };
 
-            let batch_x = if x > 0 {
-                x + (-bounding_box.x1)
-            } else {
-                x - bounding_box.x1
-            };
-            let batch_y = if y > 0 {
-                y + (-bounding_box.y1)
-            } else {
-                y - bounding_box.y1
-            };
+            let screen_x = x - bounding_box.x1;
+            let screen_y = y - bounding_box.y1;
 
             batch.set(
-                Point::new(batch_x, batch_y),
+                Point::new(screen_x, screen_y),
                 ColorPair::new(WHITE, BLACK),
                 atlas_index,
             );

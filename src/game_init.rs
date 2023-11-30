@@ -1,19 +1,20 @@
-use bracket_terminal::prelude::BLACK;
+use bracket_terminal::prelude::{BTerm, BLACK};
+use ldtk_map::prelude::DesignMap;
 use log::debug;
-use specs::{Builder, Entity, World, WorldExt};
+use specs::{Builder, Entity, World, WorldExt, Join};
 
 pub const WHITE: (u8, u8, u8) = (255, 255, 255);
 
 use crate::{
     components::{
         EquipmentSlots, Interactor, InteractorMode, ItemContainer, Name, Position, Renderable,
-        Transform,
+        Transform, Persistent,
     },
-    data_read::prelude::{build_being, load_simple_ldtk_level},
+    data_read::prelude::{build_being, create_map, LDTK_FILE},
     items::{ItemID, ItemSpawner, SpawnType},
     player::Player,
     stats::get_random_stats,
-    z_order::PLAYER_Z,
+    z_order::PLAYER_Z, CL_WORLD, map::Map,
 };
 
 /// A convienent resource to access the entity associated with the player
@@ -25,17 +26,17 @@ impl Default for PlayerEntity {
     }
 }
 
-pub fn initialize_game_world(ecs: &mut World) {
+const LEVEL_ZERO: &str = "Level_0";
+
+pub fn initialize_new_game_world(ecs: &mut World, ctx: &mut BTerm) {
     debug!("startup: map loading");
-    let map = load_simple_ldtk_level(ecs);
-    ecs.insert(map);
+    load_map(LEVEL_ZERO, ecs, ctx);
     debug!("startup: map loaded");
 
     let player_stats = get_random_stats();
     let player_entity = ecs
         .create_entity()
         .with(Position::new(67, 30))
-        // .with(Transform::new(13f32, 13f32, 0f32, 1.0, 1.0))
         .with(Interactor::new(InteractorMode::Reactive))
         .with(Player)
         .with(ItemContainer::new(10))
@@ -44,6 +45,7 @@ pub fn initialize_game_world(ecs: &mut World) {
         .with(player_stats.set.get_health_stats())
         .with(Renderable::new(WHITE, BLACK, 2, PLAYER_Z))
         .with(Name("Player".to_string()))
+        .with(Persistent)
         .build();
     ecs.insert(PlayerEntity(player_entity));
     debug!("startup: player loaded");
@@ -51,7 +53,6 @@ pub fn initialize_game_world(ecs: &mut World) {
     {
         let mut item_spawner = ecs.write_resource::<ItemSpawner>();
         item_spawner.request(ItemID(201), SpawnType::InBag(player_entity));
-        // item_spawner.request(ItemID(100), SpawnType::InBag(greg));
     }
 
     build_being("Bahhhby", Position::new(5, 15), ecs).ok();
@@ -59,4 +60,45 @@ pub fn initialize_game_world(ecs: &mut World) {
     let mut transforms = ecs.write_storage::<Transform>();
     let _ = transforms.insert(greg, Transform::new(12.0, 19.0, 0.0, 1.0, 1.0));
     debug!("startup: sample beings loaded");
+}
+
+pub fn cleanup_old_map(ecs: &mut World) {
+    let mut remove_me = Vec::new();
+    {
+        let persistent_objs = ecs.read_storage::<Persistent>();
+        let entities = ecs.entities();
+
+        for (e, _) in (&entities, !&persistent_objs).join() {
+            remove_me.push(e);
+        }
+    }
+
+    let _ = ecs.delete_entities(&remove_me);
+}
+
+pub fn move_player_to(world_pos: &Position, ecs: &mut World) {
+    let mut positions = ecs.write_storage::<Position>();
+    let player_e = ecs.read_resource::<PlayerEntity>();
+    let map = ecs.read_resource::<Map>();
+    let local_pos = Position::new(world_pos.x - map.world_x(), world_pos.y - map.world_y());
+    let _ = positions.insert(player_e.0, local_pos);
+}
+
+pub fn load_map(level: &str, ecs: &mut World, ctx: &mut BTerm) {
+    let map = create_map(ecs, level);
+    ctx.set_active_console(CL_WORLD);
+    ctx.set_active_font(map.tile_atlas_index, false);
+    ecs.insert(map);
+}
+
+pub fn find_next_map(pos: &Position) -> Option<String> {
+    let ldtk_design = DesignMap::load(LDTK_FILE); //note: loads all levels in file
+    ldtk_design
+        .levels()
+        .values()
+        .find(|level| {
+            (level.world_tile_x()..level.world_tile_x() + level.width()).contains(&pos.x)
+                && (level.world_tile_y()..level.world_tile_y() + level.height()).contains(&pos.y)
+        })
+        .and_then(|level| Some(level.name().to_string()))
 }

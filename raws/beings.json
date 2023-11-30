@@ -30,6 +30,14 @@
             "quips": ["Good-natured greg gaily grazes upon the grass from the ground."]
         },
         {
+            "identifier": 3,
+            "name": "Merchant",
+            "is_blocking": true,
+            "atlas_index": 176,
+            "fg": [255, 255, 255],
+            "quips": ["The merchant calls for your attention but you shrug it off."]
+        },
+        {
             "identifier": 2,
             "name": "Orc",
             "is_blocking": true,

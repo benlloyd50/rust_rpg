@@ -3,8 +3,8 @@ use bracket_terminal::prelude::Point;
 use log::info;
 use pathfinding::prelude::astar;
 use specs::{
-    shred::PanicHandler, Entities, Entity, Join, ReadExpect, ReadStorage,
-    Write, WriteExpect, WriteStorage, System,
+    shred::PanicHandler, Entities, Entity, Join, ReadExpect, ReadStorage, System, Write,
+    WriteExpect, WriteStorage,
 };
 
 use crate::{

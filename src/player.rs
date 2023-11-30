@@ -3,7 +3,7 @@ use crate::{
         AttackAction, BreakAction, FinishedActivity, FishAction, GameAction, Interactor,
         InteractorMode, Name, PickupAction,
     },
-    game_init::PlayerEntity,
+    game_init::{find_next_map, PlayerEntity},
     items::inventory_contains,
     map::{Map, TileEntity},
     ui::message_log::MessageLog,
@@ -63,7 +63,17 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) -> PlayerRespons
 
         let map = ecs.fetch::<Map>();
         if !map.in_bounds(target_pos) {
-            return PlayerResponse::Waiting;
+            // NOTE: this is most likely safe to perform because the world_coords will always be
+            // positive and away from (0, 0) thus resulting in a point that is (+, +) which can be converted
+            let new_pt = Point::new(
+                map.world_coords.x as i32 + target_pos.x,
+                map.world_coords.y as i32 + target_pos.y,
+            );
+            let target_world_pos = Position::from(new_pt);
+            return match find_next_map(&target_world_pos) {
+                Some(level_name) => PlayerResponse::StateChange(AppState::MapChange { level_name, player_world_pos: target_world_pos }),
+                None => PlayerResponse::Waiting,
+            };
         }
 
         match map.first_entity_in_pos(&Position::from(target_pos)) {
@@ -73,7 +83,6 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) -> PlayerRespons
                         return PlayerResponse::Waiting;
                     }
                     InteractorMode::Agressive => {
-                        // attack_actions
                         ecs.write_storage::<AttackAction>()
                             .insert(player_entity, AttackAction { target: *blocker })
                             .expect("Attack action could not be added to player entity");

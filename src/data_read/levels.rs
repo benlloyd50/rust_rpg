@@ -3,40 +3,42 @@ use crate::{
     indexing::idx_to_point,
     items::{ItemSpawner, SpawnType},
     map::{Map, WorldTile},
+    FONT_TERRAIN_FOREST, FONT_TERRAIN_TOWN_FOREST,
 };
 use ldtk_map::prelude::*;
-use log::debug;
+use log::{info, debug};
 use specs::{Builder, World, WorldExt};
 
-use super::{
-    prelude::{build_being, build_obj},
-    ENTITY_DB,
-};
+use super::prelude::{build_being, build_obj};
 
-const LEVEL_ZERO: &str = "Level_0";
+pub const LDTK_FILE: &str = "./resources/ldtk/rpg_world_v2.ldtk";
 
-pub fn load_simple_ldtk_level(ecs: &mut World) -> Map {
-    let ldtk_design = DesignMap::load("./resources/ldtk/rpg_world_v1.ldtk");
-    let simple_level = &ldtk_design.levels()[LEVEL_ZERO];
-    let mut map = Map::new(simple_level.width(), simple_level.height());
+pub fn create_map(ecs: &mut World, level_name: &str) -> Map {
+    let ldtk_design = DesignMap::load(LDTK_FILE); //note: loads all levels in file
+    let new_level = &ldtk_design.levels()[level_name];
+    let mut map = Map::new(new_level.width(), new_level.height(), new_level.world_xy());
+    info!("{}", new_level.tileset_name());
+    map.tile_atlas_index = match new_level.tileset_name().to_lowercase().as_str() {
+        "terrain_town_forest" => FONT_TERRAIN_TOWN_FOREST,
+        "terrain_forest" => FONT_TERRAIN_FOREST,
+        _ => FONT_TERRAIN_FOREST,
+    };
 
-    debug!("going into loop");
-    for (idx, tile) in simple_level.level().iter().enumerate() {
+    for (idx, tile) in new_level.level().iter().enumerate() {
         map.tiles[idx] = WorldTile {
             atlas_index: tile.atlas_index(),
         };
 
         if let Some(name) = tile.entity_name() {
             if let Some(tag) = tile.entity_tag() {
+                debug!("spawning in a {}", name);
                 match tag {
                     "Item" => {
-                        let edb = &ENTITY_DB.lock().unwrap();
                         let mut spawner = ecs.write_resource::<ItemSpawner>();
-                        spawner.request(
-                            edb.items.get_by_name(name).unwrap().identifier,
+                        spawner.request_named(
+                            name,
                             SpawnType::OnGround(idx_to_point(idx, map.width).into()),
                         );
-                        // let _ = build_item(name, Some(idx_to_point(idx, map.width).into()), ecs);
                     }
                     "Interactable" => {
                         let _ = build_obj(name, idx_to_point(idx, map.width).into(), ecs);
@@ -53,20 +55,20 @@ pub fn load_simple_ldtk_level(ecs: &mut World) -> Map {
             0 => {}
             1 => {
                 ecs.create_entity()
-                    .with(Position::from_idx(idx, simple_level.width()))
+                    .with(Position::from_idx(idx, new_level.width()))
                     .with(Blocking)
                     .build();
             }
             2 => {
                 ecs.create_entity()
-                    .with(Position::from_idx(idx, simple_level.width()))
+                    .with(Position::from_idx(idx, new_level.width()))
                     .with(Water)
                     .with(Blocking)
                     .build();
             }
             _ => eprintln!(
                 "Value not recognized at {:#?}",
-                idx_to_point(idx, simple_level.width())
+                idx_to_point(idx, new_level.width())
             ),
         };
     }
