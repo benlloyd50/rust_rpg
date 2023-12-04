@@ -1,12 +1,12 @@
 use crate::{
     components::{
-        BreakAction, Breakable, DeathDrop, EntityStats, HealthStats, Name, Position, SufferDamage,
+        BreakAction, Breakable, EntityStats, HealthStats, Name, SufferDamage,
         ToolType,
     },
-    items::{ItemSpawner, SpawnType},
     ui::message_log::MessageLog,
 };
-use specs::{Entities, Entity, Join, LendJoin, ReadStorage, System, Write, WriteStorage};
+use log::{info, error};
+use specs::{Entities, Entity, Join, ReadStorage, System, Write, WriteStorage};
 
 /// Allows tile to be breakable. The tile must contain a breakable and health stats component.
 /// The attacker must contain a strength and have breakactions queued up in their system.
@@ -119,25 +119,21 @@ pub struct RemoveDeadTiles;
 impl<'a> System<'a> for RemoveDeadTiles {
     type SystemData = (
         ReadStorage<'a, HealthStats>,
-        ReadStorage<'a, Position>,
+        ReadStorage<'a, Name>,
         Entities<'a>,
-        ReadStorage<'a, DeathDrop>,
-        Write<'a, ItemSpawner>,
     );
 
-    fn run(&mut self, (breakable, positions, entities, drops, mut item_spawner): Self::SystemData) {
-        for (stats, pos, e, maybe_item) in
-            (&breakable, &positions, &entities, (&drops).maybe()).join()
+    fn run(&mut self, (breakable, names, entities): Self::SystemData) {
+        for (stats, e, name) in
+            (&breakable, &entities, &names).join()
         {
             if stats.hp == 0 {
                 match entities.delete(e) {
                     Ok(..) => {
-                        if let Some(item) = maybe_item {
-                            item_spawner.request(item.0.id, SpawnType::OnGround(*pos));
-                        }
+                        info!("{} is dead and was deleted, items should have spawned if any.", name);
                     }
                     Err(err) => {
-                        eprintln!("Failed to clean up {} : {}", e.id(), err);
+                        error!("Failed to clean up {} : {}", e.id(), err);
                     }
                 }
             }

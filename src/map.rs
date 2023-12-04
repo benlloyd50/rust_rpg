@@ -98,7 +98,7 @@ impl Map {
     pub fn first_entity_in_pos(&self, pos: &Position) -> Option<&TileEntity> {
         self.tile_entities[self.xy_to_idx(pos.x, pos.y)]
             .iter()
-            .min_by_key(|&tile_entity| match tile_entity {
+            .max_by_key(|&tile_entity| match tile_entity {
                 TileEntity::Fishable(_) => 9,
                 TileEntity::Breakable(_) => 15,
                 TileEntity::Item(_) => 19,

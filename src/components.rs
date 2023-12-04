@@ -265,10 +265,6 @@ impl HealthStats {
     }
 }
 
-#[derive(Component)]
-#[storage(VecStorage)]
-pub struct DeathDrop(pub Item);
-
 #[derive(Debug, Component)]
 #[storage(VecStorage)]
 pub struct Breakable {

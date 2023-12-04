@@ -9,7 +9,7 @@ use ldtk_map::prelude::*;
 use log::{info, debug};
 use specs::{Builder, World, WorldExt};
 
-use super::prelude::{build_being, build_obj};
+use super::prelude::{build_being, build_world_obj};
 
 pub const LDTK_FILE: &str = "./resources/ldtk/rpg_world_v2.ldtk";
 
@@ -41,7 +41,7 @@ pub fn create_map(ecs: &mut World, level_name: &str) -> Map {
                         );
                     }
                     "Interactable" => {
-                        let _ = build_obj(name, idx_to_point(idx, map.width).into(), ecs);
+                        let _ = build_world_obj(name, idx_to_point(idx, map.width).into(), ecs);
                     }
                     "Being" => {
                         let _ = build_being(name, idx_to_point(idx, map.width).into(), ecs);

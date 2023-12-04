@@ -32,6 +32,17 @@ pub struct Stats {
 }
 
 impl Stats {
+    pub fn zero() -> Self {
+        Self {
+            intelligence: 0,
+            strength: 0,
+            dexterity: 0,
+            vitality: 0,
+            precision: 0,
+            charisma: 0,
+        }
+    }
+
     pub fn get_total(&self) -> usize {
         self.intelligence
             + self.vitality
@@ -96,11 +107,7 @@ impl EntityStatsBuilder {
         self
     }
 
-    pub fn build(&mut self) -> EntityStats {
-        EntityStats::from(self.stats)
-    }
-
-    pub fn build_health_stats(&mut self) -> HealthStats {
-        self.stats.get_health_stats()
+    pub fn build(&mut self) -> (EntityStats, HealthStats) {
+        (EntityStats::from(self.stats), self.stats.get_health_stats())
     }
 }

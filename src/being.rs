@@ -2,6 +2,7 @@ use bracket_random::prelude::RandomNumberGenerator;
 use bracket_terminal::prelude::Point;
 use log::info;
 use pathfinding::prelude::astar;
+use serde::Deserialize;
 use specs::{
     shred::PanicHandler, Entities, Entity, Join, ReadExpect, ReadStorage, System, Write,
     WriteExpect, WriteStorage,
@@ -13,8 +14,30 @@ use crate::{
     },
     data_read::ENTITY_DB,
     map::{distance, is_goal, successors, Map, TileEntity},
-    ui::message_log::MessageLog,
+    ui::message_log::MessageLog, droptables::Drops, stats::Stats,
 };
+
+pub struct Being {
+    pub(crate) identifier: BeingID,
+    pub(crate) name: String,
+    pub(crate) ai: Option<AIDefinition>,
+    pub(crate) is_blocking: bool,
+    pub(crate) atlas_index: u8,
+    pub(crate) fg: (u8, u8, u8),
+    pub(crate) quips: Option<Vec<String>>,
+    pub(crate) stats: Stats,
+    pub(crate) loot: Option<Drops>,
+}
+
+#[derive(Deserialize, Clone)]
+pub struct AIDefinition {
+    pub(crate) start_mode: String,
+    pub(crate) goals: Option<Vec<String>>,
+    pub(crate) goal_range: Option<usize>,
+}
+
+#[derive(Deserialize, Debug, Copy, Clone)]
+pub struct BeingID(pub u32);
 
 /// Mainly used for early testing but it's somewhat useful
 /// Random Cardinal Directional Movement or RCDM for short
@@ -24,6 +47,7 @@ impl<'a> System<'a> for RandomMonsterMovementSystem {
     type SystemData = (
         WriteStorage<'a, Position>,
         WriteStorage<'a, BreakAction>,
+        WriteStorage<'a, MoveAction>,
         ReadStorage<'a, Name>,
         ReadStorage<'a, RandomWalkerAI>,
         WriteExpect<'a, MessageLog>,
@@ -33,7 +57,7 @@ impl<'a> System<'a> for RandomMonsterMovementSystem {
 
     fn run(
         &mut self,
-        (mut positions, mut break_actions, names, randwalks, mut log, map, entities): Self::SystemData,
+        (mut positions, mut break_actions, mut move_actions, names, randwalks, mut log, map, entities): Self::SystemData,
     ) {
         let mut rng = RandomNumberGenerator::new();
         for (entity, pos, name, _) in (&entities, &mut positions, &names, &randwalks).join() {
@@ -63,12 +87,25 @@ impl<'a> System<'a> for RandomMonsterMovementSystem {
                     TileEntity::Breakable(target) => {
                         let _ = break_actions.insert(entity, BreakAction { target: *target });
                     }
+                    TileEntity::Blocking(_blocker) => {
+                        // maybe try attacking
+                        continue;
+                    }
                     _ => return,
                 }
             }
 
-            pos.x = target_pos.x as usize;
-            pos.y = target_pos.y as usize;
+            let _ = move_actions.insert(entity, MoveAction::new(target_pos.into()));
+
+            // let old_idx = pos.to_idx(map.width);
+            // // this unwrap is safe because the indexing happens first in frame
+            // let remove = map.tile_entities[old_idx].iter().position(|tile| tile == &TileEntity::Blocking(entity)).unwrap();
+            // map.tile_entities[old_idx].remove(remove);
+            //
+            // pos.x = target_pos.x as usize;
+            // pos.y = target_pos.y as usize;
+            // let new_idx = pos.to_idx(map.width);
+            // map.tile_entities[new_idx].push(TileEntity::Blocking(entity));
         }
     }
 }
@@ -207,14 +244,23 @@ impl<'a> System<'a> for GoalMoveToEntities {
     }
 }
 
+// Performs the changes of a move for an entity, this should be called only if the move is valid.
 pub struct HandleMoveActions;
 
 impl<'a> System<'a> for HandleMoveActions {
-    type SystemData = (WriteStorage<'a, MoveAction>, WriteStorage<'a, Position>);
+    type SystemData = (WriteStorage<'a, MoveAction>, WriteStorage<'a, Position>, WriteExpect<'a, Map>, Entities<'a>,);
 
-    fn run(&mut self, (mut move_actions, mut positions): Self::SystemData) {
-        for (want, pos) in (&move_actions, &mut positions).join() {
+    fn run(&mut self, (mut move_actions, mut positions, mut map, entities): Self::SystemData) {
+        for (entity, want, pos) in (&entities, &move_actions, &mut positions).join() {
+            let idx = pos.to_idx(map.width);
+            // this unwrap is safe because the indexing happens first in frame
+            let remove = map.tile_entities[idx].iter().position(|tile| tile == &TileEntity::Blocking(entity)).unwrap();
+            map.tile_entities[idx].remove(remove);
+
             *pos = want.new_pos;
+            
+            let idx = pos.to_idx(map.width);
+            map.tile_entities[idx].push(TileEntity::Blocking(entity));
         }
 
         move_actions.clear();

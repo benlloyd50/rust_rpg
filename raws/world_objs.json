@@ -1,50 +1,51 @@
-{
-    "data": [
-        {
-            "identifier": 11,
-            "name": "Boulder",
-            "atlas_index": 65,
-            "is_blocking": true,
-            "drop_table": [
-                {
-                    "item": "Flint", 
-                    "chance": 1 
-                }
-            ],
-            "breakable": "Hand",
-            "health_stats": {
-                "max_hp" : 3,
-                "defense": 0
-            },
-            "foreground": [255, 255, 255]
+[
+    {
+        "identifier": 11,
+        "name": "Boulder",
+        "atlas_index": 65,
+        "is_blocking": true,
+        "drop_table": [
+            {
+                "item": "Flint", 
+                "chance": 1 
+            }
+        ],
+        "breakable": "Hand",
+        "health_stats": {
+            "max_hp" : 3,
+            "defense": 0
         },
-        {
-            "identifier": 12,
-            "name": "Grass",
-            "atlas_index": 33,
-            "is_blocking": false,
-            "breakable": "Hand",
-            "health_stats": {
-                "max_hp" : 1,
-                "defense": 0
-            },
-            "foreground": [255, 255, 255],
-            "grass": ""
+        "foreground": [255, 255, 255]
+    },
+    {
+        "identifier": 12,
+        "name": "Grass",
+        "atlas_index": 33,
+        "is_blocking": false,
+        "breakable": "Hand",
+        "health_stats": {
+            "max_hp" : 1,
+            "defense": 0
         },
-        {
-            "identifier": 13,
-            "name": "Sapling",
-            "atlas_index": 34,
-            "is_blocking": true,
-            "breakable": "Hand",
-            "health_stats": {
-                "max_hp" : 2,
-                "defense": 0
-            },
-            "foreground": [255, 255, 255],
-            "drop_table": [
-                {"item": "Stick", "chance": 1 }
+        "foreground": [255, 255, 255],
+        "grass": ""
+    },
+    {
+        "identifier": 13,
+        "name": "Sapling",
+        "atlas_index": 34,
+        "is_blocking": true,
+        "breakable": "Hand",
+        "health_stats": {
+            "max_hp" : 2,
+            "defense": 0
+        },
+        "foreground": [255, 255, 255],
+        "loot": {
+            "drop_chance": 100,
+            "loot_table": [
+                {"item": "Stick", "item_qty": "1", "weight": 10 }
             ]
         }
-    ]
-}
+    }
+]

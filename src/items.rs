@@ -12,20 +12,20 @@ use std::{
 
 use log::error;
 use serde::{Deserialize, Serialize};
-use specs::{Entities, Entity, Join, ReadStorage, System, World, WorldExt, Write, WriteStorage};
+use specs::{Entities, Entity, Join, ReadStorage, System, World, WorldExt, Write, WriteStorage, Read};
 
 use crate::{
     components::{
         AttackBonus, Consumable, ConsumeAction, Equipable, HealAction, InBag, Item, Name,
-        PickupAction, Position, Renderable,
+        PickupAction, Position, Renderable, Persistent,
     },
     data_read::prelude::*,
     storage_utils::MaybeInsert,
     ui::message_log::MessageLog,
-    z_order::ITEM_Z,
+    z_order::ITEM_Z, game_init::PlayerEntity,
 };
 
-#[derive(Default, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ItemQty(pub usize);
 
 impl Display for ItemQty {
@@ -115,6 +115,8 @@ impl<'a> System<'a> for ItemSpawnerSystem {
         WriteStorage<'a, Equipable>,
         WriteStorage<'a, AttackBonus>,
         WriteStorage<'a, Consumable>,
+        WriteStorage<'a, Persistent>,
+        Read<'a, PlayerEntity>,
     );
 
     fn run(
@@ -130,6 +132,8 @@ impl<'a> System<'a> for ItemSpawnerSystem {
             mut equipables,
             mut attack_bonus,
             mut consumables,
+            mut persistents,
+            player_entity,
         ): Self::SystemData,
     ) {
         let edb = &ENTITY_DB.lock().unwrap();
@@ -166,6 +170,10 @@ impl<'a> System<'a> for ItemSpawnerSystem {
                         None => {
                             let _ = items.insert(new_item, Item::new(spawn.id, spawn.qty));
                             let _ = inbags.insert(new_item, InBag { owner });
+
+                            if player_entity.0 == owner {
+                                let _ = persistents.insert(new_item, Persistent);
+                            } 
                         }
                     }
                 }
@@ -194,14 +202,16 @@ impl<'a> System<'a> for ItemPickupHandler {
         WriteStorage<'a, PickupAction>,
         WriteStorage<'a, InBag>,
         WriteStorage<'a, Item>,
+        WriteStorage<'a, Persistent>,
         Write<'a, MessageLog>,
+        Read<'a, PlayerEntity>,
         ReadStorage<'a, Name>,
         Entities<'a>,
     );
 
     fn run(
         &mut self,
-        (mut positions, mut pickup_actions, mut inbags, mut items, mut log, names, entities): Self::SystemData,
+        (mut positions, mut pickup_actions, mut inbags, mut items, mut persistents, mut log, player_entity, names, entities): Self::SystemData,
     ) {
         for (picker, pickup, picker_name) in (&entities, &pickup_actions, &names).join() {
             let ground_entity = pickup.item;
@@ -235,6 +245,9 @@ impl<'a> System<'a> for ItemPickupHandler {
                 }
                 None => {
                     let _ = inbags.insert(ground_entity, InBag { owner: picker });
+                    if player_entity.0 == picker {
+                        let _ = persistents.insert(ground_entity, Persistent);
+                    } 
                     positions.remove(ground_entity);
                     if let Some(text) = &edb.items.get_by_name_unchecked(&item_name.0).pickup_text {
                         log.enhance(text);

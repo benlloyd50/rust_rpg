@@ -1,30 +1,81 @@
-use std::str::FromStr;
+use std::{str::FromStr, fs};
 
 use serde::{Deserialize, Serialize};
+use serde_json::from_str;
 use specs::{Builder, Entity, World, WorldExt};
-use weighted_rand::builder::*;
-
-use crate::components::Item;
-use crate::droptables::WeightedDrop;
-use crate::items::ItemQty;
 use crate::{
     components::{
-        Blocking, Breakable, DeathDrop, Grass, HealthStats as HealthStatsComponent, Name, Position,
+        Blocking, Breakable, Grass, HealthStats as HealthStatsComponent, Name, Position,
         Renderable,
     },
-    z_order::WORLD_OBJECT_Z,
+    z_order::WORLD_OBJECT_Z, droptables::Drops,
 };
 
-use super::{EntityBuildError, ENTITY_DB};
+use super::{EntityBuildError, ENTITY_DB, GameData, beings::RawDrops};
 
-#[derive(Deserialize)]
 pub struct WorldObjectDatabase {
     data: Vec<WorldObject>,
 }
 
+// TODO: move this into a different file as it does not have to do with data reading, it's about
+// the representation of world objs
+pub struct WorldObject {
+    /// Unique id to find the world object's static data
+    identifier: ObjectID,
+    name: String,
+    atlas_index: u8,
+    is_blocking: bool,
+    breakable: Option<String>,
+    health_stats: Option<HealthStats>,
+    grass: Option<String>,
+    foreground: Option<(u8, u8, u8)>,
+    loot: Option<Drops>,
+}
+
+#[derive(Deserialize)]
+pub struct RawWorldObject {
+    /// Unique id to find the world object's static data
+    identifier: usize,
+    name: String,
+    atlas_index: u8,
+    is_blocking: bool,
+    breakable: Option<String>,
+    health_stats: Option<HealthStats>,
+    grass: Option<String>,
+    foreground: Option<(u8, u8, u8)>,
+    loot: Option<RawDrops>,
+}
+
+#[derive(Deserialize, Serialize, Clone)]
+struct HealthStats {
+    max_hp: usize,
+    defense: usize,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ObjectID(pub usize);
+
 impl WorldObjectDatabase {
     pub(crate) fn empty() -> Self {
         Self { data: Vec::new() }
+    }
+
+    pub(crate) fn load(game_data: &GameData) -> Self {
+        let contents: String = fs::read_to_string("raws/world_objs.json")
+            .expect("Unable to find world_objs.json at `raws/world_objs.json`");
+        let world_objs: Vec<RawWorldObject> = from_str(&contents).expect("Bad JSON in world_objs.json fix it");
+        let data = world_objs.iter().map(|raw| WorldObject {
+            identifier: ObjectID(raw.identifier),
+            name: raw.name.clone(),
+            atlas_index: raw.atlas_index,
+            is_blocking: raw.is_blocking,
+            breakable: raw.breakable.clone(),
+            health_stats: raw.health_stats.clone(),
+            grass: raw.grass.clone(),
+            foreground: raw.foreground,
+            loot: raw.loot.as_ref().map(|raw| Drops::from_raw(raw, game_data)),
+        }).collect();
+        WorldObjectDatabase { data }
     }
 
     pub fn get_by_name(&self, name: &String) -> Option<&WorldObject> {
@@ -32,13 +83,13 @@ impl WorldObjectDatabase {
     }
 
     #[allow(dead_code)]
-    pub fn get_by_id(&self, id: u32) -> Option<&WorldObject> {
+    pub fn get_by_id(&self, id: usize) -> Option<&WorldObject> {
         self.data.iter().find(|i| i.identifier.0 == id)
     }
 }
 
 /// Attempts to create the specified entity directly into the world
-pub fn build_obj(
+pub fn build_world_obj(
     name: impl ToString,
     pos: Position,
     world: &mut World,
@@ -63,17 +114,6 @@ pub fn build_obj(
 
     if raw.is_blocking {
         builder = builder.with(Blocking);
-    }
-
-    if let Some(drop) = raw.get_random_drop() {
-        let item_id = match edb.items.get_by_name(&drop) {
-            Some(info) => &info.identifier,
-            None => {
-                eprintln!("No item ID found for {} on world obj {}", drop, &raw.name);
-                return Err(EntityBuildError);
-            }
-        };
-        builder = builder.with(DeathDrop(Item::new(*item_id, ItemQty(1))));
     }
 
     if let Some(breakable) = &raw.breakable {
@@ -104,46 +144,3 @@ pub fn build_obj(
 
     Ok(builder.build())
 }
-
-#[derive(Deserialize)]
-pub struct WorldObject {
-    /// Unique id to find the world object's static data
-    identifier: ObjectID,
-    name: String,
-    atlas_index: u8,
-    is_blocking: bool,
-    drop_table: Option<Vec<WeightedDrop>>,
-    breakable: Option<String>,
-    health_stats: Option<HealthStats>,
-    grass: Option<String>,
-    foreground: Option<(u8, u8, u8)>,
-}
-
-impl WorldObject {
-    fn get_random_drop(&self) -> Option<String> {
-        if self.drop_table.is_none() {
-            return None;
-        }
-
-        if let Some(drops) = &self.drop_table {
-            if drops.is_empty() {
-                return None;
-            }
-            let data: Vec<u32> = drops.iter().map(|d| d.chance).collect();
-            let builder = WalkerTableBuilder::new(&data);
-            let table = builder.build();
-            let idx = table.next();
-            return Some(drops[idx].item.clone());
-        }
-        None
-    }
-}
-
-#[derive(Deserialize, Serialize)]
-struct HealthStats {
-    max_hp: usize,
-    defense: usize,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ObjectID(pub u32);

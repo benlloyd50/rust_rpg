@@ -17,7 +17,7 @@ use crate::{
     z_order::PLAYER_Z, CL_WORLD, map::Map,
 };
 
-/// A convienent resource to access the entity associated with the player
+/// A convenient resource to access the entity associated with the player
 pub struct PlayerEntity(pub Entity);
 
 impl Default for PlayerEntity {
@@ -33,7 +33,9 @@ pub fn initialize_new_game_world(ecs: &mut World, ctx: &mut BTerm) {
     load_map(LEVEL_ZERO, ecs, ctx);
     debug!("startup: map loaded");
 
-    let player_stats = get_random_stats();
+    let mut player_stats = get_random_stats();
+    player_stats.set.vitality = 99;
+    player_stats.set.strength = 99;
     let player_entity = ecs
         .create_entity()
         .with(Position::new(67, 30))

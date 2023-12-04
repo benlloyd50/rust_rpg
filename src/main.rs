@@ -11,6 +11,7 @@ use config::ConfigMaster;
 use crafting::HandleCraftingSystem;
 use debug::{debug_info, debug_input};
 use draw_sprites::{draw_sprite_layers, update_fancy_positions};
+use droptables::DeathLootDrop;
 use equipment::EquipActionHandler;
 use game_init::initialize_new_game_world;
 use items::{ConsumeHandler, ItemPickupHandler, ItemSpawnerSystem, ZeroQtyItemCleanup};
@@ -66,7 +67,7 @@ use tile_animation::TileAnimationSpawner;
 use time::delta_time_update;
 
 use crate::components::{
-    AttackBonus, Consumable, ConsumeAction, CraftAction, DeathDrop, EntityStats, EquipAction,
+    AttackBonus, Consumable, ConsumeAction, CraftAction, EntityStats, EquipAction,
     Equipable, EquipmentSlots, Equipped, FishingMinigame, GameAction, HealAction, InBag,
     ItemContainer, Persistent,
 };
@@ -147,6 +148,10 @@ impl State {
         damage_sys.run_now(&self.ecs);
         let mut item_pickup_handler = ItemPickupHandler;
         item_pickup_handler.run_now(&self.ecs);
+        let mut death_loot_spawn = DeathLootDrop;
+        death_loot_spawn.run_now(&self.ecs);
+
+        // Request Based Systems ================================>
         let mut item_spawner = ItemSpawnerSystem;
         item_spawner.run_now(&self.ecs);
 
@@ -385,7 +390,6 @@ fn main() -> BError {
     world.register::<Name>();
     world.register::<RandomWalkerAI>();
     world.register::<GoalMoverAI>();
-    world.register::<DeathDrop>();
     world.register::<Item>();
     world.register::<Water>();
     world.register::<Grass>();

@@ -6,19 +6,18 @@ use specs::{Builder, Entity, World, WorldExt};
 
 use crate::{
     components::{Blocking, GoalMoverAI, Name, Position, RandomWalkerAI, Renderable},
-    stats::EntityStatsBuilder,
-    z_order::BEING_Z,
+    stats::{EntityStatsBuilder, Stats},
+    z_order::BEING_Z, being::{BeingID, AIDefinition, Being}, droptables::Drops,
 };
 
-use super::{EntityBuildError, OptionalStats, ENTITY_DB};
+use super::{EntityBuildError, OptionalStats, ENTITY_DB, GameData};
 
-#[derive(Deserialize)]
 pub struct BeingDatabase {
     data: Vec<Being>,
 }
 
 #[derive(Deserialize)]
-pub struct Being {
+pub struct RawBeing {
     pub(crate) identifier: BeingID,
     pub(crate) name: String,
     pub(crate) ai: Option<AIDefinition>,
@@ -27,28 +26,46 @@ pub struct Being {
     pub(crate) fg: (u8, u8, u8),
     pub(crate) quips: Option<Vec<String>>,
     pub(crate) stats: Option<OptionalStats>,
+    pub(crate) loot: Option<RawDrops>,
 }
 
 #[derive(Deserialize)]
-pub struct AIDefinition {
-    pub(crate) start_mode: String,
-    pub(crate) goals: Option<Vec<String>>,
-    pub(crate) goal_range: Option<usize>,
+pub struct RawDrops {
+    pub(crate) drop_chance: u32,   // 1 - 100 indicates the chance there is a drop
+    pub(crate) loot_table: Vec<RawLoot>,
 }
 
-#[derive(Deserialize, Debug)]
-pub struct BeingID(pub u32);
+#[derive(Deserialize)]
+pub struct RawLoot {
+    pub(crate) item: String,
+    pub(crate) item_qty: String,
+    pub(crate) weight: u32,
+}
 
 impl BeingDatabase {
     pub(crate) fn empty() -> Self {
         Self { data: Vec::new() }
     }
 
-    pub fn load() -> Self {
+    // Uses GameData in order to transform string names into item ids
+    pub fn load(game_db: &GameData) -> Self {
         let contents: String = fs::read_to_string("raws/beings.json")
             .expect("Unable to find beings.json at `raws/beings.json`");
-        let beings: BeingDatabase = from_str(&contents).expect("Bad JSON in beings.json fix it");
-        beings
+        let beings: Vec<RawBeing> = from_str(&contents).expect("Bad JSON in beings.json fix it");
+        BeingDatabase {
+            data: beings.iter().map(|raw| 
+              Being {
+                identifier: raw.identifier,
+                name: raw.name.clone(),
+                ai: raw.ai.clone(),
+                is_blocking: raw.is_blocking,
+                atlas_index: raw.atlas_index,
+                fg: raw.fg,
+                quips: raw.quips.to_owned(),
+                stats: raw.stats.as_ref().map_or_else(Stats::zero, |stats| Stats::from_optional(&stats)),
+                loot: raw.loot.as_ref().and_then(|raw| Some(Drops::from_raw(raw, game_db))),
+            }).collect(),
+        }
     }
 
     pub fn get_by_name(&self, name: &String) -> Option<&Being> {
@@ -87,11 +104,11 @@ pub fn build_being(
         builder = builder.with(Blocking);
     }
 
-    if let Some(ai_def) = &raw.ai {
-        builder = match ai_def.start_mode.as_str() {
+    if let Some(ai) = &raw.ai {
+        builder = match ai.start_mode.as_str() {
             "random_walk" => builder.with(RandomWalkerAI),
             "goal" => {
-                let goals = match &ai_def.goals {
+                let goals = match &ai.goals {
                     Some(goals) => goals
                         .iter()
                         .map(|goal| Name(goal.to_string()))
@@ -100,37 +117,23 @@ pub fn build_being(
                 };
                 builder.with(GoalMoverAI::with_desires(
                     &goals,
-                    ai_def.goal_range.unwrap(),
+                    ai.goal_range.unwrap(),
                 ))
             }
             _ => builder,
         };
     }
 
-    if let Some(stats) = &raw.stats {
-        let mut esb = EntityStatsBuilder::new();
+    let esb = EntityStatsBuilder::new()
+        .with_intelligence(raw.stats.intelligence)
+        .with_strength(raw.stats.strength)
+        .with_dexterity(raw.stats.dexterity)
+        .with_vitality(raw.stats.vitality)
+        .with_charisma(raw.stats.charisma)
+        .with_precision(raw.stats.precision)
+        .build();
 
-        if let Some(intelligence) = stats.intelligence {
-            esb.with_intelligence(intelligence);
-        }
-        if let Some(strength) = stats.strength {
-            esb.with_strength(strength);
-        }
-        if let Some(dexterity) = stats.dexterity {
-            esb.with_dexterity(dexterity);
-        }
-        if let Some(vitality) = stats.vitality {
-            esb.with_vitality(vitality);
-        }
-        if let Some(charisma) = stats.charisma {
-            esb.with_charisma(charisma);
-        }
-        if let Some(precision) = stats.precision {
-            esb.with_precision(precision);
-        }
-
-        builder = builder.with(esb.build()).with(esb.build_health_stats());
-    }
+    builder = builder.with(esb.0).with(esb.1);
 
     Ok(builder.build())
 }
