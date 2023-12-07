@@ -76,9 +76,6 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) -> PlayerRespons
             };
         }
 
-        //TODO: change this to check all tiles in the position not just the first entity, first
-        //check conatins(breakbable), then contains blocking, so and so forth is there an easier
-        //way to do that?
         match map.first_entity_in_pos(&Position::from(target_pos)) {
             Some(tile) => match tile {
                 TileEntity::Breakable(entity) => {

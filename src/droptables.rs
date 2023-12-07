@@ -1,5 +1,5 @@
 use bracket_random::prelude::RandomNumberGenerator;
-use log::{warn, debug};
+use log::{debug, error};
 use specs::{System, ReadStorage, Write, Join};
 use weighted_rand::builder::{WalkerTableBuilder, NewBuilder};
 
@@ -77,8 +77,21 @@ impl<'a> System<'a> for DeathLootDrop {
                     }
                 }
                 None => {
-                    warn!("{} has no being definition.", name);
-                    continue
+                    match edb.world_objs.get_by_name(&name.0) {
+                        Some(world_obj) => {
+                            match &world_obj.loot {
+                                Some(dt) => dt,
+                                None => {
+                                    debug!("no loot table for {}, skipping in DeathLootDrop", name);
+                                    continue
+                                }
+                            }
+                        }
+                        None => {
+                            error!("{} has no being or world_obj definition to get a drop table from.", name);
+                            continue;
+                        },
+                    }
                 }
             };
             debug!("{} generating drops", name); 

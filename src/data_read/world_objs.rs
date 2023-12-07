@@ -8,28 +8,13 @@ use crate::{
         Blocking, Breakable, Grass, HealthStats as HealthStatsComponent, Name, Position,
         Renderable,
     },
-    z_order::WORLD_OBJECT_Z, droptables::Drops,
+    z_order::WORLD_OBJECT_Z, droptables::Drops, map::{WorldObject, ObjectID},
 };
 
 use super::{EntityBuildError, ENTITY_DB, GameData, beings::RawDrops};
 
 pub struct WorldObjectDatabase {
     data: Vec<WorldObject>,
-}
-
-// TODO: move this into a different file as it does not have to do with data reading, it's about
-// the representation of world objs
-pub struct WorldObject {
-    /// Unique id to find the world object's static data
-    identifier: ObjectID,
-    name: String,
-    atlas_index: u8,
-    is_blocking: bool,
-    breakable: Option<String>,
-    health_stats: Option<HealthStats>,
-    grass: Option<String>,
-    foreground: Option<(u8, u8, u8)>,
-    loot: Option<Drops>,
 }
 
 #[derive(Deserialize)]
@@ -52,9 +37,6 @@ struct HealthStats {
     defense: usize,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ObjectID(pub usize);
-
 impl WorldObjectDatabase {
     pub(crate) fn empty() -> Self {
         Self { data: Vec::new() }
@@ -70,7 +52,7 @@ impl WorldObjectDatabase {
             atlas_index: raw.atlas_index,
             is_blocking: raw.is_blocking,
             breakable: raw.breakable.clone(),
-            health_stats: raw.health_stats.clone(),
+            health_stats: raw.health_stats.clone().map(|hs| HealthStatsComponent::new(hs.max_hp, hs.defense)),
             grass: raw.grass.clone(),
             foreground: raw.foreground,
             loot: raw.loot.as_ref().map(|raw| Drops::from_raw(raw, game_data)),

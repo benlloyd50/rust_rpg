@@ -1,6 +1,6 @@
 use bracket_random::prelude::RandomNumberGenerator;
 use bracket_terminal::prelude::Point;
-use log::info;
+use log::{info, warn};
 use pathfinding::prelude::astar;
 use serde::Deserialize;
 use specs::{
@@ -96,16 +96,6 @@ impl<'a> System<'a> for RandomMonsterMovementSystem {
             }
 
             let _ = move_actions.insert(entity, MoveAction::new(target_pos.into()));
-
-            // let old_idx = pos.to_idx(map.width);
-            // // this unwrap is safe because the indexing happens first in frame
-            // let remove = map.tile_entities[old_idx].iter().position(|tile| tile == &TileEntity::Blocking(entity)).unwrap();
-            // map.tile_entities[old_idx].remove(remove);
-            //
-            // pos.x = target_pos.x as usize;
-            // pos.y = target_pos.y as usize;
-            // let new_idx = pos.to_idx(map.width);
-            // map.tile_entities[new_idx].push(TileEntity::Blocking(entity));
         }
     }
 }
@@ -251,15 +241,22 @@ impl<'a> System<'a> for HandleMoveActions {
     type SystemData = (WriteStorage<'a, MoveAction>, WriteStorage<'a, Position>, WriteExpect<'a, Map>, Entities<'a>,);
 
     fn run(&mut self, (mut move_actions, mut positions, mut map, entities): Self::SystemData) {
-        for (entity, want, pos) in (&entities, &move_actions, &mut positions).join() {
-            let idx = pos.to_idx(map.width);
-            // this unwrap is safe because the indexing happens first in frame
-            let remove = map.tile_entities[idx].iter().position(|tile| tile == &TileEntity::Blocking(entity)).unwrap();
-            map.tile_entities[idx].remove(remove);
+        for (entity, want, mover_pos) in (&entities, &move_actions, &mut positions).join() {
+            let idx = mover_pos.to_idx(map.width);
+            match map.tile_entities[idx].iter().position(|tile| tile == &TileEntity::Blocking(entity)) {
+                Some(remove_idx) => {
+                    map.tile_entities[idx].remove(remove_idx);
+                }
+                None => {
+                    // if ever a monster exists that doesn't block their own position, then change
+                    // to an info maybe
+                    warn!("Move action user was not blocking their previous position {}. Continuing move anyways.", mover_pos);
+                }
+            }
 
-            *pos = want.new_pos;
+            *mover_pos = want.new_pos;
             
-            let idx = pos.to_idx(map.width);
+            let idx = mover_pos.to_idx(map.width);
             map.tile_entities[idx].push(TileEntity::Blocking(entity));
         }
 

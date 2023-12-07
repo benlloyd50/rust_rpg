@@ -47,12 +47,9 @@ fn draw_health(ctx: &mut BTerm, ecs: &World) {
 fn draw_interaction_mode(ctx: &mut BTerm, ecs: &World) {
     let player_entity = ecs.read_resource::<PlayerEntity>();
     let interactors = ecs.read_storage::<Interactor>();
-    let player_interactor = match interactors.get(player_entity.0) {
-        Some(p) => p,
-        None => {
-            error!("Player entity does not have interactor component, deleted?");
-            return;
-        }
+    let player_mode = match interactors.get(player_entity.0) {
+        Some(p) => p.mode.to_string(),
+        None => { "Mode Missing".to_string() }
     };
     ctx.set_active_console(CL_TEXT);
     ctx.print_color(
@@ -60,7 +57,7 @@ fn draw_interaction_mode(ctx: &mut BTerm, ecs: &World) {
         50,
         WHITESMOKE,
         RGB::from_u8(61, 84, 107),
-        format!("> {} <", player_interactor.mode),
+        format!("> {} <", player_mode),
     );
 }
 
@@ -119,14 +116,14 @@ pub fn debug_input(ctx: &mut BTerm, ecs: &World) {
     if !ctx.control {
         return;
     }
-
+    // All controls past this point require CTRL to be held. ================
     draw_cursor(ctx);
 
     if ctx.left_click {
         print_tile_contents(ctx, ecs);
     }
 
-    if ctx.key.is_some() && ctx.key.unwrap() == VirtualKeyCode::V {
+    if ctx.key.is_some() && ctx.key == Some(VirtualKeyCode::V) {
         print_position(ecs);
     }
 }

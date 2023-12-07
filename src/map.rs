@@ -1,4 +1,4 @@
-use crate::{camera::get_camera_bounds, components::Position};
+use crate::{camera::get_camera_bounds, components::{Position, HealthStats}, droptables::Drops};
 use bracket_terminal::prelude::{ColorPair, DrawBatch, Point, BLACK};
 use specs::{Entity, World};
 
@@ -22,6 +22,22 @@ impl WorldTile {
     pub fn default() -> Self {
         Self { atlas_index: 4 }
     }
+}
+
+#[derive(Debug)]
+pub struct ObjectID(pub usize);
+
+pub struct WorldObject {
+    /// Unique id to find the world object's static data
+    pub identifier: ObjectID,
+    pub name: String,
+    pub atlas_index: u8,
+    pub is_blocking: bool,
+    pub breakable: Option<String>,
+    pub health_stats: Option<HealthStats>,
+    pub grass: Option<String>,
+    pub foreground: Option<(u8, u8, u8)>,
+    pub loot: Option<Drops>,
 }
 
 /// Defines the type of entity existing in a tile for quick lookup and action handling
@@ -98,11 +114,11 @@ impl Map {
     pub fn first_entity_in_pos(&self, pos: &Position) -> Option<&TileEntity> {
         self.tile_entities[self.xy_to_idx(pos.x, pos.y)]
             .iter()
-            .max_by_key(|&tile_entity| match tile_entity {
+            .min_by_key(|&tile_entity| match tile_entity {
                 TileEntity::Fishable(_) => 9,
                 TileEntity::Breakable(_) => 15,
-                TileEntity::Item(_) => 19,
                 TileEntity::Blocking(_) => 20,
+                TileEntity::Item(_) => 21,
             })
     }
 
