@@ -6,7 +6,7 @@ use crate::{
     FONT_TERRAIN_FOREST, FONT_TERRAIN_TOWN_FOREST,
 };
 use ldtk_map::prelude::*;
-use log::{info, debug};
+use log::{debug, info};
 use specs::{Builder, World, WorldExt};
 
 use super::prelude::{build_being, build_world_obj};

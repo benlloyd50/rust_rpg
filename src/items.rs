@@ -12,17 +12,20 @@ use std::{
 
 use log::error;
 use serde::{Deserialize, Serialize};
-use specs::{Entities, Entity, Join, ReadStorage, System, World, WorldExt, Write, WriteStorage, Read};
+use specs::{
+    Entities, Entity, Join, Read, ReadStorage, System, World, WorldExt, Write, WriteStorage,
+};
 
 use crate::{
     components::{
         AttackBonus, Consumable, ConsumeAction, Equipable, HealAction, InBag, Item, Name,
-        PickupAction, Position, Renderable, Persistent,
+        Persistent, PickupAction, Position, Renderable,
     },
     data_read::prelude::*,
+    game_init::PlayerEntity,
     storage_utils::MaybeInsert,
     ui::message_log::MessageLog,
-    z_order::ITEM_Z, game_init::PlayerEntity,
+    z_order::ITEM_Z,
 };
 
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -173,7 +176,7 @@ impl<'a> System<'a> for ItemSpawnerSystem {
 
                             if player_entity.0 == owner {
                                 let _ = persistents.insert(new_item, Persistent);
-                            } 
+                            }
                         }
                     }
                 }
@@ -211,7 +214,17 @@ impl<'a> System<'a> for ItemPickupHandler {
 
     fn run(
         &mut self,
-        (mut positions, mut pickup_actions, mut inbags, mut items, mut persistents, mut log, player_entity, names, entities): Self::SystemData,
+        (
+            mut positions,
+            mut pickup_actions,
+            mut inbags,
+            mut items,
+            mut persistents,
+            mut log,
+            player_entity,
+            names,
+            entities,
+        ): Self::SystemData,
     ) {
         for (picker, pickup, picker_name) in (&entities, &pickup_actions, &names).join() {
             let ground_entity = pickup.item;
@@ -247,7 +260,7 @@ impl<'a> System<'a> for ItemPickupHandler {
                     let _ = inbags.insert(ground_entity, InBag { owner: picker });
                     if player_entity.0 == picker {
                         let _ = persistents.insert(ground_entity, Persistent);
-                    } 
+                    }
                     positions.remove(ground_entity);
                     if let Some(text) = &edb.items.get_by_name_unchecked(&item_name.0).pickup_text {
                         log.enhance(text);

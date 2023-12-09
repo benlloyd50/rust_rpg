@@ -1,4 +1,8 @@
-use crate::{camera::get_camera_bounds, components::{Position, HealthStats}, droptables::Drops};
+use crate::{
+    camera::get_camera_bounds,
+    components::{HealthStats, Position},
+    droptables::Drops,
+};
 use bracket_terminal::prelude::{ColorPair, DrawBatch, Point, BLACK};
 use specs::{Entity, World};
 
@@ -92,7 +96,7 @@ impl Map {
     pub fn xy_to_idx(&self, x: usize, y: usize) -> usize {
         xy_to_idx_given_width(x, y, self.width)
     }
-    
+
     pub fn world_x(&self) -> usize {
         self.world_coords.x
     }

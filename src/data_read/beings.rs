@@ -5,12 +5,14 @@ use serde_json::from_str;
 use specs::{Builder, Entity, World, WorldExt};
 
 use crate::{
+    being::{AIDefinition, Being, BeingID},
     components::{Blocking, GoalMoverAI, Name, Position, RandomWalkerAI, Renderable},
+    droptables::Drops,
     stats::{EntityStatsBuilder, Stats},
-    z_order::BEING_Z, being::{BeingID, AIDefinition, Being}, droptables::Drops,
+    z_order::BEING_Z,
 };
 
-use super::{EntityBuildError, OptionalStats, ENTITY_DB, GameData};
+use super::{EntityBuildError, GameData, OptionalStats, ENTITY_DB};
 
 pub struct BeingDatabase {
     data: Vec<Being>,
@@ -31,7 +33,7 @@ pub struct RawBeing {
 
 #[derive(Deserialize)]
 pub struct RawDrops {
-    pub(crate) drop_chance: u32,   // 1 - 100 indicates the chance there is a drop
+    pub(crate) drop_chance: u32, // 1 - 100 indicates the chance there is a drop
     pub(crate) loot_table: Vec<RawLoot>,
 }
 
@@ -53,18 +55,26 @@ impl BeingDatabase {
             .expect("Unable to find beings.json at `raws/beings.json`");
         let beings: Vec<RawBeing> = from_str(&contents).expect("Bad JSON in beings.json fix it");
         BeingDatabase {
-            data: beings.iter().map(|raw| 
-              Being {
-                identifier: raw.identifier,
-                name: raw.name.clone(),
-                ai: raw.ai.clone(),
-                is_blocking: raw.is_blocking,
-                atlas_index: raw.atlas_index,
-                fg: raw.fg,
-                quips: raw.quips.to_owned(),
-                stats: raw.stats.as_ref().map_or_else(Stats::zero, |stats| Stats::from_optional(&stats)),
-                loot: raw.loot.as_ref().and_then(|raw| Some(Drops::from_raw(raw, game_db))),
-            }).collect(),
+            data: beings
+                .iter()
+                .map(|raw| Being {
+                    identifier: raw.identifier,
+                    name: raw.name.clone(),
+                    ai: raw.ai.clone(),
+                    is_blocking: raw.is_blocking,
+                    atlas_index: raw.atlas_index,
+                    fg: raw.fg,
+                    quips: raw.quips.to_owned(),
+                    stats: raw
+                        .stats
+                        .as_ref()
+                        .map_or_else(Stats::zero, |stats| Stats::from_optional(&stats)),
+                    loot: raw
+                        .loot
+                        .as_ref()
+                        .and_then(|raw| Some(Drops::from_raw(raw, game_db))),
+                })
+                .collect(),
         }
     }
 
@@ -115,10 +125,7 @@ pub fn build_being(
                         .collect::<Vec<Name>>(),
                     None => panic!("{} has Goal ai type but no defined goals", &raw.name),
                 };
-                builder.with(GoalMoverAI::with_desires(
-                    &goals,
-                    ai.goal_range.unwrap(),
-                ))
+                builder.with(GoalMoverAI::with_desires(&goals, ai.goal_range.unwrap()))
             }
             _ => builder,
         };

@@ -13,8 +13,10 @@ use crate::{
         AttackAction, BreakAction, GoalMoverAI, MoveAction, Name, Position, RandomWalkerAI,
     },
     data_read::ENTITY_DB,
+    droptables::Drops,
     map::{distance, is_goal, successors, Map, TileEntity},
-    ui::message_log::MessageLog, droptables::Drops, stats::Stats,
+    stats::Stats,
+    ui::message_log::MessageLog,
 };
 
 pub struct Being {
@@ -57,7 +59,16 @@ impl<'a> System<'a> for RandomMonsterMovementSystem {
 
     fn run(
         &mut self,
-        (mut positions, mut break_actions, mut move_actions, names, randwalks, mut log, map, entities): Self::SystemData,
+        (
+            mut positions,
+            mut break_actions,
+            mut move_actions,
+            names,
+            randwalks,
+            mut log,
+            map,
+            entities,
+        ): Self::SystemData,
     ) {
         let mut rng = RandomNumberGenerator::new();
         for (entity, pos, name, _) in (&entities, &mut positions, &names, &randwalks).join() {
@@ -177,15 +188,7 @@ impl<'a> System<'a> for GoalMoveToEntities {
 
     fn run(
         &mut self,
-        (
-            mut move_actions,
-            mut attack_actions,
-            mut goal_movers,
-            positions,
-            names,
-            map,
-            entities,
-        ): Self::SystemData,
+        (mut move_actions, mut attack_actions, mut goal_movers, positions, names, map, entities): Self::SystemData,
     ) {
         for (entity, goal_mover, mover_pos, mover_name) in
             (&entities, &mut goal_movers, &positions, &names).join()
@@ -238,24 +241,35 @@ impl<'a> System<'a> for GoalMoveToEntities {
 pub struct HandleMoveActions;
 
 impl<'a> System<'a> for HandleMoveActions {
-    type SystemData = (WriteStorage<'a, MoveAction>, WriteStorage<'a, Position>, WriteExpect<'a, Map>, Entities<'a>,);
+    type SystemData = (
+        WriteStorage<'a, MoveAction>,
+        WriteStorage<'a, Position>,
+        WriteExpect<'a, Map>,
+        Entities<'a>,
+    );
 
     fn run(&mut self, (mut move_actions, mut positions, mut map, entities): Self::SystemData) {
         for (entity, want, mover_pos) in (&entities, &move_actions, &mut positions).join() {
             let idx = mover_pos.to_idx(map.width);
-            match map.tile_entities[idx].iter().position(|tile| tile == &TileEntity::Blocking(entity)) {
+            match map.tile_entities[idx]
+                .iter()
+                .position(|tile| tile == &TileEntity::Blocking(entity))
+            {
                 Some(remove_idx) => {
                     map.tile_entities[idx].remove(remove_idx);
                 }
                 None => {
                     // if ever a monster exists that doesn't block their own position, then change
                     // to an info maybe
-                    warn!("Move action user was not blocking their previous position {}. Continuing move anyways.", mover_pos);
+                    warn!(
+                        "Move action user was not blocking their previous position {}. Continuing move anyways.",
+                        mover_pos
+                    );
                 }
             }
 
             *mover_pos = want.new_pos;
-            
+
             let idx = mover_pos.to_idx(map.width);
             map.tile_entities[idx].push(TileEntity::Blocking(entity));
         }

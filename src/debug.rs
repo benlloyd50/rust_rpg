@@ -1,6 +1,6 @@
 use bracket_terminal::prelude::{to_char, BTerm, TextAlign, VirtualKeyCode, RGB, RGBA, WHITESMOKE};
 use itertools::Itertools;
-use log::error;
+use log::debug;
 use specs::{Join, ReadStorage, World, WorldExt};
 
 use crate::{
@@ -49,15 +49,15 @@ fn draw_interaction_mode(ctx: &mut BTerm, ecs: &World) {
     let interactors = ecs.read_storage::<Interactor>();
     let player_mode = match interactors.get(player_entity.0) {
         Some(p) => p.mode.to_string(),
-        None => { "Mode Missing".to_string() }
+        None => "#[red]Mode Missing#[]".to_string(),
     };
     ctx.set_active_console(CL_TEXT);
-    ctx.print_color(
+    ctx.printer(
         1,
         50,
-        WHITESMOKE,
-        RGB::from_u8(61, 84, 107),
-        format!("> {} <", player_mode),
+        format!("#[white]> {} <#[]", player_mode),
+        TextAlign::Left,
+        Some(RGB::from_u8(61, 84, 107).into()),
     );
 }
 

@@ -21,10 +21,16 @@ use log::debug;
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 
-use crate::{stats::Stats, droptables::{Drops, DropQty, Loot}};
+use crate::{
+    droptables::{DropQty, Drops, Loot},
+    stats::Stats,
+};
 
 use self::{
-    beings::{BeingDatabase, RawDrops}, items::ItemDatabase, prelude::RECIPE_DB, world_objs::WorldObjectDatabase,
+    beings::{BeingDatabase, RawDrops},
+    items::ItemDatabase,
+    prelude::RECIPE_DB,
+    world_objs::WorldObjectDatabase,
 };
 
 lazy_static! {
@@ -98,18 +104,28 @@ impl Drops {
     pub(crate) fn from_raw(raw: &RawDrops, game_db: &GameData) -> Self {
         Self {
             drop_chance: raw.drop_chance,
-            loot_table: raw.loot_table.iter().map(|raw_loot| Loot {
-                id: game_db.items.get_by_name(&raw_loot.item).expect(&format!("{} has no definition in items", raw_loot.item)).identifier,
-                qty: DropQty::from_str(&raw_loot.item_qty),
-                weight: raw_loot.weight,
-            }).collect()
+            loot_table: raw
+                .loot_table
+                .iter()
+                .map(|raw_loot| Loot {
+                    id: game_db
+                        .items
+                        .get_by_name(&raw_loot.item)
+                        .expect(&format!("{} has no definition in items", raw_loot.item))
+                        .identifier,
+                    qty: DropQty::from_str(&raw_loot.item_qty),
+                    weight: raw_loot.weight,
+                })
+                .collect(),
         }
     }
 }
 
 impl DropQty {
     fn from_str(qty: &str) -> DropQty {
-        DropQty::Single(qty.parse().expect(&format!("{} cannot be parsed into a number", qty)))
+        DropQty::Single(
+            qty.parse()
+                .expect(&format!("{} cannot be parsed into a number", qty)),
+        )
     }
 }
-

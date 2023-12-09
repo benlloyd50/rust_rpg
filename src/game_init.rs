@@ -1,20 +1,22 @@
 use bracket_terminal::prelude::{BTerm, BLACK};
 use ldtk_map::prelude::DesignMap;
 use log::debug;
-use specs::{Builder, Entity, World, WorldExt, Join};
+use specs::{Builder, Entity, Join, World, WorldExt};
 
 pub const WHITE: (u8, u8, u8) = (255, 255, 255);
 
 use crate::{
     components::{
-        EquipmentSlots, Interactor, InteractorMode, ItemContainer, Name, Position, Renderable,
-        Transform, Persistent,
+        EquipmentSlots, Interactor, InteractorMode, ItemContainer, Name, Persistent, Position,
+        Renderable, Transform,
     },
     data_read::prelude::{build_being, create_map, LDTK_FILE},
     items::{ItemID, ItemSpawner, SpawnType},
+    map::Map,
     player::Player,
     stats::get_random_stats,
-    z_order::PLAYER_Z, CL_WORLD, map::Map,
+    z_order::PLAYER_Z,
+    CL_WORLD,
 };
 
 /// A convenient resource to access the entity associated with the player
@@ -34,8 +36,8 @@ pub fn initialize_new_game_world(ecs: &mut World, ctx: &mut BTerm) {
     debug!("startup: map loaded");
 
     let mut player_stats = get_random_stats();
-    player_stats.set.vitality = 99;
-    player_stats.set.strength = 99;
+    player_stats.set.vitality = 25;
+    player_stats.set.strength = 75;
     let player_entity = ecs
         .create_entity()
         .with(Position::new(67, 30))

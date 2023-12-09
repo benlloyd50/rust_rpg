@@ -84,5 +84,3 @@ impl<'a> System<'a> for HealActionHandler {
         heal_actions.clear();
     }
 }
-
-

@@ -24,7 +24,7 @@ pub enum PlayerResponse {
     Waiting,
 }
 
-pub fn manage_player_input(ecs: &mut World, ctx: &BTerm) -> PlayerResponse {
+pub fn p_input_game(ecs: &mut World, ctx: &BTerm) -> PlayerResponse {
     match ctx.key {
         None => PlayerResponse::Waiting,
         Some(key) => {
@@ -71,7 +71,10 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) -> PlayerRespons
             );
             let target_world_pos = Position::from(new_pt);
             return match find_next_map(&target_world_pos) {
-                Some(level_name) => PlayerResponse::StateChange(AppState::MapChange { level_name, player_world_pos: target_world_pos }),
+                Some(level_name) => PlayerResponse::StateChange(AppState::MapChange {
+                    level_name,
+                    player_world_pos: target_world_pos,
+                }),
                 None => PlayerResponse::Waiting,
             };
         }
@@ -89,7 +92,7 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) -> PlayerRespons
                         .insert(player_entity, BreakAction { target: *entity })
                         .expect("Break action could not be added to player entity");
                     return PlayerResponse::TurnAdvance;
-                },
+                }
                 TileEntity::Blocking(blocker) => match interactor.mode {
                     InteractorMode::Reactive => {
                         return PlayerResponse::Waiting;
@@ -181,7 +184,7 @@ pub fn check_player_finished(ecs: &mut World) -> bool {
     (&players, &mut finished_activities).join().next().is_some()
 }
 
-pub fn check_player_activity_input(ecs: &mut World, ctx: &mut BTerm) {
+pub fn p_input_activity(ecs: &mut World, ctx: &mut BTerm) {
     if ctx.key.is_none() {
         return;
     }
@@ -194,5 +197,51 @@ pub fn check_player_activity_input(ecs: &mut World, ctx: &mut BTerm) {
             let _ = game_actions.insert(player_entity.0, GameAction);
         }
         _ => {}
+    }
+}
+
+#[derive(Copy, Clone, Eq, PartialEq)]
+pub enum MenuSelection {
+    NewGame,
+    LoadGame,
+    Settings,
+}
+
+impl MenuSelection {
+    /// Constructs a new string of the variant in lowercase with spaces
+    pub fn to_lowercase(&self) -> String {
+        match self {
+            MenuSelection::NewGame => "new game",
+            MenuSelection::LoadGame => "load game",
+            MenuSelection::Settings => "settings",
+        }
+        .to_string()
+    }
+}
+
+pub enum MenuAction {
+    Selected(MenuSelection),
+    Hovering(MenuSelection),
+    Stalling,
+}
+
+pub fn p_input_main_menu(ctx: &mut BTerm, hovering: &MenuSelection) -> MenuAction {
+    if let Some(key) = ctx.key {
+        match key {
+            VKC::Down | VKC::S => MenuAction::Hovering(match hovering {
+                MenuSelection::NewGame => MenuSelection::LoadGame,
+                MenuSelection::LoadGame => MenuSelection::Settings,
+                MenuSelection::Settings => MenuSelection::NewGame,
+            }),
+            VKC::Up | VKC::W => MenuAction::Hovering(match hovering {
+                MenuSelection::NewGame => MenuSelection::Settings,
+                MenuSelection::LoadGame => MenuSelection::NewGame,
+                MenuSelection::Settings => MenuSelection::LoadGame,
+            }),
+            VKC::Return => MenuAction::Selected(*hovering),
+            _ => MenuAction::Stalling,
+        }
+    } else {
+        MenuAction::Stalling
     }
 }

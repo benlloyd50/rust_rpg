@@ -1,4 +1,4 @@
-use crate::game_init::{load_map, cleanup_old_map, move_player_to};
+use crate::game_init::{cleanup_old_map, load_map, move_player_to};
 use crate::logger::create_logger;
 use crate::ui::draw_ui;
 use crate::ui::message_log::MessageLog;
@@ -35,7 +35,7 @@ mod logger;
 mod storage_utils;
 mod ui;
 use inventory::{
-    handle_one_item_actions, handle_player_input, handle_two_item_actions, InventoryResponse,
+    handle_one_item_actions, handle_two_item_actions, p_input_inventory, InventoryResponse,
 };
 mod being;
 mod items;
@@ -47,7 +47,8 @@ mod z_order;
 use tile_animation::TileAnimationCleanUpSystem;
 mod time;
 use player::{
-    check_player_activity_input, check_player_finished, manage_player_input, PlayerResponse,
+    check_player_finished, p_input_activity, p_input_game, p_input_main_menu, MenuAction,
+    MenuSelection, PlayerResponse,
 };
 mod map;
 use map::Map;
@@ -67,9 +68,9 @@ use tile_animation::TileAnimationSpawner;
 use time::delta_time_update;
 
 use crate::components::{
-    AttackBonus, Consumable, ConsumeAction, CraftAction, EntityStats, EquipAction,
-    Equipable, EquipmentSlots, Equipped, FishingMinigame, GameAction, HealAction, InBag,
-    ItemContainer, Persistent,
+    AttackBonus, Consumable, ConsumeAction, CraftAction, EntityStats, EquipAction, Equipable,
+    EquipmentSlots, Equipped, FishingMinigame, GameAction, HealAction, InBag, ItemContainer,
+    Persistent,
 };
 use crate::{
     components::{
@@ -175,13 +176,41 @@ impl State {
 }
 
 /// Defines the app's state for the game
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum AppState {
-    GameStartup,
-    MapChange { level_name: String, player_world_pos: Position},
+    MainMenu {
+        hovering: MenuSelection,
+    },
+    NewGameStart,
+    MapChange {
+        level_name: String,
+        player_world_pos: Position,
+    },
     InGame,
-    ActivityBound { response_delay: Duration }, // can only perform a specific acitivity that is currently happening
+    ActivityBound {
+        response_delay: Duration,
+    },
     PlayerInInventory,
+    SettingsMenu,
+}
+
+struct FrameState {
+    current: AppState,
+    next: AppState,
+}
+
+impl FrameState {
+    fn new(current: &AppState) ->  Self {
+        Self {
+            current: current.clone(),
+            next: current.clone(),
+        }
+    }
+
+    /// Sets the state for the next frame
+    fn change_to(&mut self, new: &AppState) {
+        self.next = new.clone();
+    }
 }
 
 impl AppState {
@@ -193,31 +222,26 @@ impl AppState {
     }
 }
 
-fn turn_counter_incr(ecs: &mut World) {
-    let mut tc = ecs.fetch_mut::<TurnCounter>();
-    tc.0 += 1;
-}
-
 impl GameState for State {
     fn tick(&mut self, ctx: &mut BTerm) {
-        let mut new_state: AppState;
+        let mut frame_state: FrameState;
         {
             // this is in a new scope because we need to mutate self (the ecs) later in the fn
             let current_state = self.ecs.fetch_mut::<AppState>();
-            new_state = current_state.clone();
+            frame_state = FrameState::new(&current_state);
         }
 
-        match new_state {
-            AppState::GameStartup => {
+        match frame_state.current.clone() {
+            AppState::NewGameStart => {
                 info!("Game startup occured");
                 initialize_new_game_world(&mut self.ecs, ctx);
                 let mut item_spawner = ItemSpawnerSystem;
                 item_spawner.run_now(&self.ecs);
-                new_state = AppState::InGame;
+                frame_state.change_to(&AppState::InGame);
                 info!("Game startup finished. Switching to ingame state");
             }
             AppState::InGame => {
-                match manage_player_input(&mut self.ecs, ctx) {
+                match p_input_game(&mut self.ecs, ctx) {
                     PlayerResponse::Waiting => {
                         // Player hasn't done anything yet so only run essential systems
                     }
@@ -226,14 +250,14 @@ impl GameState for State {
                         self.run_response_systems();
                     }
                     PlayerResponse::StateChange(delta_state) => {
-                        new_state = delta_state;
+                        frame_state.change_to(&delta_state);
                     }
                 }
                 self.run_continuous_systems(ctx);
                 self.run_eof_systems();
             }
             AppState::PlayerInInventory => {
-                match handle_player_input(&mut self.ecs, ctx, &mut self.cfg.inventory) {
+                match p_input_inventory(&mut self.ecs, ctx, &mut self.cfg.inventory) {
                     InventoryResponse::Waiting => {
                         // Player hasn't done anything yet so only run essential systems
                     }
@@ -254,7 +278,7 @@ impl GameState for State {
                         craft_system.run_now(&self.ecs);
                     }
                     InventoryResponse::StateChange(delta_state) => {
-                        new_state = delta_state;
+                        frame_state.change_to(&delta_state);
                     }
                 }
                 let mut item_spawner = ItemSpawnerSystem;
@@ -263,42 +287,77 @@ impl GameState for State {
                 zero_qty_item_cleanup.run_now(&self.ecs);
             }
             AppState::ActivityBound { response_delay } => {
-                check_player_activity_input(&mut self.ecs, ctx);
+                p_input_activity(&mut self.ecs, ctx);
                 self.run_continuous_systems(ctx);
 
-                new_state = if check_player_finished(&mut self.ecs) {
+                frame_state.change_to(&if check_player_finished(&mut self.ecs) {
                     turn_counter_incr(&mut self.ecs);
                     self.run_response_systems();
                     AppState::InGame
                 } else {
                     AppState::ActivityBound { response_delay }
-                };
+                });
 
                 self.run_eof_systems();
             }
-            AppState::MapChange { level_name, player_world_pos } => {
+            AppState::MapChange {
+                level_name,
+                player_world_pos,
+            } => {
                 debug!("going to {}", level_name);
                 cleanup_old_map(&mut self.ecs);
                 load_map(&level_name, &mut self.ecs, ctx);
                 move_player_to(&player_world_pos, &mut self.ecs);
-                new_state = AppState::InGame;
+                frame_state.change_to(&AppState::InGame);
             }
+            AppState::MainMenu { hovering } => {
+                // player input for moving through menu
+                match p_input_main_menu(ctx, &hovering) {
+                    MenuAction::Selected(selected) => {
+                        frame_state.change_to(&match selected {
+                            MenuSelection::NewGame => AppState::NewGameStart,
+                            MenuSelection::LoadGame => todo!(),
+                            MenuSelection::Settings => AppState::SettingsMenu,
+                        });
+                    }
+                    MenuAction::Hovering(new_selection) => {
+                        frame_state.change_to(&AppState::MainMenu {
+                            hovering: new_selection,
+                        });
+                    }
+                    MenuAction::Stalling => {
+                        // do nothing..
+                    }
+                }
+            }
+            AppState::SettingsMenu => todo!("eventually..."),
         }
 
-        // Essential Systems ran every frame
+        // Essential Systems run every frame
         update_fancy_positions(&self.ecs);
         delta_time_update(&mut self.ecs, ctx);
         self.ecs.maintain();
 
-        draw_ui(&self.ecs, &new_state, &self.cfg.inventory);
-        draw_sprite_layers(&self.ecs);
+        draw_ui(&self.ecs, &frame_state.current, &self.cfg.inventory);
+        // NOTE: for some unknown reason this must be called before the debug info so that 
+        // the debug info is drawn ontop of the ui
         render_draw_buffer(ctx).expect("Render error??");
-        debug_info(ctx, &self.ecs, &self.cfg.inventory);
-        debug_input(ctx, &self.ecs);
+        
+        // any state besides main menu needs to draw sprite layers
+        match frame_state.current {
+            AppState::MainMenu { .. } | AppState::SettingsMenu => {}
+            //TODO: be explicit about which states draw this stuff
+            _ => {
+                draw_sprite_layers(&self.ecs);
+                debug_info(ctx, &self.ecs, &self.cfg.inventory);
+                debug_input(ctx, &self.ecs);
+            }
+        }
+
 
         // Insert the state resource to overwrite it's existing and update the state of the app
         let mut state_writer = self.ecs.write_resource::<AppState>();
-        *state_writer = new_state;
+        *state_writer = frame_state.next;
     }
 }
 
@@ -307,6 +366,11 @@ impl TurnCounter {
     pub fn zero() -> Self {
         Self(0)
     }
+}
+
+fn turn_counter_incr(ecs: &mut World) {
+    let mut tc = ecs.fetch_mut::<TurnCounter>();
+    tc.0 += 1;
 }
 
 // CL - Console layer, represents the indices for each console
@@ -346,7 +410,7 @@ fn main() -> BError {
     initialize_game_databases();
 
     // Setup Terminal (incl Window, Input, Font Loading)
-    let context = BTermBuilder::new()
+    let mut context = BTermBuilder::new()
         .with_title("Tile RPG")
         .with_fps_cap(60.0)
         .with_font("effects_tiles.png", 8u32, 8u32)
@@ -361,6 +425,7 @@ fn main() -> BError {
         .with_fancy_console(DISPLAY_WIDTH, DISPLAY_HEIGHT, "effects_tiles.png")
         .with_fancy_console(DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2, "terminal8x8.png")
         .build()?;
+    context.cls();
 
     register_palette_color("orange", RGB::from_u8(230, 113, 70));
     register_palette_color("red", RGB::from_u8(183, 65, 50));
@@ -414,7 +479,9 @@ fn main() -> BError {
     world.register::<Persistent>();
 
     // Resource Initialization, the ECS needs a basic definition of every resource that will be in the game
-    world.insert(AppState::GameStartup);
+    world.insert(AppState::MainMenu {
+        hovering: MenuSelection::NewGame,
+    });
     world.insert(DeltaTime(Duration::ZERO));
     world.insert(TileAnimationBuilder::new());
     world.insert(ItemSpawner::new());

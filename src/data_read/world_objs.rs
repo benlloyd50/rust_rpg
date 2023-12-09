@@ -1,17 +1,18 @@
-use std::{str::FromStr, fs};
+use std::{fs, str::FromStr};
 
+use crate::{
+    components::{
+        Blocking, Breakable, Grass, HealthStats as HealthStatsComponent, Name, Position, Renderable,
+    },
+    droptables::Drops,
+    map::{ObjectID, WorldObject},
+    z_order::WORLD_OBJECT_Z,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
 use specs::{Builder, Entity, World, WorldExt};
-use crate::{
-    components::{
-        Blocking, Breakable, Grass, HealthStats as HealthStatsComponent, Name, Position,
-        Renderable,
-    },
-    z_order::WORLD_OBJECT_Z, droptables::Drops, map::{WorldObject, ObjectID},
-};
 
-use super::{EntityBuildError, ENTITY_DB, GameData, beings::RawDrops};
+use super::{beings::RawDrops, EntityBuildError, GameData, ENTITY_DB};
 
 pub struct WorldObjectDatabase {
     data: Vec<WorldObject>,
@@ -45,18 +46,25 @@ impl WorldObjectDatabase {
     pub(crate) fn load(game_data: &GameData) -> Self {
         let contents: String = fs::read_to_string("raws/world_objs.json")
             .expect("Unable to find world_objs.json at `raws/world_objs.json`");
-        let world_objs: Vec<RawWorldObject> = from_str(&contents).expect("Bad JSON in world_objs.json fix it");
-        let data = world_objs.iter().map(|raw| WorldObject {
-            identifier: ObjectID(raw.identifier),
-            name: raw.name.clone(),
-            atlas_index: raw.atlas_index,
-            is_blocking: raw.is_blocking,
-            breakable: raw.breakable.clone(),
-            health_stats: raw.health_stats.clone().map(|hs| HealthStatsComponent::new(hs.max_hp, hs.defense)),
-            grass: raw.grass.clone(),
-            foreground: raw.foreground,
-            loot: raw.loot.as_ref().map(|raw| Drops::from_raw(raw, game_data)),
-        }).collect();
+        let world_objs: Vec<RawWorldObject> =
+            from_str(&contents).expect("Bad JSON in world_objs.json fix it");
+        let data = world_objs
+            .iter()
+            .map(|raw| WorldObject {
+                identifier: ObjectID(raw.identifier),
+                name: raw.name.clone(),
+                atlas_index: raw.atlas_index,
+                is_blocking: raw.is_blocking,
+                breakable: raw.breakable.clone(),
+                health_stats: raw
+                    .health_stats
+                    .clone()
+                    .map(|hs| HealthStatsComponent::new(hs.max_hp, hs.defense)),
+                grass: raw.grass.clone(),
+                foreground: raw.foreground,
+                loot: raw.loot.as_ref().map(|raw| Drops::from_raw(raw, game_data)),
+            })
+            .collect();
         WorldObjectDatabase { data }
     }
 

@@ -1,11 +1,8 @@
 use crate::{
-    components::{
-        BreakAction, Breakable, EntityStats, HealthStats, Name, SufferDamage,
-        ToolType,
-    },
+    components::{BreakAction, Breakable, EntityStats, HealthStats, Name, SufferDamage, ToolType},
     ui::message_log::MessageLog,
 };
-use log::{info, error};
+use log::{error, info};
 use specs::{Entities, Entity, Join, ReadStorage, System, Write, WriteStorage};
 
 /// Allows tile to be breakable. The tile must contain a breakable and health stats component.
@@ -124,13 +121,14 @@ impl<'a> System<'a> for RemoveDeadTiles {
     );
 
     fn run(&mut self, (breakable, names, entities): Self::SystemData) {
-        for (stats, e, name) in
-            (&breakable, &entities, &names).join()
-        {
+        for (stats, e, name) in (&breakable, &entities, &names).join() {
             if stats.hp == 0 {
                 match entities.delete(e) {
                     Ok(..) => {
-                        info!("{} is dead and was deleted, items should have spawned if any.", name);
+                        info!(
+                            "{} is dead and was deleted, items should have spawned if any.",
+                            name
+                        );
                     }
                     Err(err) => {
                         error!("Failed to clean up {} : {}", e.id(), err);

@@ -30,7 +30,7 @@ pub enum InventoryResponse {
     StateChange(AppState),
 }
 
-pub fn handle_player_input(
+pub fn p_input_inventory(
     ecs: &mut World,
     ctx: &BTerm,
     cfg: &mut InventoryConfig,
