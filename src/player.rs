@@ -1,7 +1,7 @@
 use crate::{
     components::{
-        AttackAction, BreakAction, FinishedActivity, FishAction, GameAction, Interactor,
-        InteractorMode, Name, PickupAction,
+        AttackAction, BreakAction, FinishedActivity, FishAction, GameAction, Interactor, InteractorMode, Name,
+        PickupAction,
     },
     game_init::{find_next_map, PlayerEntity},
     items::inventory_contains,
@@ -56,25 +56,19 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) -> PlayerRespons
     let players = ecs.read_storage::<Player>();
     let interactors = ecs.read_storage::<Interactor>();
     let entities = ecs.entities();
-    for (player_entity, pos, interactor, _) in
-        (&entities, &mut positions, &interactors, &players).join()
-    {
+    for (player_entity, pos, interactor, _) in (&entities, &mut positions, &interactors, &players).join() {
         let target_pos = Point::new(pos.x as i32 + delta_x, pos.y as i32 + delta_y);
 
         let map = ecs.fetch::<Map>();
         if !map.in_bounds(target_pos) {
             // NOTE: this is most likely safe to perform because the world_coords will always be
             // positive and away from (0, 0) thus resulting in a point that is (+, +) which can be converted
-            let new_pt = Point::new(
-                map.world_coords.x as i32 + target_pos.x,
-                map.world_coords.y as i32 + target_pos.y,
-            );
+            let new_pt = Point::new(map.world_coords.x as i32 + target_pos.x, map.world_coords.y as i32 + target_pos.y);
             let target_world_pos = Position::from(new_pt);
             return match find_next_map(&target_world_pos) {
-                Some(level_name) => PlayerResponse::StateChange(AppState::MapChange {
-                    level_name,
-                    player_world_pos: target_world_pos,
-                }),
+                Some(level_name) => {
+                    PlayerResponse::StateChange(AppState::MapChange { level_name, player_world_pos: target_world_pos })
+                }
                 None => PlayerResponse::Waiting,
             };
         }
@@ -82,12 +76,7 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) -> PlayerRespons
         match map.first_entity_in_pos(&Position::from(target_pos)) {
             Some(tile) => match tile {
                 TileEntity::Breakable(entity) => {
-                    info!(
-                        "Map is breakable at {}, {} : id: {}",
-                        target_pos.x,
-                        target_pos.y,
-                        entity.id()
-                    );
+                    info!("Map is breakable at {}, {} : id: {}", target_pos.x, target_pos.y, entity.id());
                     ecs.write_storage::<BreakAction>()
                         .insert(player_entity, BreakAction { target: *entity })
                         .expect("Break action could not be added to player entity");
@@ -109,12 +98,7 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) -> PlayerRespons
                     info!("Attempting to fish at {}, {}", target_pos.x, target_pos.y);
                     if inventory_contains(&Name::new("Fishing Rod"), &player_entity, ecs) {
                         ecs.write_storage::<FishAction>()
-                            .insert(
-                                player_entity,
-                                FishAction {
-                                    target: target_pos.into(),
-                                },
-                            )
+                            .insert(player_entity, FishAction { target: target_pos.into() })
                             .expect("Fish action could not be added to player entity");
                         return PlayerResponse::StateChange(AppState::activity_bound());
                     }
@@ -146,12 +130,7 @@ fn try_pickup(ecs: &mut World) -> PlayerResponse {
     if let Some(pos) = positions.get(player_entity.0) {
         let mut item_iter = map.all_items_at_pos(pos);
         if let Some(item_entity) = item_iter.next() {
-            let _ = pickups.insert(
-                player_entity.0,
-                PickupAction {
-                    item: *item_entity.as_item_entity().unwrap(),
-                },
-            );
+            let _ = pickups.insert(player_entity.0, PickupAction { item: *item_entity.as_item_entity().unwrap() });
         }
     }
 

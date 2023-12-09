@@ -37,9 +37,7 @@ impl<'a> System<'a> for TileDestructionSystem {
     ) {
         for (stats, action, name) in (&stats, &break_actions, &names).join() {
             if let Some((_, tile_name, target_breakable, target_stats)) =
-                (&entities, &names, &breakable, &health_stats)
-                    .join()
-                    .find(|(e, _, _, _)| *e == action.target)
+                (&entities, &names, &breakable, &health_stats).join().find(|(e, _, _, _)| *e == action.target)
             {
                 if !inventory_contains_tool(&target_breakable.by) {
                     log.log(format!("You do not own the correct tool for this {name}."));
@@ -51,10 +49,7 @@ impl<'a> System<'a> for TileDestructionSystem {
                 }
 
                 let damage = stats.set.strength - target_stats.defense;
-                log.log(format!(
-                    "{} dealt {} damage to {}",
-                    name.0, damage, tile_name.0
-                ));
+                log.log(format!("{} dealt {} damage to {}", name.0, damage, tile_name.0));
                 SufferDamage::new_damage(&mut suffer_damage, action.target, -(damage as i32));
             }
         }
@@ -76,9 +71,7 @@ impl SufferDamage {
         if let Some(suffering) = store.get_mut(victim) {
             suffering.amount.push(amount);
         } else {
-            let dmg = SufferDamage {
-                amount: vec![amount],
-            };
+            let dmg = SufferDamage { amount: vec![amount] };
             store.insert(victim, dmg).expect("Unable to insert damage");
         }
     }
@@ -87,10 +80,7 @@ impl SufferDamage {
 pub struct DamageSystem;
 
 impl<'a> System<'a> for DamageSystem {
-    type SystemData = (
-        WriteStorage<'a, SufferDamage>,
-        WriteStorage<'a, HealthStats>,
-    );
+    type SystemData = (WriteStorage<'a, SufferDamage>, WriteStorage<'a, HealthStats>);
 
     fn run(&mut self, (mut damage, mut breakable): Self::SystemData) {
         for (stats, damage) in (&mut breakable, &mut damage).join() {
@@ -101,10 +91,7 @@ impl<'a> System<'a> for DamageSystem {
             let new_hp = stats.hp as i32 + damage_dealt;
             stats.hp = if new_hp >= 0 { new_hp as usize } else { 0 };
 
-            println!(
-                "Old HP: {} | Damage Dealt: {} | New HP: {}",
-                old_hp, damage_dealt, stats.hp
-            );
+            println!("Old HP: {} | Damage Dealt: {} | New HP: {}", old_hp, damage_dealt, stats.hp);
         }
 
         damage.clear();
@@ -114,21 +101,14 @@ impl<'a> System<'a> for DamageSystem {
 pub struct RemoveDeadTiles;
 
 impl<'a> System<'a> for RemoveDeadTiles {
-    type SystemData = (
-        ReadStorage<'a, HealthStats>,
-        ReadStorage<'a, Name>,
-        Entities<'a>,
-    );
+    type SystemData = (ReadStorage<'a, HealthStats>, ReadStorage<'a, Name>, Entities<'a>);
 
     fn run(&mut self, (breakable, names, entities): Self::SystemData) {
         for (stats, e, name) in (&breakable, &entities, &names).join() {
             if stats.hp == 0 {
                 match entities.delete(e) {
                     Ok(..) => {
-                        info!(
-                            "{} is dead and was deleted, items should have spawned if any.",
-                            name
-                        );
+                        info!("{} is dead and was deleted, items should have spawned if any.", name);
                     }
                     Err(err) => {
                         error!("Failed to clean up {} : {}", e.id(), err);

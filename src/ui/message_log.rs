@@ -16,18 +16,11 @@ pub(crate) fn draw_message_log(draw_batch: &mut DrawBatch, ecs: &World) {
     let log = ecs.fetch::<MessageLog>();
 
     draw_batch.target(CL_TEXT);
-    draw_batch.draw_accent_box(
-        Rect::with_size(-1, 50, 70, 10),
-        ColorPair::new(INVENTORY_OUTLINE, INVENTORY_BACKGROUND),
-    );
+    draw_batch
+        .draw_accent_box(Rect::with_size(-1, 50, 70, 10), ColorPair::new(INVENTORY_OUTLINE, INVENTORY_BACKGROUND));
 
     for (y_offset, message) in log.nth_recent(9).enumerate() {
-        draw_batch.printer(
-            Point::new(1, 51 + y_offset),
-            message.colored(),
-            TextAlign::Left,
-            Some(RGBA::new()),
-        );
+        draw_batch.printer(Point::new(1, 51 + y_offset), message.colored(), TextAlign::Left, Some(RGBA::new()));
     }
 }
 
@@ -41,10 +34,7 @@ pub fn draw_turn_counter(draw_batch: &mut DrawBatch, ecs: &World) {
     draw_batch.print_color(
         Point { x: 1, y: 2 },
         format!("Turn:{}", turn_counter.0),
-        ColorPair {
-            fg: WHITESMOKE.into(),
-            bg: INVENTORY_BACKGROUND.into(),
-        },
+        ColorPair { fg: WHITESMOKE.into(), bg: INVENTORY_BACKGROUND.into() },
     );
 }
 
@@ -55,12 +45,7 @@ pub struct MessageLog {
 
 impl MessageLog {
     pub fn new() -> Self {
-        Self {
-            messages: vec![Message::new(
-                "Welcome to the world of rust_rpg!".to_string(),
-                MessageType::Info,
-            )],
-        }
+        Self { messages: vec![Message::new("Welcome to the world of rust_rpg!".to_string(), MessageType::Info)] }
     }
 
     /// Adds info to the log
@@ -110,11 +95,7 @@ pub struct Message {
 
 impl Message {
     fn new(contents: String, message_type: MessageType) -> Self {
-        Self {
-            kind: message_type,
-            contents,
-            repeated: 1,
-        }
+        Self { kind: message_type, contents, repeated: 1 }
     }
 
     /// Returns a colored output of the message based on type and amt
@@ -124,11 +105,7 @@ impl Message {
             MessageType::Debug => "orange",
             MessageType::Flavor => "white",
         };
-        let suffix_amt = if self.repeated > 1 {
-            format!(" x{}", self.repeated)
-        } else {
-            "".to_string()
-        };
+        let suffix_amt = if self.repeated > 1 { format!(" x{}", self.repeated) } else { "".to_string() };
         format!("#[{}]{}#[]{}", color, &self.contents, suffix_amt)
     }
 }

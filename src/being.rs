@@ -4,14 +4,11 @@ use log::{info, warn};
 use pathfinding::prelude::astar;
 use serde::Deserialize;
 use specs::{
-    shred::PanicHandler, Entities, Entity, Join, ReadExpect, ReadStorage, System, Write,
-    WriteExpect, WriteStorage,
+    shred::PanicHandler, Entities, Entity, Join, ReadExpect, ReadStorage, System, Write, WriteExpect, WriteStorage,
 };
 
 use crate::{
-    components::{
-        AttackAction, BreakAction, GoalMoverAI, MoveAction, Name, Position, RandomWalkerAI,
-    },
+    components::{AttackAction, BreakAction, GoalMoverAI, MoveAction, Name, Position, RandomWalkerAI},
     data_read::ENTITY_DB,
     droptables::Drops,
     map::{distance, is_goal, successors, Map, TileEntity},
@@ -131,13 +128,9 @@ impl<'a> System<'a> for GoalFindEntities {
         Entities<'a>,
     );
 
-    fn run(
-        &mut self,
-        (mut goal_movers, mut randwalkers, positions, names, entities): Self::SystemData,
-    ) {
+    fn run(&mut self, (mut goal_movers, mut randwalkers, positions, names, entities): Self::SystemData) {
         let mut remove_mes: Vec<Entity> = vec![];
-        for (goal_entity, goal_mover, mover_pos, mover_name) in
-            (&entities, &mut goal_movers, &positions, &names).join()
+        for (goal_entity, goal_mover, mover_pos, mover_name) in (&entities, &mut goal_movers, &positions, &names).join()
         {
             if goal_mover.current.is_some() {
                 continue;
@@ -148,18 +141,14 @@ impl<'a> System<'a> for GoalFindEntities {
                 .filter(|(e, n, _)| goal_mover.desires.contains(n) && e.ne(&goal_entity))
                 .collect();
             if data.len() == 0 {
-                info!(
-                    "No goals remain for {}, switching to randomwalk",
-                    mover_name
-                );
+                info!("No goals remain for {}, switching to randomwalk", mover_name);
                 let _ = randwalkers.insert(goal_entity, RandomWalkerAI);
                 remove_mes.push(goal_entity);
             }
 
             for (entity, _, pos) in data {
                 let dist_from_goal = distance(mover_pos, pos);
-                let goal_within_range =
-                    (dist_from_goal as usize) < goal_mover.goal_range || goal_mover.goal_range == 0;
+                let goal_within_range = (dist_from_goal as usize) < goal_mover.goal_range || goal_mover.goal_range == 0;
                 if goal_within_range && dist_from_goal < closest_goal.1 {
                     closest_goal = (Some(entity), dist_from_goal);
                 }
@@ -190,9 +179,7 @@ impl<'a> System<'a> for GoalMoveToEntities {
         &mut self,
         (mut move_actions, mut attack_actions, mut goal_movers, positions, names, map, entities): Self::SystemData,
     ) {
-        for (entity, goal_mover, mover_pos, mover_name) in
-            (&entities, &mut goal_movers, &positions, &names).join()
-        {
+        for (entity, goal_mover, mover_pos, mover_name) in (&entities, &mut goal_movers, &positions, &names).join() {
             if goal_mover.current.is_none() {
                 continue;
             }
@@ -205,30 +192,20 @@ impl<'a> System<'a> for GoalMoveToEntities {
             };
 
             if distance(mover_pos, goal_pos) < 2 {
-                let _ = attack_actions.insert(
-                    entity,
-                    AttackAction {
-                        target: goal_mover.current.unwrap(), /* cant be none */
-                    },
-                );
+                let _ = attack_actions
+                    .insert(entity, AttackAction { target: goal_mover.current.unwrap() /* cant be none */ });
                 let missing_name = Name::new("Missing");
-                let target_name = names
-                    .get(goal_mover.current.unwrap())
-                    .unwrap_or(&missing_name);
+                let target_name = names.get(goal_mover.current.unwrap()).unwrap_or(&missing_name);
                 info!("{} tries to attack {}", mover_name, target_name);
                 continue;
             }
-            let path: (Vec<Position>, u32) = match astar(
-                mover_pos,
-                |p| successors(&map, p),
-                |p| distance(p, goal_pos),
-                |p| is_goal(p, goal_pos),
-            ) {
-                Some(path) => path,
-                None => {
-                    continue;
-                }
-            };
+            let path: (Vec<Position>, u32) =
+                match astar(mover_pos, |p| successors(&map, p), |p| distance(p, goal_pos), |p| is_goal(p, goal_pos)) {
+                    Some(path) => path,
+                    None => {
+                        continue;
+                    }
+                };
             if path.0.len() > 1 {
                 let new_position = path.0[1];
                 let _ = move_actions.insert(entity, MoveAction::new(new_position));
@@ -241,20 +218,12 @@ impl<'a> System<'a> for GoalMoveToEntities {
 pub struct HandleMoveActions;
 
 impl<'a> System<'a> for HandleMoveActions {
-    type SystemData = (
-        WriteStorage<'a, MoveAction>,
-        WriteStorage<'a, Position>,
-        WriteExpect<'a, Map>,
-        Entities<'a>,
-    );
+    type SystemData = (WriteStorage<'a, MoveAction>, WriteStorage<'a, Position>, WriteExpect<'a, Map>, Entities<'a>);
 
     fn run(&mut self, (mut move_actions, mut positions, mut map, entities): Self::SystemData) {
         for (entity, want, mover_pos) in (&entities, &move_actions, &mut positions).join() {
             let idx = mover_pos.to_idx(map.width);
-            match map.tile_entities[idx]
-                .iter()
-                .position(|tile| tile == &TileEntity::Blocking(entity))
-            {
+            match map.tile_entities[idx].iter().position(|tile| tile == &TileEntity::Blocking(entity)) {
                 Some(remove_idx) => {
                     map.tile_entities[idx].remove(remove_idx);
                 }

@@ -11,14 +11,7 @@ pub fn get_random_stats() -> EntityStats {
     let vitality = rng.range(1, 21);
     let precision = rng.range(1, 21);
     let charisma = rng.range(1, 21);
-    EntityStats::from(Stats {
-        intelligence,
-        strength,
-        dexterity,
-        vitality,
-        precision,
-        charisma,
-    })
+    EntityStats::from(Stats { intelligence, strength, dexterity, vitality, precision, charisma })
 }
 
 #[derive(Debug, Copy, Clone, Deserialize, Serialize)]
@@ -33,23 +26,11 @@ pub struct Stats {
 
 impl Stats {
     pub fn zero() -> Self {
-        Self {
-            intelligence: 0,
-            strength: 0,
-            dexterity: 0,
-            vitality: 0,
-            precision: 0,
-            charisma: 0,
-        }
+        Self { intelligence: 0, strength: 0, dexterity: 0, vitality: 0, precision: 0, charisma: 0 }
     }
 
     pub fn get_total(&self) -> usize {
-        self.intelligence
-            + self.vitality
-            + self.strength
-            + self.dexterity
-            + self.precision
-            + self.charisma
+        self.intelligence + self.vitality + self.strength + self.dexterity + self.precision + self.charisma
     }
 
     /// Generates complementary health stats based off the vitality
@@ -65,16 +46,7 @@ pub struct EntityStatsBuilder {
 impl EntityStatsBuilder {
     /// Initializes stats with all zeroes. Meant to be used with the extension methods `with_*something*`
     pub fn new() -> Self {
-        Self {
-            stats: Stats {
-                intelligence: 0,
-                strength: 0,
-                dexterity: 0,
-                vitality: 0,
-                precision: 0,
-                charisma: 0,
-            },
-        }
+        Self { stats: Stats { intelligence: 0, strength: 0, dexterity: 0, vitality: 0, precision: 0, charisma: 0 } }
     }
 
     pub fn with_intelligence(&mut self, intelligence: usize) -> &mut Self {

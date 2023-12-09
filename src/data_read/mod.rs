@@ -48,11 +48,7 @@ pub struct GameData {
 
 impl GameData {
     fn new() -> Self {
-        Self {
-            items: ItemDatabase::empty(),
-            world_objs: WorldObjectDatabase::empty(),
-            beings: BeingDatabase::empty(),
-        }
+        Self { items: ItemDatabase::empty(), world_objs: WorldObjectDatabase::empty(), beings: BeingDatabase::empty() }
     }
 
     fn load(&mut self, data: GameData) {
@@ -123,9 +119,6 @@ impl Drops {
 
 impl DropQty {
     fn from_str(qty: &str) -> DropQty {
-        DropQty::Single(
-            qty.parse()
-                .expect(&format!("{} cannot be parsed into a number", qty)),
-        )
+        DropQty::Single(qty.parse().expect(&format!("{} cannot be parsed into a number", qty)))
     }
 }

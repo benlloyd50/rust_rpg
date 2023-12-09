@@ -12,14 +12,12 @@ use std::{
 
 use log::error;
 use serde::{Deserialize, Serialize};
-use specs::{
-    Entities, Entity, Join, Read, ReadStorage, System, World, WorldExt, Write, WriteStorage,
-};
+use specs::{Entities, Entity, Join, Read, ReadStorage, System, World, WorldExt, Write, WriteStorage};
 
 use crate::{
     components::{
-        AttackBonus, Consumable, ConsumeAction, Equipable, HealAction, InBag, Item, Name,
-        Persistent, PickupAction, Position, Renderable,
+        AttackBonus, Consumable, ConsumeAction, Equipable, HealAction, InBag, Item, Name, Persistent, PickupAction,
+        Position, Renderable,
     },
     data_read::prelude::*,
     game_init::PlayerEntity,
@@ -60,36 +58,22 @@ pub struct ItemSpawner {
 
 impl ItemSpawner {
     pub fn new() -> Self {
-        Self {
-            requests: Vec::new(),
-        }
+        Self { requests: Vec::new() }
     }
 
     pub fn request_named(&mut self, name: &str, spawn_type: SpawnType) {
         let edb = &ENTITY_DB.lock().unwrap();
         let id = edb.items.get_by_name(name).unwrap().identifier;
-        self.requests.push(ItemSpawnRequest {
-            id,
-            qty: ItemQty(1),
-            spawn_type,
-        });
+        self.requests.push(ItemSpawnRequest { id, qty: ItemQty(1), spawn_type });
     }
 
     pub fn request(&mut self, id: ItemID, spawn_type: SpawnType) {
-        self.requests.push(ItemSpawnRequest {
-            id,
-            qty: ItemQty(1),
-            spawn_type,
-        });
+        self.requests.push(ItemSpawnRequest { id, qty: ItemQty(1), spawn_type });
     }
 
     #[allow(dead_code)]
     pub fn request_amt(&mut self, id: ItemID, spawn_type: SpawnType, qty: ItemQty) {
-        self.requests.push(ItemSpawnRequest {
-            id,
-            qty,
-            spawn_type,
-        });
+        self.requests.push(ItemSpawnRequest { id, qty, spawn_type });
     }
 }
 
@@ -145,10 +129,7 @@ impl<'a> System<'a> for ItemSpawnerSystem {
             let static_item = match edb.items.get_by_id(spawn.id) {
                 Some(val) => val,
                 None => {
-                    error!(
-                        "Spawn request failed because {:?} item id does not exist in database",
-                        spawn.id
-                    );
+                    error!("Spawn request failed because {:?} item id does not exist in database", spawn.id);
                     continue;
                 }
             };
@@ -165,10 +146,7 @@ impl<'a> System<'a> for ItemSpawnerSystem {
                         .find(|(_, item, bag)| bag.owner == owner && item.id == spawn.id)
                     {
                         Some((bagged_entity, bagged_item, _)) => {
-                            let _ = items.insert(
-                                bagged_entity,
-                                Item::new(bagged_item.id, bagged_item.qty + spawn.qty),
-                            );
+                            let _ = items.insert(bagged_entity, Item::new(bagged_item.id, bagged_item.qty + spawn.qty));
                         }
                         None => {
                             let _ = items.insert(new_item, Item::new(spawn.id, spawn.qty));
@@ -186,10 +164,8 @@ impl<'a> System<'a> for ItemSpawnerSystem {
             consumables.maybe_insert(new_item, static_item.consumable.clone());
             attack_bonus.maybe_insert(new_item, static_item.attack_bonus.clone());
 
-            let _ = renderables.insert(
-                new_item,
-                Renderable::default_bg(static_item.atlas_index, static_item.fg, ITEM_Z),
-            );
+            let _ =
+                renderables.insert(new_item, Renderable::default_bg(static_item.atlas_index, static_item.fg, ITEM_Z));
             let _ = names.insert(new_item, Name(static_item.name.clone()));
         }
 
@@ -235,10 +211,7 @@ impl<'a> System<'a> for ItemPickupHandler {
             let ground_item = match items.get(ground_entity) {
                 Some(item) => item,
                 None => {
-                    eprintln!(
-                        "{:?} was not an item, it's name was {}",
-                        ground_entity, item_name
-                    );
+                    eprintln!("{:?} was not an item, it's name was {}", ground_entity, item_name);
                     continue;
                 }
             };
@@ -250,10 +223,7 @@ impl<'a> System<'a> for ItemPickupHandler {
                 .find(|(_, item, bag)| bag.owner == picker && item.id == ground_item.id)
             {
                 Some((bagged_entity, bagged_item, _)) => {
-                    let _ = items.insert(
-                        bagged_entity,
-                        Item::new(bagged_item.id, bagged_item.qty + ground_item.qty),
-                    );
+                    let _ = items.insert(bagged_entity, Item::new(bagged_item.id, bagged_item.qty + ground_item.qty));
                     let _ = entities.delete(ground_entity);
                 }
                 None => {
@@ -267,11 +237,7 @@ impl<'a> System<'a> for ItemPickupHandler {
                     }
                 }
             }
-            log.log(format!(
-                "{} picked up a {}",
-                picker_name,
-                item_name.0.to_lowercase()
-            ));
+            log.log(format!("{} picked up a {}", picker_name, item_name.0.to_lowercase()));
         }
 
         pickup_actions.clear();
@@ -300,11 +266,7 @@ pub fn inventory_contains(target: &Name, owner: &Entity, ecs: &World) -> bool {
     let names = ecs.read_storage::<Name>();
     let in_bags = ecs.read_storage::<InBag>();
 
-    (&items, &names, &in_bags)
-        .join()
-        .filter(|(_, name, bag)| name.eq(&target) && bag.owner.eq(owner))
-        .count()
-        >= 1
+    (&items, &names, &in_bags).join().filter(|(_, name, bag)| name.eq(&target) && bag.owner.eq(owner)).count() >= 1
 }
 
 pub struct ItemInfo {
@@ -320,9 +282,7 @@ pub struct ItemInfo {
     pub consumable: Option<Consumable>,
 }
 
-#[derive(
-    Serialize, Deserialize, Copy, Clone, Debug, Hash, Eq, PartialEq, Default, PartialOrd, Ord,
-)]
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, Hash, Eq, PartialEq, Default, PartialOrd, Ord)]
 pub struct ItemID(pub u32);
 
 impl Display for ItemID {
@@ -348,18 +308,13 @@ impl<'a> System<'a> for ConsumeHandler {
         Entities<'a>,
     );
 
-    fn run(
-        &mut self,
-        (mut consume_actions, mut heal_actions, mut items, consumables, entities): Self::SystemData,
-    ) {
+    fn run(&mut self, (mut consume_actions, mut heal_actions, mut items, consumables, entities): Self::SystemData) {
         for (consumer, consume) in (&entities, &consume_actions).join() {
-            let (_, item, consumable) = match (&entities, &mut items, &consumables)
-                .join()
-                .find(|(e, _, _)| *e == consume.consuming)
-            {
-                Some(i) => i,
-                None => continue,
-            };
+            let (_, item, consumable) =
+                match (&entities, &mut items, &consumables).join().find(|(e, _, _)| *e == consume.consuming) {
+                    Some(i) => i,
+                    None => continue,
+                };
             match consumable {
                 Consumable::InstantRegen(amount) => {
                     let _ = heal_actions.insert(consumer, HealAction { amount: *amount });

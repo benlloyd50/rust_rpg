@@ -19,14 +19,12 @@ pub struct RecipeDatabase {
 
 impl RecipeDatabase {
     pub fn new() -> Self {
-        Self {
-            use_with_recipes: Vec::new(),
-        }
+        Self { use_with_recipes: Vec::new() }
     }
 
     pub fn load(&mut self) {
-        let contents: String = fs::read_to_string("raws/recipes.json")
-            .expect("Unable to find recipes.json at `raws/recipes.json`");
+        let contents: String =
+            fs::read_to_string("raws/recipes.json").expect("Unable to find recipes.json at `raws/recipes.json`");
         let recipes: Vec<RawRecipe> = from_str(&contents).expect("Bad JSON in recipes.json fix it");
         let edb = &ENTITY_DB.lock().unwrap();
         self.use_with_recipes = recipes

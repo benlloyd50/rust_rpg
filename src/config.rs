@@ -9,11 +9,7 @@ pub struct ConfigMaster {
 
 impl Default for ConfigMaster {
     fn default() -> Self {
-        Self {
-            inventory: InventoryConfig {
-                sort_mode: SortMode::NameABC,
-            },
-        }
+        Self { inventory: InventoryConfig { sort_mode: SortMode::NameABC } }
     }
 }
 

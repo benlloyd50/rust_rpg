@@ -10,12 +10,7 @@ pub fn create_logger() {
     if let Ok(file) = OpenOptions::new().create(true).append(true).open(path) {
         let file_logger = WriteLogger::new(log::LevelFilter::Info, Config::default(), file);
         CombinedLogger::init(vec![
-            TermLogger::new(
-                LevelFilter::Debug,
-                Config::default(),
-                TerminalMode::Mixed,
-                ColorChoice::Auto,
-            ),
+            TermLogger::new(LevelFilter::Debug, Config::default(), TerminalMode::Mixed, ColorChoice::Auto),
             file_logger,
         ])
         .unwrap();

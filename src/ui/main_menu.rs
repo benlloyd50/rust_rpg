@@ -24,11 +24,7 @@ pub fn draw_main_menu(draw_batch: &mut DrawBatch, hovered: &MenuSelection) {
     );
 
     for (idx, opt) in MENU_OPTIONS.iter().enumerate() {
-        let bg = if hovered.to_lowercase() == opt.to_owned() {
-            PURPLE
-        } else {
-            INVENTORY_BACKGROUND
-        };
+        let bg = if hovered.to_lowercase() == opt.to_owned() { PURPLE } else { INVENTORY_BACKGROUND };
         draw_batch.print_color(
             Point::new(MENU_START_X + 3, MENU_START_Y + 2 + (2 * idx)),
             opt,

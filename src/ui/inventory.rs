@@ -38,18 +38,12 @@ pub(crate) fn draw_inventory(draw_batch: &mut DrawBatch, ecs: &World, cfg: &Inve
     );
 
     let selected_items = ecs.read_storage::<SelectedInventoryItem>();
-    let selected_item = selected_items
-        .get(player_entity.0)
-        .map(|SelectedInventoryItem { first_item, .. }| first_item);
+    let selected_item = selected_items.get(player_entity.0).map(|SelectedInventoryItem { first_item, .. }| first_item);
 
     // Draw each item in inventory
     for (offset, (item_entity, item, _, Name(name), equipped)) in data.iter().enumerate() {
         let status = if equipped.is_some() { "(E)" } else { "" };
-        let qty = if item.qty.0 > 1 {
-            format!("{}x ", item.qty)
-        } else {
-            "".to_string()
-        };
+        let qty = if item.qty.0 > 1 { format!("{}x ", item.qty) } else { "".to_string() };
         draw_batch.print_color(
             Point::new(42, 2 + offset + 1),
             format!("{:X}| {status}{qty}{name}", offset + 1),

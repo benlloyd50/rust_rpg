@@ -18,8 +18,7 @@ pub fn update_fancy_positions(ecs: &World) {
     let dt = ecs.read_resource::<DeltaTime>();
 
     for (ftrans, pos) in (&mut transforms, &positions).join() {
-        ftrans.sprite_pos =
-            lerp_positon(&ftrans.sprite_pos, pos, SPRITE_SPEED * dt.0.as_secs_f32());
+        ftrans.sprite_pos = lerp_positon(&ftrans.sprite_pos, pos, SPRITE_SPEED * dt.0.as_secs_f32());
     }
 }
 
@@ -53,10 +52,7 @@ fn draw_sprites(ecs: &World, draw_batch: &mut DrawBatch) {
         .filter(|(pos, _)| bounding_box.point_in_rect(pos.to_point()));
     for (pos, render) in data {
         draw_batch.set_with_z(
-            Point::new(
-                pos.x as i32 - bounding_box.x1,
-                pos.y as i32 - bounding_box.y1,
-            ),
+            Point::new(pos.x as i32 - bounding_box.x1, pos.y as i32 - bounding_box.y1),
             render.color_pair,
             render.atlas_index,
             render.z_priority,
@@ -69,9 +65,8 @@ fn draw_fancy_sprites(ecs: &World, draw_batch: &mut DrawBatch) {
     let transforms = ecs.read_storage::<Transform>();
 
     let bounding_box = get_camera_bounds(ecs);
-    for (ftrans, render) in (&transforms, &renderables)
-        .join()
-        .filter(|(pos, _)| bounding_box.point_in_rect(pos.sprite_pos.into()))
+    for (ftrans, render) in
+        (&transforms, &renderables).join().filter(|(pos, _)| bounding_box.point_in_rect(pos.sprite_pos.into()))
     {
         let fx = ftrans.sprite_pos.x - bounding_box.x1 as f32;
         let fy = ftrans.sprite_pos.y - bounding_box.y1 as f32 + 1.0;

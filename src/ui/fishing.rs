@@ -2,8 +2,8 @@ use bracket_terminal::prelude::{to_char, ColorPair, DrawBatch, Point, WHITE};
 use specs::{World, WorldExt};
 
 use crate::{
-    components::FishingMinigame, debug::CLEAR, fishing::GoalBar, game_init::PlayerEntity,
-    CL_EFFECTS, CL_EFFECTS2, DISPLAY_WIDTH,
+    components::FishingMinigame, debug::CLEAR, fishing::GoalBar, game_init::PlayerEntity, CL_EFFECTS, CL_EFFECTS2,
+    DISPLAY_WIDTH,
 };
 
 pub const MINIGAME_HEIGHT: usize = 10;
@@ -19,13 +19,7 @@ pub fn draw_fishing_bar(draw_batch: &mut DrawBatch, ecs: &World) {
             to_char(20).to_string().repeat(minigame.goal_bar.bar_width),
         );
         draw_batch.print(Point::new(left_bar_x, MINIGAME_HEIGHT), to_char(19));
-        draw_batch.print(
-            Point::new(
-                left_bar_x + minigame.goal_bar.bar_width - 1,
-                MINIGAME_HEIGHT,
-            ),
-            to_char(21),
-        );
+        draw_batch.print(Point::new(left_bar_x + minigame.goal_bar.bar_width - 1, MINIGAME_HEIGHT), to_char(21));
 
         draw_goal_bar(&minigame.goal_bar, left_bar_x, draw_batch);
 
@@ -34,10 +28,7 @@ pub fn draw_fishing_bar(draw_batch: &mut DrawBatch, ecs: &World) {
         draw_batch.print_color(
             Point::new(left_bar_x + cursor_pos, MINIGAME_HEIGHT),
             format!("{}", to_char(16)),
-            ColorPair {
-                fg: WHITE.into(),
-                bg: CLEAR,
-            },
+            ColorPair { fg: WHITE.into(), bg: CLEAR },
         );
     }
 }
@@ -50,15 +41,9 @@ fn draw_goal_bar(goal_bar: &GoalBar, left_bar_x: usize, draw_batch: &mut DrawBat
         return;
     }
     // middle goal section
-    draw_batch.print(
-        Point::new(left_goal_x, MINIGAME_HEIGHT),
-        to_char(23).to_string().repeat(goal_bar.goal_width),
-    );
+    draw_batch.print(Point::new(left_goal_x, MINIGAME_HEIGHT), to_char(23).to_string().repeat(goal_bar.goal_width));
     // left goal bumper
     draw_batch.print(Point::new(left_goal_x, MINIGAME_HEIGHT), to_char(22));
     // right goal bumper
-    draw_batch.print(
-        Point::new(left_goal_x + goal_bar.goal_width - 1, MINIGAME_HEIGHT),
-        to_char(24),
-    );
+    draw_batch.print(Point::new(left_goal_x + goal_bar.goal_width - 1, MINIGAME_HEIGHT), to_char(24));
 }

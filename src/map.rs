@@ -108,29 +108,23 @@ impl Map {
     /// Gets all the entities in the tile that are an item.
     /// It returns an iterator since often only the first value is used.
     pub fn all_items_at_pos(&self, pos: &Position) -> impl Iterator<Item = &TileEntity> {
-        self.tile_entities[self.xy_to_idx(pos.x, pos.y)]
-            .iter()
-            .filter(|te| te.as_item_entity().is_some())
+        self.tile_entities[self.xy_to_idx(pos.x, pos.y)].iter().filter(|te| te.as_item_entity().is_some())
     }
 
     /// Attempts to get the first entity at the pos based on the contents of the tile
     /// Will return `None` if no entities are present in the tile
     pub fn first_entity_in_pos(&self, pos: &Position) -> Option<&TileEntity> {
-        self.tile_entities[self.xy_to_idx(pos.x, pos.y)]
-            .iter()
-            .min_by_key(|&tile_entity| match tile_entity {
-                TileEntity::Fishable(_) => 9,
-                TileEntity::Breakable(_) => 15,
-                TileEntity::Blocking(_) => 20,
-                TileEntity::Item(_) => 21,
-            })
+        self.tile_entities[self.xy_to_idx(pos.x, pos.y)].iter().min_by_key(|&tile_entity| match tile_entity {
+            TileEntity::Fishable(_) => 9,
+            TileEntity::Breakable(_) => 15,
+            TileEntity::Blocking(_) => 20,
+            TileEntity::Item(_) => 21,
+        })
     }
 
     /// Checks a position on the map to see if it is blocked
     pub fn is_blocked(&self, pos: &Position) -> bool {
-        self.tile_entities[self.xy_to_idx(pos.x, pos.y)]
-            .iter()
-            .any(|te| te.is_blocker())
+        self.tile_entities[self.xy_to_idx(pos.x, pos.y)].iter().any(|te| te.is_blocker())
     }
 
     pub fn in_bounds(&self, pos: Point) -> bool {
@@ -185,11 +179,7 @@ pub fn render_map(ecs: &World, batch: &mut DrawBatch) {
             let screen_x = x - bounding_box.x1;
             let screen_y = y - bounding_box.y1;
 
-            batch.set(
-                Point::new(screen_x, screen_y),
-                ColorPair::new(WHITE, BLACK),
-                atlas_index,
-            );
+            batch.set(Point::new(screen_x, screen_y), ColorPair::new(WHITE, BLACK), atlas_index);
         }
     }
 }

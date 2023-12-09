@@ -14,12 +14,7 @@ pub fn get_camera_bounds(ecs: &World) -> Rect {
     if let Some((pos, _player)) = (&positions, &player).join().next() {
         let x_offset = pos.x as i32 - PLAYER_CAMERA_OFFSET_X;
         let y_offset = pos.y as i32 - PLAYER_CAMERA_OFFSET_Y;
-        Rect::with_size(
-            x_offset,
-            y_offset,
-            DISPLAY_WIDTH as i32,
-            DISPLAY_HEIGHT as i32,
-        )
+        Rect::with_size(x_offset, y_offset, DISPLAY_WIDTH as i32, DISPLAY_HEIGHT as i32)
     } else {
         Rect::with_size(
             PLAYER_CAMERA_OFFSET_X,

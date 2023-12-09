@@ -22,10 +22,7 @@ impl<'a> System<'a> for EquipActionHandler {
         Entities<'a>,
     );
 
-    fn run(
-        &mut self,
-        (mut equip_actions, mut equippeds, equipment_slots, equipables, entities): Self::SystemData,
-    ) {
+    fn run(&mut self, (mut equip_actions, mut equippeds, equipment_slots, equipables, entities): Self::SystemData) {
         for (equipper, equip, equip_slots) in (&entities, &equip_actions, &equipment_slots).join() {
             let mut can_equip = true;
             match equipables.get(equip.item) {

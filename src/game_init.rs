@@ -7,8 +7,7 @@ pub const WHITE: (u8, u8, u8) = (255, 255, 255);
 
 use crate::{
     components::{
-        EquipmentSlots, Interactor, InteractorMode, ItemContainer, Name, Persistent, Position,
-        Renderable, Transform,
+        EquipmentSlots, Interactor, InteractorMode, ItemContainer, Name, Persistent, Position, Renderable, Transform,
     },
     data_read::prelude::{build_being, create_map, LDTK_FILE},
     items::{ItemID, ItemSpawner, SpawnType},

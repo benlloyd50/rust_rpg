@@ -25,9 +25,7 @@ pub fn create_map(ecs: &mut World, level_name: &str) -> Map {
     };
 
     for (idx, tile) in new_level.level().iter().enumerate() {
-        map.tiles[idx] = WorldTile {
-            atlas_index: tile.atlas_index(),
-        };
+        map.tiles[idx] = WorldTile { atlas_index: tile.atlas_index() };
 
         if let Some(name) = tile.entity_name() {
             if let Some(tag) = tile.entity_tag() {
@@ -35,10 +33,7 @@ pub fn create_map(ecs: &mut World, level_name: &str) -> Map {
                 match tag {
                     "Item" => {
                         let mut spawner = ecs.write_resource::<ItemSpawner>();
-                        spawner.request_named(
-                            name,
-                            SpawnType::OnGround(idx_to_point(idx, map.width).into()),
-                        );
+                        spawner.request_named(name, SpawnType::OnGround(idx_to_point(idx, map.width).into()));
                     }
                     "Interactable" => {
                         let _ = build_world_obj(name, idx_to_point(idx, map.width).into(), ecs);
@@ -54,22 +49,12 @@ pub fn create_map(ecs: &mut World, level_name: &str) -> Map {
         match tile.value() {
             0 => {}
             1 => {
-                ecs.create_entity()
-                    .with(Position::from_idx(idx, new_level.width()))
-                    .with(Blocking)
-                    .build();
+                ecs.create_entity().with(Position::from_idx(idx, new_level.width())).with(Blocking).build();
             }
             2 => {
-                ecs.create_entity()
-                    .with(Position::from_idx(idx, new_level.width()))
-                    .with(Water)
-                    .with(Blocking)
-                    .build();
+                ecs.create_entity().with(Position::from_idx(idx, new_level.width())).with(Water).with(Blocking).build();
             }
-            _ => eprintln!(
-                "Value not recognized at {:#?}",
-                idx_to_point(idx, new_level.width())
-            ),
+            _ => eprintln!("Value not recognized at {:#?}", idx_to_point(idx, new_level.width())),
         };
     }
 

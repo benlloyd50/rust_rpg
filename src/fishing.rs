@@ -2,8 +2,8 @@ use std::time::Duration;
 
 use crate::{
     components::{
-        DeleteCondition, FinishedActivity, FishAction, FishOnTheLine, Fishable, FishingMinigame,
-        GameAction, Name, Renderable, WaitingForFish, Water,
+        DeleteCondition, FinishedActivity, FishAction, FishOnTheLine, Fishable, FishingMinigame, GameAction, Name,
+        Renderable, WaitingForFish, Water,
     },
     game_init::PlayerEntity,
     items::{ItemID, ItemSpawner, SpawnType},
@@ -23,17 +23,10 @@ use specs::{Entities, Join, Read, ReadStorage, System, Write, WriteExpect, Write
 pub struct SetupFishingActions;
 
 impl<'a> System<'a> for SetupFishingActions {
-    type SystemData = (
-        Entities<'a>,
-        WriteStorage<'a, FishAction>,
-        WriteStorage<'a, WaitingForFish>,
-        Write<'a, TileAnimationBuilder>,
-    );
+    type SystemData =
+        (Entities<'a>, WriteStorage<'a, FishAction>, WriteStorage<'a, WaitingForFish>, Write<'a, TileAnimationBuilder>);
 
-    fn run(
-        &mut self,
-        (entities, mut fish_actions, mut fish_waiters, mut anim_builder): Self::SystemData,
-    ) {
+    fn run(&mut self, (entities, mut fish_actions, mut fish_waiters, mut anim_builder): Self::SystemData) {
         for (fisher, fish_action) in (&entities, &mut fish_actions).join() {
             let mut rng = RandomNumberGenerator::new();
             anim_builder.request(
@@ -112,10 +105,7 @@ impl<'a> System<'a> for WaitingForFishSystem {
             waiter.attempts -= 1;
 
             let roll = rng.range(1, 100);
-            log.debug(format!(
-                "Attempts left: {} | Rolled: {} ",
-                waiter.attempts, roll
-            ));
+            log.debug(format!("Attempts left: {} | Rolled: {} ", waiter.attempts, roll));
 
             if roll < 80 {
                 continue;
@@ -128,20 +118,13 @@ impl<'a> System<'a> for WaitingForFishSystem {
                     e,
                     FishingMinigame {
                         cursor: Cursor::new(25.0),
-                        goal_bar: GoalBar {
-                            goal: 5,
-                            bar_width: 18,
-                            goal_width: 3,
-                        },
+                        goal_bar: GoalBar { goal: 5, bar_width: 18, goal_width: 3 },
                         attempts_left: 3,
                     },
                 );
             } else {
                 info!("{} caught a fish, o cool", name);
-                log.log(format!(
-                    "{} caught a fish wow with {} attempts remaining",
-                    name, waiter.attempts
-                ));
+                log.log(format!("{} caught a fish wow with {} attempts remaining", name, waiter.attempts));
             }
 
             match fishing_lines.insert(e, FishOnTheLine) {
@@ -152,12 +135,7 @@ impl<'a> System<'a> for WaitingForFishSystem {
                     }
                 }
                 Err(err) => {
-                    log.debug(format!(
-                        "ERROR: entity: {} {} failed to add fish on the line: {}",
-                        name,
-                        e.id(),
-                        err
-                    ));
+                    log.debug(format!("ERROR: entity: {} {} failed to add fish on the line: {}", name, e.id(), err));
                 }
             }
         }
@@ -215,15 +193,10 @@ impl<'a> System<'a> for FishingMinigameCheck {
             entities,
         ): Self::SystemData,
     ) {
-        if let Some((fisher, _, _, game, ())) = (
-            &entities,
-            &game_actions,
-            &hooks,
-            &mut minigames,
-            !&finished_activities,
-        )
-            .join()
-            .find(|(e, _, _, _, _)| *e == p_entity.0)
+        if let Some((fisher, _, _, game, ())) =
+            (&entities, &game_actions, &hooks, &mut minigames, !&finished_activities)
+                .join()
+                .find(|(e, _, _, _, _)| *e == p_entity.0)
         {
             info!("Game action read, checking if in_pos");
             let idx = game.cursor.bar_position();
@@ -285,12 +258,7 @@ pub struct UpdateFishingTiles;
 pub const BUBBLE_SPAWN_RATE: usize = 1000;
 pub const BUBBLE_LIFETIME_SECS: u64 = 10;
 impl<'a> System<'a> for UpdateFishingTiles {
-    type SystemData = (
-        WriteStorage<'a, Fishable>,
-        WriteStorage<'a, Renderable>,
-        ReadStorage<'a, Water>,
-        Entities<'a>,
-    );
+    type SystemData = (WriteStorage<'a, Fishable>, WriteStorage<'a, Renderable>, ReadStorage<'a, Water>, Entities<'a>);
 
     fn run(&mut self, (mut fishables, mut renderables, waters, entities): Self::SystemData) {
         let mut rng = RandomNumberGenerator::new();
@@ -301,12 +269,7 @@ impl<'a> System<'a> for UpdateFishingTiles {
             }
         }
         for bubble in new_bubbles {
-            let _ = fishables.insert(
-                bubble,
-                Fishable {
-                    time_left: Duration::from_secs(BUBBLE_LIFETIME_SECS),
-                },
-            );
+            let _ = fishables.insert(bubble, Fishable { time_left: Duration::from_secs(BUBBLE_LIFETIME_SECS) });
             let _ = renderables.insert(bubble, Renderable::default_bg(47, WHITE, EFFECT_Z));
         }
     }
@@ -315,12 +278,7 @@ impl<'a> System<'a> for UpdateFishingTiles {
 pub struct PollFishingTiles;
 
 impl<'a> System<'a> for PollFishingTiles {
-    type SystemData = (
-        WriteStorage<'a, Fishable>,
-        WriteStorage<'a, Renderable>,
-        Read<'a, DeltaTime>,
-        Entities<'a>,
-    );
+    type SystemData = (WriteStorage<'a, Fishable>, WriteStorage<'a, Renderable>, Read<'a, DeltaTime>, Entities<'a>);
 
     fn run(&mut self, (mut fishables, mut renderables, delta_time, entities): Self::SystemData) {
         let mut remove_mes = Vec::new();
@@ -348,10 +306,7 @@ pub struct Cursor {
 
 impl Cursor {
     pub fn new(speed: f32) -> Self {
-        Self {
-            position: 0.0,
-            speed,
-        }
+        Self { position: 0.0, speed }
     }
 
     /// Where the cursor is on the bar

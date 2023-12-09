@@ -5,9 +5,7 @@ use specs::{Join, ReadStorage, World, WorldExt};
 
 use crate::{
     camera::mouse_to_map_pos,
-    components::{
-        HealthStats, InBag, Interactor, Item, Name, Position, SelectedInventoryItem, Transform,
-    },
+    components::{HealthStats, InBag, Interactor, Item, Name, Position, SelectedInventoryItem, Transform},
     config::{InventoryConfig, SortMode},
     game_init::PlayerEntity,
     inventory::UseMenuResult,
@@ -15,12 +13,7 @@ use crate::{
     CL_INTERACTABLES, CL_TEXT, CL_WORLD,
 };
 
-pub const CLEAR: RGBA = RGBA {
-    r: 0.0,
-    g: 0.0,
-    b: 0.0,
-    a: 0.0,
-};
+pub const CLEAR: RGBA = RGBA { r: 0.0, g: 0.0, b: 0.0, a: 0.0 };
 
 pub fn debug_info(ctx: &mut BTerm, ecs: &World, cfg: &InventoryConfig) {
     draw_interaction_mode(ctx, ecs);
@@ -32,13 +25,7 @@ fn draw_health(ctx: &mut BTerm, ecs: &World) {
     let player_entity = ecs.read_resource::<PlayerEntity>();
     let health_stats = ecs.read_storage::<HealthStats>();
     if let Some(stats) = health_stats.get(player_entity.0) {
-        ctx.printer(
-            2,
-            6,
-            format!("#[white]{}/{}#[]", stats.hp, stats.max_hp),
-            TextAlign::Left,
-            None,
-        );
+        ctx.printer(2, 6, format!("#[white]{}/{}#[]", stats.hp, stats.max_hp), TextAlign::Left, None);
     }
 }
 
@@ -100,13 +87,7 @@ fn draw_inventory_state(ctx: &mut BTerm, ecs: &World, cfg: &InventoryConfig) {
         None => "No selection made".to_string(),
     };
     ctx.set_active_console(CL_TEXT);
-    ctx.print_color(
-        1,
-        49,
-        WHITESMOKE,
-        RGB::from_u8(61, 84, 107),
-        selection_status,
-    );
+    ctx.print_color(1, 49, WHITESMOKE, RGB::from_u8(61, 84, 107), selection_status);
 
     let sort_mode = cfg.sort_mode.to_string();
     ctx.print_color(41, 49, WHITESMOKE, RGB::from_u8(61, 84, 107), sort_mode);
@@ -165,11 +146,7 @@ fn print_tile_contents(ctx: &mut BTerm, ecs: &World) {
 
     print!("Tileidx {} | ", tile_idx);
     if !map.tile_entities[tile_idx].is_empty() {
-        println!(
-            "Contents: {:?} | BLOCKED: {}",
-            map.tile_entities[tile_idx],
-            map.is_blocked(&cursor_map_pos.unwrap()),
-        );
+        println!("Contents: {:?} | BLOCKED: {}", map.tile_entities[tile_idx], map.is_blocked(&cursor_map_pos.unwrap()),);
     } else {
         println!("There are no entities at {:?}", cursor_map_pos);
     }

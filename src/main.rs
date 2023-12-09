@@ -34,9 +34,7 @@ mod inventory;
 mod logger;
 mod storage_utils;
 mod ui;
-use inventory::{
-    handle_one_item_actions, handle_two_item_actions, p_input_inventory, InventoryResponse,
-};
+use inventory::{handle_one_item_actions, handle_two_item_actions, p_input_inventory, InventoryResponse};
 mod being;
 mod items;
 mod mining;
@@ -47,8 +45,7 @@ mod z_order;
 use tile_animation::TileAnimationCleanUpSystem;
 mod time;
 use player::{
-    check_player_finished, p_input_activity, p_input_game, p_input_main_menu, MenuAction,
-    MenuSelection, PlayerResponse,
+    check_player_finished, p_input_activity, p_input_game, p_input_main_menu, MenuAction, MenuSelection, PlayerResponse,
 };
 mod map;
 use map::Map;
@@ -58,26 +55,22 @@ mod crafting;
 mod fishing;
 
 use fishing::{
-    CatchFishSystem, FishingMinigameCheck, FishingMinigameUpdate, PollFishingTiles,
-    SetupFishingActions, UpdateFishingTiles, WaitingForFishSystem,
+    CatchFishSystem, FishingMinigameCheck, FishingMinigameUpdate, PollFishingTiles, SetupFishingActions,
+    UpdateFishingTiles, WaitingForFishSystem,
 };
-use indexing::{
-    IndexBlockedTiles, IndexBreakableTiles, IndexFishableTiles, IndexItemTiles, IndexReset,
-};
+use indexing::{IndexBlockedTiles, IndexBreakableTiles, IndexFishableTiles, IndexItemTiles, IndexReset};
 use tile_animation::TileAnimationSpawner;
 use time::delta_time_update;
 
 use crate::components::{
-    AttackBonus, Consumable, ConsumeAction, CraftAction, EntityStats, EquipAction, Equipable,
-    EquipmentSlots, Equipped, FishingMinigame, GameAction, HealAction, InBag, ItemContainer,
-    Persistent,
+    AttackBonus, Consumable, ConsumeAction, CraftAction, EntityStats, EquipAction, Equipable, EquipmentSlots, Equipped,
+    FishingMinigame, GameAction, HealAction, InBag, ItemContainer, Persistent,
 };
 use crate::{
     components::{
-        AttackAction, Blocking, BreakAction, Breakable, DeleteCondition, FinishedActivity,
-        FishAction, FishOnTheLine, Fishable, GoalMoverAI, Grass, HealthStats, Interactor, Item,
-        MoveAction, Name, PickupAction, RandomWalkerAI, Renderable, SelectedInventoryItem,
-        SufferDamage, Transform, WaitingForFish, Water,
+        AttackAction, Blocking, BreakAction, Breakable, DeleteCondition, FinishedActivity, FishAction, FishOnTheLine,
+        Fishable, GoalMoverAI, Grass, HealthStats, Interactor, Item, MoveAction, Name, PickupAction, RandomWalkerAI,
+        Renderable, SelectedInventoryItem, SufferDamage, Transform, WaitingForFish, Water,
     },
     data_read::initialize_game_databases,
     items::ItemSpawner,
@@ -178,18 +171,11 @@ impl State {
 /// Defines the app's state for the game
 #[derive(Clone, PartialEq, Eq)]
 pub enum AppState {
-    MainMenu {
-        hovering: MenuSelection,
-    },
+    MainMenu { hovering: MenuSelection },
     NewGameStart,
-    MapChange {
-        level_name: String,
-        player_world_pos: Position,
-    },
+    MapChange { level_name: String, player_world_pos: Position },
     InGame,
-    ActivityBound {
-        response_delay: Duration,
-    },
+    ActivityBound { response_delay: Duration },
     PlayerInInventory,
     SettingsMenu,
 }
@@ -200,11 +186,8 @@ struct FrameState {
 }
 
 impl FrameState {
-    fn new(current: &AppState) ->  Self {
-        Self {
-            current: current.clone(),
-            next: current.clone(),
-        }
+    fn new(current: &AppState) -> Self {
+        Self { current: current.clone(), next: current.clone() }
     }
 
     /// Sets the state for the next frame
@@ -216,9 +199,7 @@ impl FrameState {
 impl AppState {
     /// Creates the enum variant ActivityBound with zero duration
     pub fn activity_bound() -> Self {
-        Self::ActivityBound {
-            response_delay: Duration::ZERO,
-        }
+        Self::ActivityBound { response_delay: Duration::ZERO }
     }
 }
 
@@ -300,10 +281,7 @@ impl GameState for State {
 
                 self.run_eof_systems();
             }
-            AppState::MapChange {
-                level_name,
-                player_world_pos,
-            } => {
+            AppState::MapChange { level_name, player_world_pos } => {
                 debug!("going to {}", level_name);
                 cleanup_old_map(&mut self.ecs);
                 load_map(&level_name, &mut self.ecs, ctx);
@@ -321,9 +299,7 @@ impl GameState for State {
                         });
                     }
                     MenuAction::Hovering(new_selection) => {
-                        frame_state.change_to(&AppState::MainMenu {
-                            hovering: new_selection,
-                        });
+                        frame_state.change_to(&AppState::MainMenu { hovering: new_selection });
                     }
                     MenuAction::Stalling => {
                         // do nothing..
@@ -339,10 +315,10 @@ impl GameState for State {
         self.ecs.maintain();
 
         draw_ui(&self.ecs, &frame_state.current, &self.cfg.inventory);
-        // NOTE: for some unknown reason this must be called before the debug info so that 
+        // NOTE: for some unknown reason this must be called before the debug info so that
         // the debug info is drawn ontop of the ui
         render_draw_buffer(ctx).expect("Render error??");
-        
+
         // any state besides main menu needs to draw sprite layers
         match frame_state.current {
             AppState::MainMenu { .. } | AppState::SettingsMenu => {}
@@ -353,7 +329,6 @@ impl GameState for State {
                 debug_input(ctx, &self.ecs);
             }
         }
-
 
         // Insert the state resource to overwrite it's existing and update the state of the app
         let mut state_writer = self.ecs.write_resource::<AppState>();
@@ -479,9 +454,7 @@ fn main() -> BError {
     world.register::<Persistent>();
 
     // Resource Initialization, the ECS needs a basic definition of every resource that will be in the game
-    world.insert(AppState::MainMenu {
-        hovering: MenuSelection::NewGame,
-    });
+    world.insert(AppState::MainMenu { hovering: MenuSelection::NewGame });
     world.insert(DeltaTime(Duration::ZERO));
     world.insert(TileAnimationBuilder::new());
     world.insert(ItemSpawner::new());
@@ -489,9 +462,6 @@ fn main() -> BError {
     world.insert(Map::empty());
     world.insert(TurnCounter::zero());
 
-    let game_state: State = State {
-        ecs: world,
-        cfg: ConfigMaster::default(),
-    };
+    let game_state: State = State { ecs: world, cfg: ConfigMaster::default() };
     main_loop(context, game_state)
 }

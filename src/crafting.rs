@@ -59,23 +59,13 @@ impl<'a> System<'a> for HandleCraftingSystem {
 
             let mut item_updates: Vec<(Entity, Item)> = vec![];
             // check there are enough of a consumable ingredient
-            for ingredient in recipe_crafted
-                .ingredients
-                .iter()
-                .filter(|ingredient| ingredient.consume.is_some())
-            {
-                match crafting_items
-                    .iter()
-                    .find(|(_, Item { id, .. })| id.eq(&ingredient.id))
-                {
+            for ingredient in recipe_crafted.ingredients.iter().filter(|ingredient| ingredient.consume.is_some()) {
+                match crafting_items.iter().find(|(_, Item { id, .. })| id.eq(&ingredient.id)) {
                     Some((e, bag_item)) => {
                         if bag_item.qty < ingredient.consume.unwrap() {
                             continue 'outer;
                         }
-                        item_updates.push((
-                            *e,
-                            Item::new(bag_item.id, bag_item.qty - ingredient.consume.unwrap()),
-                        ));
+                        item_updates.push((*e, Item::new(bag_item.id, bag_item.qty - ingredient.consume.unwrap())));
                     }
                     None => {
                         eprintln!("Item entity was cleared before proper cleanup was conducted.")

@@ -30,11 +30,7 @@ pub enum InventoryResponse {
     StateChange(AppState),
 }
 
-pub fn p_input_inventory(
-    ecs: &mut World,
-    ctx: &BTerm,
-    cfg: &mut InventoryConfig,
-) -> InventoryResponse {
+pub fn p_input_inventory(ecs: &mut World, ctx: &BTerm, cfg: &mut InventoryConfig) -> InventoryResponse {
     let player_entity: Entity;
     {
         // dirty borrow checker hack to take the value of player entity
@@ -137,13 +133,8 @@ fn select_item(
         SelectionStatus::NoSelection => {
             let mut selected_idxs = ecs.write_storage::<SelectedInventoryItem>();
             if let Some(first_item) = selected_entity {
-                let _ = selected_idxs.insert(
-                    *player_entity,
-                    SelectedInventoryItem {
-                        first_item,
-                        intended_action: None,
-                    },
-                );
+                let _ =
+                    selected_idxs.insert(*player_entity, SelectedInventoryItem { first_item, intended_action: None });
             } else {
                 let mut log = ecs.write_resource::<MessageLog>();
                 log.log("Index selected is out of bounds of the backapack.");
@@ -169,9 +160,7 @@ pub fn handle_one_item_actions(ecs: &mut World) {
     let selection = match selected_idxs.get(player_entity.0) {
         Some(item) => item,
         None => {
-            eprintln!(
-                "Player has no SelectedInventoryIdx component associated when using one item"
-            );
+            eprintln!("Player has no SelectedInventoryIdx component associated when using one item");
             return;
         }
     };
@@ -180,9 +169,7 @@ pub fn handle_one_item_actions(ecs: &mut World) {
     let entities = ecs.entities();
     let items_in_player_bag = (&entities, &items, &in_bags)
         .join()
-        .find(|(item_entity, _, bag)| {
-            item_entity == &selection.first_item && bag.owner == player_entity.0
-        });
+        .find(|(item_entity, _, bag)| item_entity == &selection.first_item && bag.owner == player_entity.0);
 
     let mut log = ecs.write_resource::<MessageLog>();
     match selection.intended_action.as_ref().unwrap() {
@@ -198,10 +185,8 @@ pub fn handle_one_item_actions(ecs: &mut World) {
                         .join()
                         .find(|(_, i, p)| p.eq(&player_position) && i.id.eq(&dropped_item.id))
                     {
-                        let _ = items.insert(
-                            ground_item.0,
-                            Item::new(ground_item.1.id, ground_item.1.qty + dropped_item.qty),
-                        );
+                        let _ = items
+                            .insert(ground_item.0, Item::new(ground_item.1.id, ground_item.1.qty + dropped_item.qty));
                     } else {
                         let _ = positions.insert(item_entity, *player_position);
                     }
@@ -217,10 +202,7 @@ pub fn handle_one_item_actions(ecs: &mut World) {
                 };
                 log.log(examine_text);
             } else {
-                log.log(format!(
-                    "Couldn't examine entity: {:?}",
-                    selection.first_item
-                ));
+                log.log(format!("Couldn't examine entity: {:?}", selection.first_item));
             }
         }
         UseMenuResult::Equip => {
@@ -251,9 +233,7 @@ pub fn handle_two_item_actions(ecs: &mut World, second_item: &Entity) {
     let selection = match selected_idxs.get(player_entity.0) {
         Some(idx) => idx.clone(),
         None => {
-            eprintln!(
-                "Player has no SelectedInventoryIdx component associated when using two items"
-            );
+            eprintln!("Player has no SelectedInventoryIdx component associated when using two items");
             return;
         }
     };
@@ -266,17 +246,10 @@ pub fn handle_two_item_actions(ecs: &mut World, second_item: &Entity) {
                 return;
             }
             let mut craft_actions = ecs.write_storage::<CraftAction>();
-            let _ = craft_actions.insert(
-                player_entity.0,
-                CraftAction {
-                    first_item: selection.first_item,
-                    second_item: *second_item,
-                },
-            );
+            let _ = craft_actions
+                .insert(player_entity.0, CraftAction { first_item: selection.first_item, second_item: *second_item });
         }
-        _ => unreachable!(
-            "These options should be unreachable since they only require 1 item to be performed."
-        ),
+        _ => unreachable!("These options should be unreachable since they only require 1 item to be performed."),
     }
 
     selected_idxs.remove(player_entity.0);

@@ -8,10 +8,7 @@ pub trait AccentBox {
 
 impl AccentBox for DrawBatch {
     fn draw_accent_box(&mut self, size: Rect, color: ColorPair) {
-        self.draw_hollow_box(
-            Rect::with_exact(size.x1, size.y1, size.x2, size.y2),
-            white_fg(color.fg.into()),
-        );
+        self.draw_hollow_box(Rect::with_exact(size.x1, size.y1, size.x2, size.y2), white_fg(color.fg.into()));
         self.fill_region(
             Rect::with_exact(size.x1 + 1, size.y1 + 1, size.x2, size.y2),
             white_fg(color.bg.into()),

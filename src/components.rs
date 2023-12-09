@@ -29,20 +29,12 @@ pub struct Persistent;
 
 impl Renderable {
     pub fn new(fg: (u8, u8, u8), bg: (u8, u8, u8), atlas_index: u8, z_priority: u32) -> Self {
-        Self {
-            color_pair: ColorPair::new(fg, bg),
-            atlas_index,
-            z_priority,
-        }
+        Self { color_pair: ColorPair::new(fg, bg), atlas_index, z_priority }
     }
 
     /// Creates a renderable with a clear bg and specified parts
     pub fn default_bg(atlas_index: u8, fg: (u8, u8, u8), z_priority: u32) -> Self {
-        Self {
-            color_pair: ColorPair::new(fg, RGBA::from_u8(0, 0, 0, 0)),
-            atlas_index,
-            z_priority,
-        }
+        Self { color_pair: ColorPair::new(fg, RGBA::from_u8(0, 0, 0, 0)), atlas_index, z_priority }
     }
 }
 
@@ -56,11 +48,7 @@ pub struct Transform {
 
 impl Transform {
     pub fn new(x: f32, y: f32, degrees: f32, scale_x: f32, scale_y: f32) -> Self {
-        Self {
-            sprite_pos: PointF::new(x, y),
-            rotation: Degrees(degrees),
-            scale: PointF::new(scale_x, scale_y),
-        }
+        Self { sprite_pos: PointF::new(x, y), rotation: Degrees(degrees), scale: PointF::new(scale_x, scale_y) }
     }
 }
 
@@ -104,10 +92,7 @@ impl From<Point> for Position {
 
 impl From<(usize, usize)> for Position {
     fn from(value: (usize, usize)) -> Self {
-        Self {
-            x: value.0,
-            y: value.1,
-        }
+        Self { x: value.0, y: value.1 }
     }
 }
 
@@ -136,14 +121,8 @@ impl EntityStats {
         pre: usize,
         cha: usize,
     ) -> Result<Self, StatsError> {
-        let stats = Stats {
-            intelligence: int,
-            strength: str,
-            dexterity: dex,
-            vitality: vit,
-            precision: pre,
-            charisma: cha,
-        };
+        let stats =
+            Stats { intelligence: int, strength: str, dexterity: dex, vitality: vit, precision: pre, charisma: cha };
         if stats.get_total() < stat_limit {
             Ok(Self { set: stats })
         } else {
@@ -184,10 +163,7 @@ pub struct WaitingForFish {
 
 impl WaitingForFish {
     pub fn new(attempts: usize) -> Self {
-        Self {
-            attempts,
-            time_since_last_attempt: Duration::new(0, 0),
-        }
+        Self { attempts, time_since_last_attempt: Duration::new(0, 0) }
     }
 }
 
@@ -234,11 +210,7 @@ pub struct GoalMoverAI {
 
 impl GoalMoverAI {
     pub fn with_desires(desires: &[Name], goal_range: usize) -> Self {
-        Self {
-            current: None,
-            desires: desires.to_vec(),
-            goal_range,
-        }
+        Self { current: None, desires: desires.to_vec(), goal_range }
     }
 }
 
@@ -253,11 +225,7 @@ pub struct HealthStats {
 
 impl HealthStats {
     pub fn new(max_hp: usize, defense: usize) -> Self {
-        Self {
-            hp: max_hp,
-            max_hp,
-            defense,
-        }
+        Self { hp: max_hp, max_hp, defense }
     }
 
     pub fn add_health(&mut self, amt: usize) {
@@ -353,7 +321,7 @@ pub struct SufferDamage {
 #[derive(Component, Clone, Copy)]
 #[storage(VecStorage)]
 pub enum DeleteCondition {
-    _Timed(Duration), // Condition is based on deleting after a specificed amount of time
+    _Timed(Duration),       // Condition is based on deleting after a specificed amount of time
     ActivityFinish(Entity), // Condition is based on when the entity finishes their activity
 }
 
@@ -431,10 +399,7 @@ impl Equipable {
             "Feet" => EquipmentSlot::Feet,
             "Tail" => EquipmentSlot::Tail,
             _ => {
-                eprintln!(
-                    "{} is not a valid name for an equipment slot, using Head instead",
-                    str
-                );
+                eprintln!("{} is not a valid name for an equipment slot, using Head instead", str);
                 EquipmentSlot::Head
             }
         };

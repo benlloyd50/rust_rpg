@@ -27,12 +27,7 @@ impl<'a> System<'a> for IndexReset {
 pub struct IndexBlockedTiles;
 
 impl<'a> System<'a> for IndexBlockedTiles {
-    type SystemData = (
-        WriteExpect<'a, Map>,
-        ReadStorage<'a, Position>,
-        ReadStorage<'a, Blocking>,
-        Entities<'a>,
-    );
+    type SystemData = (WriteExpect<'a, Map>, ReadStorage<'a, Position>, ReadStorage<'a, Blocking>, Entities<'a>);
 
     fn run(&mut self, (mut map, pos, blocking, entities): Self::SystemData) {
         for (pos, _, e) in (&pos, &blocking, &entities).join() {
@@ -48,12 +43,7 @@ impl<'a> System<'a> for IndexBlockedTiles {
 pub struct IndexBreakableTiles;
 
 impl<'a> System<'a> for IndexBreakableTiles {
-    type SystemData = (
-        WriteExpect<'a, Map>,
-        ReadStorage<'a, Position>,
-        ReadStorage<'a, Breakable>,
-        Entities<'a>,
-    );
+    type SystemData = (WriteExpect<'a, Map>, ReadStorage<'a, Position>, ReadStorage<'a, Breakable>, Entities<'a>);
 
     fn run(&mut self, (mut map, pos, breakable, entities): Self::SystemData) {
         for (id, pos, _) in (&entities, &pos, &breakable).join() {
@@ -66,12 +56,7 @@ impl<'a> System<'a> for IndexBreakableTiles {
 pub struct IndexFishableTiles;
 
 impl<'a> System<'a> for IndexFishableTiles {
-    type SystemData = (
-        WriteExpect<'a, Map>,
-        ReadStorage<'a, Position>,
-        ReadStorage<'a, Fishable>,
-        Entities<'a>,
-    );
+    type SystemData = (WriteExpect<'a, Map>, ReadStorage<'a, Position>, ReadStorage<'a, Fishable>, Entities<'a>);
 
     fn run(&mut self, (mut map, pos, fishable, entities): Self::SystemData) {
         for (entity, pos, _) in (&entities, &pos, &fishable).join() {
@@ -84,12 +69,7 @@ impl<'a> System<'a> for IndexFishableTiles {
 pub struct IndexItemTiles;
 
 impl<'a> System<'a> for IndexItemTiles {
-    type SystemData = (
-        WriteExpect<'a, Map>,
-        ReadStorage<'a, Position>,
-        ReadStorage<'a, Item>,
-        Entities<'a>,
-    );
+    type SystemData = (WriteExpect<'a, Map>, ReadStorage<'a, Position>, ReadStorage<'a, Item>, Entities<'a>);
 
     fn run(&mut self, (mut map, pos, items, entities): Self::SystemData) {
         for (entity, pos, _) in (&entities, &pos, &items).join() {

@@ -1,9 +1,7 @@
 use std::{fs, str::FromStr};
 
 use crate::{
-    components::{
-        Blocking, Breakable, Grass, HealthStats as HealthStatsComponent, Name, Position, Renderable,
-    },
+    components::{Blocking, Breakable, Grass, HealthStats as HealthStatsComponent, Name, Position, Renderable},
     droptables::Drops,
     map::{ObjectID, WorldObject},
     z_order::WORLD_OBJECT_Z,
@@ -46,8 +44,7 @@ impl WorldObjectDatabase {
     pub(crate) fn load(game_data: &GameData) -> Self {
         let contents: String = fs::read_to_string("raws/world_objs.json")
             .expect("Unable to find world_objs.json at `raws/world_objs.json`");
-        let world_objs: Vec<RawWorldObject> =
-            from_str(&contents).expect("Bad JSON in world_objs.json fix it");
+        let world_objs: Vec<RawWorldObject> = from_str(&contents).expect("Bad JSON in world_objs.json fix it");
         let data = world_objs
             .iter()
             .map(|raw| WorldObject {
@@ -56,10 +53,7 @@ impl WorldObjectDatabase {
                 atlas_index: raw.atlas_index,
                 is_blocking: raw.is_blocking,
                 breakable: raw.breakable.clone(),
-                health_stats: raw
-                    .health_stats
-                    .clone()
-                    .map(|hs| HealthStatsComponent::new(hs.max_hp, hs.defense)),
+                health_stats: raw.health_stats.clone().map(|hs| HealthStatsComponent::new(hs.max_hp, hs.defense)),
                 grass: raw.grass.clone(),
                 foreground: raw.foreground,
                 loot: raw.loot.as_ref().map(|raw| Drops::from_raw(raw, game_data)),
@@ -79,11 +73,7 @@ impl WorldObjectDatabase {
 }
 
 /// Attempts to create the specified entity directly into the world
-pub fn build_world_obj(
-    name: impl ToString,
-    pos: Position,
-    world: &mut World,
-) -> Result<Entity, EntityBuildError> {
+pub fn build_world_obj(name: impl ToString, pos: Position, world: &mut World) -> Result<Entity, EntityBuildError> {
     let edb = &ENTITY_DB.lock().unwrap();
     let raw = match edb.world_objs.get_by_name(&name.to_string()) {
         Some(raw) => raw,
@@ -95,11 +85,7 @@ pub fn build_world_obj(
     let mut builder = world.create_entity().with(Name::new(&raw.name)).with(pos);
 
     if let Some(foreground) = &raw.foreground {
-        builder = builder.with(Renderable::default_bg(
-            raw.atlas_index,
-            *foreground,
-            WORLD_OBJECT_Z,
-        ));
+        builder = builder.with(Renderable::default_bg(raw.atlas_index, *foreground, WORLD_OBJECT_Z));
     }
 
     if raw.is_blocking {
@@ -112,10 +98,7 @@ pub fn build_world_obj(
                 builder = builder.with(breakable_type);
             }
             Err(_) => {
-                eprintln!(
-                    "Invalid breakable string {} on world object {}",
-                    breakable, &raw.name
-                );
+                eprintln!("Invalid breakable string {} on world object {}", breakable, &raw.name);
                 return Err(EntityBuildError);
             }
         }
@@ -126,10 +109,7 @@ pub fn build_world_obj(
     }
 
     if let Some(health_stats) = &raw.health_stats {
-        builder = builder.with(HealthStatsComponent::new(
-            health_stats.max_hp,
-            health_stats.defense,
-        ));
+        builder = builder.with(HealthStatsComponent::new(health_stats.max_hp, health_stats.defense));
     }
 
     Ok(builder.build())

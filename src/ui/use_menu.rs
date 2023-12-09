@@ -9,12 +9,8 @@ use crate::{
 
 use super::drawing::AccentBox;
 
-const BASE_ACTIONS: [&str; 4] = [
-    "#[orange]U#[]se with",
-    "#[orange]E#[]xamine",
-    "#[orange]D#[]rop",
-    "#[lightgray]<Esc>#[]",
-];
+const BASE_ACTIONS: [&str; 4] =
+    ["#[orange]U#[]se with", "#[orange]E#[]xamine", "#[orange]D#[]rop", "#[lightgray]<Esc>#[]"];
 const EQUIP_ACTION: &str = "#[]E#[orange]q#[]uip";
 const CONSUME_ACTION: &str = "#[orange]C#[]onsume";
 
@@ -40,11 +36,6 @@ pub fn draw_use_menu(draw_batch: &mut DrawBatch, ecs: &World) {
     );
 
     for (idx, action) in use_menu_actions.iter().enumerate() {
-        draw_batch.printer(
-            Point::new(29, 7 + idx),
-            action,
-            TextAlign::Left,
-            Some(to_rgb(INVENTORY_BACKGROUND).into()),
-        );
+        draw_batch.printer(Point::new(29, 7 + idx), action, TextAlign::Left, Some(to_rgb(INVENTORY_BACKGROUND).into()));
     }
 }

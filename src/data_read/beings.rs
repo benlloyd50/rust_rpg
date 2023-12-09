@@ -51,8 +51,8 @@ impl BeingDatabase {
 
     // Uses GameData in order to transform string names into item ids
     pub fn load(game_db: &GameData) -> Self {
-        let contents: String = fs::read_to_string("raws/beings.json")
-            .expect("Unable to find beings.json at `raws/beings.json`");
+        let contents: String =
+            fs::read_to_string("raws/beings.json").expect("Unable to find beings.json at `raws/beings.json`");
         let beings: Vec<RawBeing> = from_str(&contents).expect("Bad JSON in beings.json fix it");
         BeingDatabase {
             data: beings
@@ -65,14 +65,8 @@ impl BeingDatabase {
                     atlas_index: raw.atlas_index,
                     fg: raw.fg,
                     quips: raw.quips.to_owned(),
-                    stats: raw
-                        .stats
-                        .as_ref()
-                        .map_or_else(Stats::zero, |stats| Stats::from_optional(&stats)),
-                    loot: raw
-                        .loot
-                        .as_ref()
-                        .and_then(|raw| Some(Drops::from_raw(raw, game_db))),
+                    stats: raw.stats.as_ref().map_or_else(Stats::zero, |stats| Stats::from_optional(&stats)),
+                    loot: raw.loot.as_ref().and_then(|raw| Some(Drops::from_raw(raw, game_db))),
                 })
                 .collect(),
         }
@@ -89,11 +83,7 @@ impl BeingDatabase {
 }
 
 /// Attempts to create the specified entity directly into the world
-pub fn build_being(
-    name: impl ToString,
-    pos: Position,
-    world: &mut World,
-) -> Result<Entity, EntityBuildError> {
+pub fn build_being(name: impl ToString, pos: Position, world: &mut World) -> Result<Entity, EntityBuildError> {
     let edb = &ENTITY_DB.lock().unwrap();
 
     let raw = match edb.beings.get_by_name(&name.to_string()) {
@@ -104,11 +94,11 @@ pub fn build_being(
         }
     };
 
-    let mut builder = world
-        .create_entity()
-        .with(Name::new(&raw.name))
-        .with(pos)
-        .with(Renderable::default_bg(raw.atlas_index, raw.fg, BEING_Z));
+    let mut builder = world.create_entity().with(Name::new(&raw.name)).with(pos).with(Renderable::default_bg(
+        raw.atlas_index,
+        raw.fg,
+        BEING_Z,
+    ));
 
     if raw.is_blocking {
         builder = builder.with(Blocking);
@@ -119,10 +109,7 @@ pub fn build_being(
             "random_walk" => builder.with(RandomWalkerAI),
             "goal" => {
                 let goals = match &ai.goals {
-                    Some(goals) => goals
-                        .iter()
-                        .map(|goal| Name(goal.to_string()))
-                        .collect::<Vec<Name>>(),
+                    Some(goals) => goals.iter().map(|goal| Name(goal.to_string())).collect::<Vec<Name>>(),
                     None => panic!("{} has Goal ai type but no defined goals", &raw.name),
                 };
                 builder.with(GoalMoverAI::with_desires(&goals, ai.goal_range.unwrap()))

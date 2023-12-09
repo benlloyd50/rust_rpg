@@ -13,9 +13,7 @@ pub struct TileAnimationBuilder {
 
 impl TileAnimationBuilder {
     pub fn new() -> Self {
-        Self {
-            requests: Vec::new(),
-        }
+        Self { requests: Vec::new() }
     }
 
     pub fn request(
@@ -58,23 +56,11 @@ impl<'a> System<'a> for TileAnimationSpawner {
         &mut self,
         (entities, mut anim_builder, mut positions, mut renderables, mut delete_conditions): Self::SystemData,
     ) {
-        for TileAnimationRequest {
-            atlas_index,
-            at,
-            fgbg,
-            delete_condition,
-        } in anim_builder.requests.iter()
-        {
+        for TileAnimationRequest { atlas_index, at, fgbg, delete_condition } in anim_builder.requests.iter() {
             let new_anim = entities.create();
             let _ = positions.insert(new_anim, *at);
-            let _ = renderables.insert(
-                new_anim,
-                Renderable {
-                    color_pair: *fgbg,
-                    atlas_index: *atlas_index,
-                    z_priority: TILE_ANIM_Z,
-                },
-            );
+            let _ = renderables
+                .insert(new_anim, Renderable { color_pair: *fgbg, atlas_index: *atlas_index, z_priority: TILE_ANIM_Z });
             let _ = delete_conditions.insert(new_anim, *delete_condition);
         }
 
@@ -85,11 +71,7 @@ impl<'a> System<'a> for TileAnimationSpawner {
 pub struct TileAnimationCleanUpSystem;
 
 impl<'a> System<'a> for TileAnimationCleanUpSystem {
-    type SystemData = (
-        Entities<'a>,
-        ReadStorage<'a, FinishedActivity>,
-        ReadStorage<'a, DeleteCondition>,
-    );
+    type SystemData = (Entities<'a>, ReadStorage<'a, FinishedActivity>, ReadStorage<'a, DeleteCondition>);
 
     fn run(&mut self, (entities, finished_activities, delete_conditions): Self::SystemData) {
         for (e, condition) in (&entities, &delete_conditions).join() {
