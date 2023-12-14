@@ -4,6 +4,7 @@ use specs::{Join, World, WorldExt};
 use crate::{
     camera::get_camera_bounds,
     components::{Renderable, Transform},
+    debug::CLEAR,
     map::render_map,
     time::DeltaTime,
     z_order::PLAYER_Z,
@@ -53,7 +54,8 @@ fn draw_sprites(ecs: &World, draw_batch: &mut DrawBatch) {
     for (pos, render) in data {
         draw_batch.set_with_z(
             Point::new(pos.x as i32 - bounding_box.x1, pos.y as i32 - bounding_box.y1),
-            render.color_pair,
+            ColorPair { fg: render.color_pair.fg, bg: CLEAR },
+            // render.color_pair,
             render.atlas_index,
             render.z_priority,
         );

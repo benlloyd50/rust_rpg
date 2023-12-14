@@ -3,6 +3,7 @@ use std::ops::DerefMut;
 use specs::{storage::MaskedStorage, Component, Entity, Storage};
 
 pub trait MaybeInsert<T: Component> {
+    /// Inserts a component wrapped in an Option if it is Some(T)
     fn maybe_insert(&mut self, _onto: Entity, _component: Option<T>) {}
 }
 

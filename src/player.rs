@@ -6,17 +6,18 @@ use crate::{
     game_init::{find_next_map, PlayerEntity},
     items::inventory_contains,
     map::{Map, TileEntity},
+    saveload::SaveAction,
     ui::message_log::MessageLog,
     AppState, Position,
 };
 use bracket_terminal::prelude::{BTerm, Point, VirtualKeyCode as VKC};
 use log::info;
+use serde::{Deserialize, Serialize};
 use specs::{prelude::*, Component};
-use std::process::exit;
 
-#[derive(Default, Component)]
+#[derive(Default, Component, Clone, Serialize, Deserialize)]
 #[storage(NullStorage)]
-pub struct Player;
+pub struct Player {}
 
 pub enum PlayerResponse {
     StateChange(AppState),
@@ -39,7 +40,7 @@ pub fn p_input_game(ecs: &mut World, ctx: &BTerm) -> PlayerResponse {
                     PlayerResponse::Waiting
                 }
                 VKC::I => PlayerResponse::StateChange(AppState::PlayerInInventory),
-                VKC::Back => exit(0),
+                VKC::Escape => PlayerResponse::StateChange(AppState::SaveGame),
                 VKC::Space => {
                     let mut log = ecs.fetch_mut::<MessageLog>();
                     log.log("The player stands around.");
@@ -173,7 +174,7 @@ pub fn p_input_activity(ecs: &mut World, ctx: &mut BTerm) {
             info!("Player pressed game action");
             let mut game_actions = ecs.write_storage::<GameAction>();
             let player_entity = ecs.read_resource::<PlayerEntity>();
-            let _ = game_actions.insert(player_entity.0, GameAction);
+            let _ = game_actions.insert(player_entity.0, GameAction {});
         }
         _ => {}
     }
@@ -222,5 +223,17 @@ pub fn p_input_main_menu(ctx: &mut BTerm, hovering: &MenuSelection) -> MenuActio
         }
     } else {
         MenuAction::Stalling
+    }
+}
+
+pub fn p_input_save_game(ctx: &mut BTerm) -> SaveAction {
+    if ctx.key.is_none() {
+        return SaveAction::Waiting;
+    }
+    match ctx.key.unwrap() {
+        VKC::Return | VKC::S => SaveAction::Save,
+        VKC::Escape => SaveAction::Cancel,
+        VKC::D => SaveAction::QuitWithoutSaving,
+        _ => SaveAction::Waiting,
     }
 }

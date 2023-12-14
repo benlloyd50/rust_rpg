@@ -4,11 +4,15 @@ use crate::{
     components::{Blocking, Breakable, Grass, HealthStats as HealthStatsComponent, Name, Position, Renderable},
     droptables::Drops,
     map::{ObjectID, WorldObject},
+    saveload::SerializeMe,
     z_order::WORLD_OBJECT_Z,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
-use specs::{Builder, Entity, World, WorldExt};
+use specs::{
+    saveload::{MarkedBuilder, SimpleMarker},
+    Builder, Entity, World, WorldExt,
+};
 
 use super::{beings::RawDrops, EntityBuildError, GameData, ENTITY_DB};
 
@@ -82,14 +86,14 @@ pub fn build_world_obj(name: impl ToString, pos: Position, world: &mut World) ->
             return Err(EntityBuildError);
         }
     };
-    let mut builder = world.create_entity().with(Name::new(&raw.name)).with(pos);
+    let mut builder = world.create_entity().with(Name::new(&raw.name)).with(pos).marked::<SimpleMarker<SerializeMe>>();
 
     if let Some(foreground) = &raw.foreground {
-        builder = builder.with(Renderable::default_bg(raw.atlas_index, *foreground, WORLD_OBJECT_Z));
+        builder = builder.with(Renderable::clear_bg(raw.atlas_index, *foreground, WORLD_OBJECT_Z));
     }
 
     if raw.is_blocking {
-        builder = builder.with(Blocking);
+        builder = builder.with(Blocking {});
     }
 
     if let Some(breakable) = &raw.breakable {
@@ -105,7 +109,7 @@ pub fn build_world_obj(name: impl ToString, pos: Position, world: &mut World) ->
     }
 
     if raw.grass.is_some() {
-        builder = builder.with(Grass);
+        builder = builder.with(Grass {});
     }
 
     if let Some(health_stats) = &raw.health_stats {

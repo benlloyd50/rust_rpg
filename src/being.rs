@@ -2,9 +2,13 @@ use bracket_random::prelude::RandomNumberGenerator;
 use bracket_terminal::prelude::Point;
 use log::{info, warn};
 use pathfinding::prelude::astar;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use specs::error::NoError;
+use specs::saveload::ConvertSaveload;
+use specs::saveload::Marker;
 use specs::{
-    shred::PanicHandler, Entities, Entity, Join, ReadExpect, ReadStorage, System, Write, WriteExpect, WriteStorage,
+    shred::PanicHandler, Component, ConvertSaveload, Entities, Entity, Join, ReadExpect, ReadStorage, System,
+    VecStorage, Write, WriteExpect, WriteStorage,
 };
 
 use crate::{
@@ -35,7 +39,8 @@ pub struct AIDefinition {
     pub(crate) goal_range: Option<usize>,
 }
 
-#[derive(Deserialize, Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Deserialize, ConvertSaveload, Component)]
+#[storage(VecStorage)]
 pub struct BeingID(pub u32);
 
 /// Mainly used for early testing but it's somewhat useful
@@ -142,7 +147,7 @@ impl<'a> System<'a> for GoalFindEntities {
                 .collect();
             if data.len() == 0 {
                 info!("No goals remain for {}, switching to randomwalk", mover_name);
-                let _ = randwalkers.insert(goal_entity, RandomWalkerAI);
+                let _ = randwalkers.insert(goal_entity, RandomWalkerAI {});
                 remove_mes.push(goal_entity);
             }
 

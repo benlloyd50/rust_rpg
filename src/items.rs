@@ -10,23 +10,27 @@ use std::{
     ops::{Add, Sub},
 };
 
-use log::error;
+use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
-use specs::{Entities, Entity, Join, Read, ReadStorage, System, World, WorldExt, Write, WriteStorage};
+use specs::{
+    saveload::{MarkerAllocator, SimpleMarker, SimpleMarkerAllocator},
+    Entities, Entity, Join, Read, ReadStorage, System, World, WorldExt, Write, WriteStorage,
+};
 
 use crate::{
     components::{
-        AttackBonus, Consumable, ConsumeAction, Equipable, HealAction, InBag, Item, Name, Persistent, PickupAction,
-        Position, Renderable,
+        AttackBonus, Consumable, ConsumeAction, Equipable, HealAction, InBag, Item, LevelPersistent, Name,
+        PickupAction, Position, Renderable,
     },
     data_read::prelude::*,
     game_init::PlayerEntity,
+    saveload::SerializeMe,
     storage_utils::MaybeInsert,
     ui::message_log::MessageLog,
     z_order::ITEM_Z,
 };
 
-#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct ItemQty(pub usize);
 
 impl Display for ItemQty {
@@ -102,7 +106,9 @@ impl<'a> System<'a> for ItemSpawnerSystem {
         WriteStorage<'a, Equipable>,
         WriteStorage<'a, AttackBonus>,
         WriteStorage<'a, Consumable>,
-        WriteStorage<'a, Persistent>,
+        WriteStorage<'a, LevelPersistent>,
+        WriteStorage<'a, SimpleMarker<SerializeMe>>,
+        Write<'a, SimpleMarkerAllocator<SerializeMe>>,
         Read<'a, PlayerEntity>,
     );
 
@@ -120,6 +126,8 @@ impl<'a> System<'a> for ItemSpawnerSystem {
             mut attack_bonus,
             mut consumables,
             mut persistents,
+            mut serializables,
+            mut mark_allocator,
             player_entity,
         ): Self::SystemData,
     ) {
@@ -146,26 +154,35 @@ impl<'a> System<'a> for ItemSpawnerSystem {
                         .find(|(_, item, bag)| bag.owner == owner && item.id == spawn.id)
                     {
                         Some((bagged_entity, bagged_item, _)) => {
+                            // We will reuse the bagged entity since it is setup already and remove
+                            // the unneeded entity, `new_item`
                             let _ = items.insert(bagged_entity, Item::new(bagged_item.id, bagged_item.qty + spawn.qty));
+                            match entities.delete(new_item) {
+                                Ok(_) => info!("new_item entity was deleted because the bagged entity could be reused"),
+                                Err(_) => warn!("new_item entity failed to delete when reusing bagged entity"),
+                            }
+                            continue;
                         }
                         None => {
                             let _ = items.insert(new_item, Item::new(spawn.id, spawn.qty));
                             let _ = inbags.insert(new_item, InBag { owner });
 
                             if player_entity.0 == owner {
-                                let _ = persistents.insert(new_item, Persistent);
+                                let _ = persistents.insert(new_item, LevelPersistent {});
                             }
                         }
                     }
                 }
             }
 
+            // Makes items in the world saved
+            mark_allocator.mark(new_item, &mut serializables);
+
             equipables.maybe_insert(new_item, static_item.equipable.clone());
             consumables.maybe_insert(new_item, static_item.consumable.clone());
             attack_bonus.maybe_insert(new_item, static_item.attack_bonus.clone());
 
-            let _ =
-                renderables.insert(new_item, Renderable::default_bg(static_item.atlas_index, static_item.fg, ITEM_Z));
+            let _ = renderables.insert(new_item, Renderable::clear_bg(static_item.atlas_index, static_item.fg, ITEM_Z));
             let _ = names.insert(new_item, Name(static_item.name.clone()));
         }
 
@@ -181,7 +198,7 @@ impl<'a> System<'a> for ItemPickupHandler {
         WriteStorage<'a, PickupAction>,
         WriteStorage<'a, InBag>,
         WriteStorage<'a, Item>,
-        WriteStorage<'a, Persistent>,
+        WriteStorage<'a, LevelPersistent>,
         Write<'a, MessageLog>,
         Read<'a, PlayerEntity>,
         ReadStorage<'a, Name>,
@@ -229,7 +246,7 @@ impl<'a> System<'a> for ItemPickupHandler {
                 None => {
                     let _ = inbags.insert(ground_entity, InBag { owner: picker });
                     if player_entity.0 == picker {
-                        let _ = persistents.insert(ground_entity, Persistent);
+                        let _ = persistents.insert(ground_entity, LevelPersistent {});
                     }
                     positions.remove(ground_entity);
                     if let Some(text) = &edb.items.get_by_name_unchecked(&item_name.0).pickup_text {

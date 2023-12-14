@@ -42,7 +42,7 @@
         "is_blocking": true,
         "stats": {
             "intelligence": 9,
-            "strength": 10,
+            "strength": 25,
             "vitality": 15
         },
         "ai": {
@@ -52,7 +52,8 @@
         },
         "atlas_index": 18,
         "fg": [255, 255, 255],
-        "quips": ["The orc sulks around the campfire with their friends."],
+        "quips": ["The orc sulks around the campfire with their friends.", 
+            "Arghhhaa narga nakur "],
         "loot": {
             "drop_chance": 60,
             "loot_table": [

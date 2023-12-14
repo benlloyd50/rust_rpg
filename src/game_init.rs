@@ -1,18 +1,20 @@
-use bracket_terminal::prelude::{BTerm, BLACK};
+use bracket_terminal::prelude::BTerm;
 use ldtk_map::prelude::DesignMap;
 use log::debug;
-use specs::{Builder, Entity, Join, World, WorldExt};
+use specs::{
+    saveload::{MarkedBuilder, SimpleMarker},
+    Builder, Entity, Join, World, WorldExt,
+};
 
 pub const WHITE: (u8, u8, u8) = (255, 255, 255);
 
 use crate::{
-    components::{
-        EquipmentSlots, Interactor, InteractorMode, ItemContainer, Name, Persistent, Position, Renderable, Transform,
-    },
+    components::{EquipmentSlots, Interactor, InteractorMode, LevelPersistent, Name, Position, Renderable, Transform},
     data_read::prelude::{build_being, create_map, LDTK_FILE},
     items::{ItemID, ItemSpawner, SpawnType},
     map::Map,
     player::Player,
+    saveload::SerializeMe,
     stats::get_random_stats,
     z_order::PLAYER_Z,
     CL_WORLD,
@@ -41,14 +43,14 @@ pub fn initialize_new_game_world(ecs: &mut World, ctx: &mut BTerm) {
         .create_entity()
         .with(Position::new(67, 30))
         .with(Interactor::new(InteractorMode::Reactive))
-        .with(Player)
-        .with(ItemContainer::new(10))
+        .with(Player {})
         .with(EquipmentSlots::human())
         .with(player_stats)
         .with(player_stats.set.get_health_stats())
-        .with(Renderable::new(WHITE, BLACK, 2, PLAYER_Z))
+        .with(Renderable::clear_bg(2, WHITE, PLAYER_Z))
         .with(Name("Player".to_string()))
-        .with(Persistent)
+        .with(LevelPersistent {})
+        .marked::<SimpleMarker<SerializeMe>>()
         .build();
     ecs.insert(PlayerEntity(player_entity));
     debug!("startup: player loaded");
@@ -68,7 +70,7 @@ pub fn initialize_new_game_world(ecs: &mut World, ctx: &mut BTerm) {
 pub fn cleanup_old_map(ecs: &mut World) {
     let mut remove_me = Vec::new();
     {
-        let persistent_objs = ecs.read_storage::<Persistent>();
+        let persistent_objs = ecs.read_storage::<LevelPersistent>();
         let entities = ecs.entities();
 
         for (e, _) in (&entities, !&persistent_objs).join() {

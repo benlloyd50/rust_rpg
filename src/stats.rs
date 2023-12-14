@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::components::{EntityStats, HealthStats};
 
 pub fn get_random_stats() -> EntityStats {
-    let mut rng = RandomNumberGenerator::seeded(99999922);
+    let mut rng = RandomNumberGenerator::new();
     let intelligence = rng.range(1, 21);
     let strength = rng.range(1, 21);
     let dexterity = rng.range(1, 21);

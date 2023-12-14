@@ -127,7 +127,7 @@ impl<'a> System<'a> for WaitingForFishSystem {
                 log.log(format!("{} caught a fish wow with {} attempts remaining", name, waiter.attempts));
             }
 
-            match fishing_lines.insert(e, FishOnTheLine) {
+            match fishing_lines.insert(e, FishOnTheLine {}) {
                 Ok(existing_fish) => {
                     if let Some(fish) = existing_fish {
                         log.debug(format!("ERROR: entity {} {} already had a fish on their line, cannot add a second fish ABORTING fish", name, e.id()));
@@ -146,7 +146,7 @@ impl<'a> System<'a> for WaitingForFishSystem {
                 info!("Player entering minigame state");
                 continue;
             }
-            let _ = finished_activities.insert(*finished, FinishedActivity);
+            let _ = finished_activities.insert(*finished, FinishedActivity {});
         }
     }
 }
@@ -205,7 +205,7 @@ impl<'a> System<'a> for FishingMinigameCheck {
             if goals.contains(&idx) {
                 // button was hit on time
                 log.log("#[bright_green]Success!#[]");
-                let _ = finished_activities.insert(fisher, FinishedActivity);
+                let _ = finished_activities.insert(fisher, FinishedActivity {});
             } else {
                 log.log("#[orange]Missed#[] the fish zone.");
                 game.attempts_left = game.attempts_left.saturating_sub(1);
@@ -213,7 +213,7 @@ impl<'a> System<'a> for FishingMinigameCheck {
                     log.log("#[red]Ahhh, the fish got away.#[]");
                     hooks.remove(fisher);
                     minigames.remove(fisher);
-                    let _ = finished_activities.insert(fisher, FinishedActivity);
+                    let _ = finished_activities.insert(fisher, FinishedActivity {});
                 }
             }
         }
@@ -270,7 +270,7 @@ impl<'a> System<'a> for UpdateFishingTiles {
         }
         for bubble in new_bubbles {
             let _ = fishables.insert(bubble, Fishable { time_left: Duration::from_secs(BUBBLE_LIFETIME_SECS) });
-            let _ = renderables.insert(bubble, Renderable::default_bg(47, WHITE, EFFECT_Z));
+            let _ = renderables.insert(bubble, Renderable::clear_bg(47, WHITE, EFFECT_Z));
         }
     }
 }

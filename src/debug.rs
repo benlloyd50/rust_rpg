@@ -1,6 +1,5 @@
 use bracket_terminal::prelude::{to_char, BTerm, TextAlign, VirtualKeyCode, RGB, RGBA, WHITESMOKE};
 use itertools::Itertools;
-use log::debug;
 use specs::{Join, ReadStorage, World, WorldExt};
 
 use crate::{

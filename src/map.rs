@@ -4,20 +4,39 @@ use crate::{
     droptables::Drops,
 };
 use bracket_terminal::prelude::{ColorPair, DrawBatch, Point, BLACK};
+use serde::{Deserialize, Serialize};
 use specs::{Entity, World};
 
 pub const WHITE: (u8, u8, u8) = (255, 255, 255);
 
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Map {
     pub tiles: Vec<WorldTile>,
-    pub tile_entities: Vec<Vec<TileEntity>>,
     pub width: usize,
     pub height: usize,
-    pub world_coords: Position,
+    pub world_coords: WorldCoords,
     pub tile_atlas_index: usize,
+
+    #[serde(skip_serializing)]
+    #[serde(skip_deserializing)]
+    pub tile_entities: Vec<Vec<TileEntity>>,
 }
 
-#[derive(Clone)]
+/// This is used over position when (de)serialization is needed.
+/// Position cannot impl Deserialize because it needs to impl ConvertSaveload
+#[derive(Deserialize, Serialize, Clone)]
+pub struct WorldCoords {
+    pub x: usize,
+    pub y: usize,
+}
+
+impl From<(usize, usize)> for WorldCoords {
+    fn from(value: (usize, usize)) -> Self {
+        Self { x: value.0, y: value.1 }
+    }
+}
+
+#[derive(Clone, Serialize, Deserialize)]
 pub struct WorldTile {
     pub atlas_index: usize,
 }
@@ -77,7 +96,7 @@ impl Map {
             tile_entities: vec![],
             width: 0,
             height: 0,
-            world_coords: Position::zero(),
+            world_coords: (0, 0).into(),
             tile_atlas_index: 0,
         }
     }

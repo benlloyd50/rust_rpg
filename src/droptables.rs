@@ -33,7 +33,7 @@ const MAX_ITEM_DROPS: u32 = 10;
 
 fn generate_drops(drop_table: &Drops) -> Vec<(ItemID, ItemQty)> {
     let mut drops: Vec<(ItemID, ItemQty)> = vec![];
-    let mut rng = RandomNumberGenerator::seeded(99);
+    let mut rng = RandomNumberGenerator::new();
     let mut total_drops: u32 = 0;
     let weights: Vec<u32> = drop_table.loot_table.iter().map(|loot| loot.weight).collect();
     let w = WalkerTableBuilder::new(&weights).build();
@@ -68,7 +68,6 @@ impl<'a> System<'a> for DeathLootDrop {
     fn run(&mut self, (healths, positions, names, mut item_spawner): Self::SystemData) {
         let edb = &ENTITY_DB.lock().unwrap();
         for (pos, _, name) in (&positions, &healths, &names).join().filter(|(_, health, _)| health.hp == 0) {
-            // TODO: differeniate between being and world_obj, i mean they should both work the same way...
             debug!("{} in deathloopdrop", name);
             let drop_table = match edb.beings.get_by_name(&name.0) {
                 Some(being) => match &being.loot {

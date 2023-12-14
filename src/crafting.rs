@@ -1,3 +1,4 @@
+use log::warn;
 use specs::{Entities, Entity, Join, ReadStorage, System, Write, WriteStorage};
 
 use crate::{
@@ -68,7 +69,7 @@ impl<'a> System<'a> for HandleCraftingSystem {
                         item_updates.push((*e, Item::new(bag_item.id, bag_item.qty - ingredient.consume.unwrap())));
                     }
                     None => {
-                        eprintln!("Item entity was cleared before proper cleanup was conducted.")
+                        warn!("Item entity was cleared before proper cleanup was conducted.")
                     }
                 }
             }

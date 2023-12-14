@@ -1,4 +1,5 @@
-use crate::{
+pub(crate) use crate::{
+    debug::CLEAR,
     fishing::{Cursor, GoalBar},
     items::ItemQty,
     map::xy_to_idx_given_width,
@@ -6,12 +7,18 @@ use crate::{
 };
 use std::{fmt::Display, str::FromStr, time::Duration};
 
-use bracket_terminal::prelude::{ColorPair, Degrees, Point, PointF, RGBA};
-use specs::{Component, Entity, NullStorage, VecStorage};
+use bracket_terminal::prelude::{ColorPair, Degrees, Point, PointF};
+use serde::{Deserialize, Serialize};
+#[allow(deprecated)] // deprecated but specs uses it so it's not my choice, maybe this gets changed in new version
+use specs::error::NoError;
+use specs::{
+    saveload::{ConvertSaveload, Marker},
+    Component, ConvertSaveload, Entity, NullStorage, VecStorage,
+};
 
 use crate::{indexing::idx_to_point, inventory::UseMenuResult, items::ItemID};
 
-#[derive(Debug, Component)]
+#[derive(Debug, Component, ConvertSaveload, Clone)]
 #[storage(VecStorage)]
 pub struct Renderable {
     pub color_pair: ColorPair,
@@ -21,20 +28,14 @@ pub struct Renderable {
 
 /// Marking an entity with this means that it will continue to exist when a level switch changes.
 /// This ensures certain things continue as normal since not all entities should be destroyed.
-/// These are the entities that should be persistent at all times:
-/// Player, Items with InBag that have owner == player, Camera
-#[derive(Component)]
+#[derive(Component, Serialize, Deserialize, Clone)]
 #[storage(NullStorage)]
-pub struct Persistent;
+pub struct LevelPersistent {}
 
 impl Renderable {
-    pub fn new(fg: (u8, u8, u8), bg: (u8, u8, u8), atlas_index: u8, z_priority: u32) -> Self {
-        Self { color_pair: ColorPair::new(fg, bg), atlas_index, z_priority }
-    }
-
     /// Creates a renderable with a clear bg and specified parts
-    pub fn default_bg(atlas_index: u8, fg: (u8, u8, u8), z_priority: u32) -> Self {
-        Self { color_pair: ColorPair::new(fg, RGBA::from_u8(0, 0, 0, 0)), atlas_index, z_priority }
+    pub fn clear_bg(atlas_index: u8, fg: (u8, u8, u8), z_priority: u32) -> Self {
+        Self { color_pair: ColorPair::new(fg, CLEAR), atlas_index, z_priority }
     }
 }
 
@@ -53,7 +54,7 @@ impl Transform {
 }
 
 /// Represents a position of anything that exists physically in the game world
-#[derive(Debug, Component, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Component, Copy, Clone, PartialEq, Eq, Hash, ConvertSaveload, Serialize)]
 #[storage(VecStorage)]
 pub struct Position {
     pub x: usize,
@@ -102,7 +103,7 @@ impl Display for Position {
     }
 }
 
-#[derive(Debug, Component, Copy, Clone)]
+#[derive(Debug, Component, Copy, Clone, ConvertSaveload)]
 #[storage(VecStorage)]
 pub struct EntityStats {
     pub set: Stats,
@@ -138,11 +139,11 @@ impl From<Stats> for EntityStats {
 }
 
 /// Prevents gameobjects from passing through it
-#[derive(Debug, Component, Default)]
+#[derive(Debug, Component, Default, Clone, Serialize, Deserialize)]
 #[storage(NullStorage)]
-pub struct Blocking;
+pub struct Blocking {}
 
-#[derive(Debug, Component, Default)]
+#[derive(Debug, Component, Default, ConvertSaveload)]
 #[storage(VecStorage)]
 pub struct Fishable {
     pub time_left: Duration,
@@ -170,9 +171,9 @@ impl WaitingForFish {
 #[derive(Component, Default)]
 #[storage(NullStorage)]
 // TODO: put type of fish on this, ItemID will probably do
-pub struct FishOnTheLine;
+pub struct FishOnTheLine {}
 
-#[derive(Component, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Component, Clone, PartialEq, Eq, PartialOrd, Ord, ConvertSaveload)]
 #[storage(VecStorage)]
 pub struct Name(pub String);
 
@@ -197,10 +198,11 @@ impl Display for Name {
 /// Makes the entity walk around in a random cardinal direction
 #[derive(Component, Default)]
 #[storage(NullStorage)]
-pub struct RandomWalkerAI;
+pub struct RandomWalkerAI {}
 
 /// Makes the entity walk towards a goal which is targeted
-#[derive(Component)]
+// TEST: can't implement SaveLoad onto this is there some work around
+#[derive(Component, Clone)]
 #[storage(VecStorage)]
 pub struct GoalMoverAI {
     pub current: Option<Entity>,
@@ -214,9 +216,8 @@ impl GoalMoverAI {
     }
 }
 
-#[derive(Debug, Component)]
+#[derive(Debug, Component, Clone, ConvertSaveload)]
 #[storage(VecStorage)]
-#[allow(dead_code)]
 pub struct HealthStats {
     pub hp: usize,
     pub max_hp: usize,
@@ -233,7 +234,7 @@ impl HealthStats {
     }
 }
 
-#[derive(Debug, Component)]
+#[derive(Debug, Component, Clone, ConvertSaveload)]
 #[storage(VecStorage)]
 pub struct Breakable {
     pub by: ToolType,
@@ -259,8 +260,7 @@ impl FromStr for Breakable {
     }
 }
 
-#[derive(Debug)]
-#[allow(dead_code)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ToolType {
     Hand,
     Pickaxe,
@@ -318,7 +318,7 @@ pub struct SufferDamage {
 }
 
 /// Used to delete an entity when a condition is satisfied
-#[derive(Component, Clone, Copy)]
+#[derive(Component, Clone, Copy, ConvertSaveload)]
 #[storage(VecStorage)]
 pub enum DeleteCondition {
     _Timed(Duration),       // Condition is based on deleting after a specificed amount of time
@@ -328,9 +328,9 @@ pub enum DeleteCondition {
 /// Used to signal to other systems that an entity finished their activity
 #[derive(Component, Default)]
 #[storage(NullStorage)]
-pub struct FinishedActivity;
+pub struct FinishedActivity {}
 
-#[derive(Component, Default)]
+#[derive(Component, Default, ConvertSaveload, Clone)]
 #[storage(VecStorage)]
 pub struct Item {
     pub id: ItemID,
@@ -343,13 +343,13 @@ impl Item {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, ConvertSaveload, Clone)]
 #[storage(VecStorage)]
 pub struct InBag {
     pub owner: Entity,
 }
 
-#[derive(Component, Clone)]
+#[derive(Component, Clone, ConvertSaveload)]
 #[storage(VecStorage)]
 pub enum Consumable {
     InstantRegen(usize),
@@ -377,13 +377,13 @@ impl ConsumeAction {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, ConvertSaveload, Clone)]
 #[storage(VecStorage)]
 pub struct Equipped {
     pub on: Entity,
 }
 
-#[derive(Component, Clone)]
+#[derive(Component, Clone, ConvertSaveload)]
 #[storage(VecStorage)]
 pub struct Equipable {
     pub slot: EquipmentSlot,
@@ -407,7 +407,7 @@ impl Equipable {
     }
 }
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Clone, Serialize, Deserialize)]
 pub enum EquipmentSlot {
     Hand,
     Torso,
@@ -417,7 +417,7 @@ pub enum EquipmentSlot {
     Tail,
 }
 
-#[derive(Component)]
+#[derive(Component, ConvertSaveload, Clone)]
 #[storage(VecStorage)]
 pub struct EquipmentSlots {
     pub slots: Vec<EquipmentSlot>,
@@ -439,21 +439,6 @@ impl EquipmentSlots {
     }
 }
 
-// Items in this container will have an InBag component with the owner entity == entity holding
-// this component
-#[derive(Component)]
-#[storage(VecStorage)]
-#[allow(dead_code)]
-pub struct ItemContainer {
-    size: usize,
-}
-
-impl ItemContainer {
-    pub fn new(size: usize) -> Self {
-        Self { size }
-    }
-}
-
 #[derive(Component)]
 #[storage(VecStorage)]
 pub struct PickupAction {
@@ -461,16 +446,16 @@ pub struct PickupAction {
 }
 
 /// Water ripe for swimming in or boating over or building a pier to fish off
-#[derive(Component, Default)]
+#[derive(Component, Default, Serialize, Deserialize, Clone)]
 #[storage(NullStorage)]
-pub struct Water;
+pub struct Water {}
 
 /// A delicious treat loved by many animals and other beings...
-#[derive(Component, Default)]
+#[derive(Component, Default, Serialize, Deserialize, Clone)]
 #[storage(NullStorage)]
-pub struct Grass;
+pub struct Grass {}
 
-#[derive(Component)]
+#[derive(Component, ConvertSaveload, Clone)]
 #[storage(VecStorage)]
 pub struct Interactor {
     pub mode: InteractorMode,
@@ -482,6 +467,7 @@ impl Interactor {
     }
 }
 
+#[derive(Serialize, Deserialize, Clone)]
 pub enum InteractorMode {
     Reactive,
     Agressive,
@@ -504,13 +490,13 @@ pub struct SelectedInventoryItem {
     pub intended_action: Option<UseMenuResult>,
 }
 
-#[derive(Component, Clone)]
+#[derive(Component, Clone, ConvertSaveload)]
 #[storage(VecStorage)]
 pub struct AttackBonus(pub i32);
 
 #[derive(Component)]
 #[storage(NullStorage)]
-pub struct GameAction;
+pub struct GameAction {}
 
 #[derive(Component)]
 #[storage(VecStorage)]

@@ -2,12 +2,16 @@ use std::fs;
 
 use serde::Deserialize;
 use serde_json::from_str;
-use specs::{Builder, Entity, World, WorldExt};
+use specs::{
+    saveload::{MarkedBuilder, SimpleMarker},
+    Builder, Entity, World, WorldExt,
+};
 
 use crate::{
     being::{AIDefinition, Being, BeingID},
     components::{Blocking, GoalMoverAI, Name, Position, RandomWalkerAI, Renderable},
     droptables::Drops,
+    saveload::SerializeMe,
     stats::{EntityStatsBuilder, Stats},
     z_order::BEING_Z,
 };
@@ -94,19 +98,21 @@ pub fn build_being(name: impl ToString, pos: Position, world: &mut World) -> Res
         }
     };
 
-    let mut builder = world.create_entity().with(Name::new(&raw.name)).with(pos).with(Renderable::default_bg(
-        raw.atlas_index,
-        raw.fg,
-        BEING_Z,
-    ));
+    let mut builder = world
+        .create_entity()
+        .with(Name::new(&raw.name))
+        .with(raw.identifier)
+        .with(pos)
+        .with(Renderable::clear_bg(raw.atlas_index, raw.fg, BEING_Z))
+        .marked::<SimpleMarker<SerializeMe>>();
 
     if raw.is_blocking {
-        builder = builder.with(Blocking);
+        builder = builder.with(Blocking {});
     }
 
     if let Some(ai) = &raw.ai {
         builder = match ai.start_mode.as_str() {
-            "random_walk" => builder.with(RandomWalkerAI),
+            "random_walk" => builder.with(RandomWalkerAI {}),
             "goal" => {
                 let goals = match &ai.goals {
                     Some(goals) => goals.iter().map(|goal| Name(goal.to_string())).collect::<Vec<Name>>(),
