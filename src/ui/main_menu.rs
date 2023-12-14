@@ -1,9 +1,10 @@
+use bracket_color::prelude::GREY4;
 use bracket_terminal::prelude::{to_char, to_cp437, ColorPair, DrawBatch, Point, Rect, WHITESMOKE};
 
 use crate::{
     colors::{Color, DARKBLUE, DARKBLUEPURPLE, MIDDLERED, SALMON},
     player::MenuSelection,
-    CL_TEXT, DISPLAY_HEIGHT, DISPLAY_WIDTH,
+    CL_TEXT, DISPLAY_HEIGHT, DISPLAY_WIDTH, saveload::save_game_exists,
 };
 
 // Menu contianing the new, load, and settings
@@ -21,6 +22,8 @@ const MAIN_MENU_TEXT_HL: Color = SALMON;
 
 pub fn draw_main_menu(draw_batch: &mut DrawBatch, hovered: &MenuSelection) {
     draw_batch.target(CL_TEXT);
+    draw_batch.fill_region(Rect::with_size(0, 0, DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2), ColorPair::new(WHITESMOKE, MAIN_MENU_BG), to_cp437(' '));
+
     let menu_rect = Rect::with_size(MENU_START_X, MENU_START_Y, MENU_WIDTH, MENU_HEIGHT);
     draw_batch.draw_hollow_double_box(menu_rect, ColorPair::new(MAIN_MENU_ACCENT, MAIN_MENU_BG));
     draw_batch.fill_region(
@@ -30,7 +33,9 @@ pub fn draw_main_menu(draw_batch: &mut DrawBatch, hovered: &MenuSelection) {
     );
 
     for (idx, opt) in MENU_OPTIONS.iter().enumerate() {
-        let pair = if hovered.to_lowercase() == opt.to_owned() {
+        let colors = if opt == &"load game" && !save_game_exists() {
+            ColorPair::new(GREY4, MAIN_MENU_BG)
+        } else if hovered.to_lowercase() == opt.to_owned() {
             ColorPair::new(MAIN_MENU_TEXT_HL, MAIN_MENU_HL)
         } else {
             ColorPair::new(MAIN_MENU_ACCENT, MAIN_MENU_BG)
@@ -40,6 +45,6 @@ pub fn draw_main_menu(draw_batch: &mut DrawBatch, hovered: &MenuSelection) {
         } else {
             opt.to_string()
         };
-        draw_batch.print_color(Point::new(MENU_START_X + 3, MENU_START_Y + 2 + (2 * idx)), text, pair);
+        draw_batch.print_color(Point::new(MENU_START_X + 3, MENU_START_Y + 2 + (2 * idx)), text, colors);
     }
 }

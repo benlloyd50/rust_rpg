@@ -23,6 +23,7 @@ use crate::data_read::ENTITY_DB;
 use crate::game_init::PlayerEntity;
 use crate::map::Map;
 use crate::player::Player;
+use crate::ui::message_log::MessageLog;
 
 // ripped right from https://bfnightly.bracketproductions.com/chapter_11.html
 macro_rules! serialize_individually {
@@ -63,6 +64,7 @@ pub struct SerializeMe {}
 #[storage(VecStorage)]
 pub struct SerializationHelper {
     map: Map,
+    message_log: MessageLog,
 }
 
 pub enum SaveAction {
@@ -75,8 +77,10 @@ pub enum SaveAction {
 pub const SAVE_PATH: &str = "./saves/mysavegame.json";
 
 pub fn cleanup_game(ecs: &mut World) {
-    info!("Cleaning up all entities and components from game.");
+    info!("Cleaning up game world.");
     ecs.delete_all();
+    let mut message_log = ecs.write_resource::<MessageLog>();
+    message_log.clear();
     info!("Cleaning Successful");
 }
 
@@ -86,8 +90,9 @@ pub fn save_game_exists() -> bool {
 
 pub fn save_game(ecs: &mut World) {
     let map = ecs.get_mut::<Map>().unwrap().clone();
+    let message_log = ecs.get_mut::<MessageLog>().unwrap().clone();
     let savehelper =
-        ecs.create_entity().with(SerializationHelper { map }).marked::<SimpleMarker<SerializeMe>>().build();
+        ecs.create_entity().with(SerializationHelper { map, message_log }).marked::<SimpleMarker<SerializeMe>>().build();
 
     {
         let data = (ecs.entities(), ecs.read_storage::<SimpleMarker<SerializeMe>>());
@@ -140,14 +145,17 @@ pub fn load_game(ecs: &mut World) {
             let mut map = ecs.write_resource::<Map>();
             *map = helper_data.map.clone();
             map.tile_entities = vec![Vec::new(); map.width * map.height];
+
+            let mut msg_log = ecs.write_resource::<MessageLog>();
+            *msg_log = helper_data.message_log.clone();
+
             delete_me = Some(helper_e);
         } else {
             error!("No map found when loading the savegame.");
         }
 
+        // Recreate AI for beings
         let beings = ecs.write_storage::<BeingID>();
-        // let names = ecs.read_storage::<Name>();
-
         let edb = &ENTITY_DB.lock().unwrap();
         for (being_e, being_id) in (&entities, &beings).join() {
             match edb.beings.get_by_id(being_id.0) {

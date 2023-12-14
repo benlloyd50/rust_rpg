@@ -6,7 +6,7 @@ use crate::{
     game_init::{find_next_map, PlayerEntity},
     items::inventory_contains,
     map::{Map, TileEntity},
-    saveload::SaveAction,
+    saveload::{SaveAction, save_game_exists},
     ui::message_log::MessageLog,
     AppState, Position,
 };
@@ -209,14 +209,16 @@ pub fn p_input_main_menu(ctx: &mut BTerm, hovering: &MenuSelection) -> MenuActio
     if let Some(key) = ctx.key {
         match key {
             VKC::Down | VKC::S => MenuAction::Hovering(match hovering {
-                MenuSelection::NewGame => MenuSelection::LoadGame,
+                MenuSelection::NewGame if save_game_exists() => MenuSelection::LoadGame,
+                MenuSelection::NewGame => MenuSelection::Settings,
                 MenuSelection::LoadGame => MenuSelection::Settings,
                 MenuSelection::Settings => MenuSelection::NewGame,
             }),
             VKC::Up | VKC::W => MenuAction::Hovering(match hovering {
                 MenuSelection::NewGame => MenuSelection::Settings,
                 MenuSelection::LoadGame => MenuSelection::NewGame,
-                MenuSelection::Settings => MenuSelection::LoadGame,
+                MenuSelection::Settings if save_game_exists() => MenuSelection::LoadGame,
+                MenuSelection::Settings => MenuSelection::NewGame,
             }),
             VKC::Return => MenuAction::Selected(*hovering),
             _ => MenuAction::Stalling,

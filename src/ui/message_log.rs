@@ -3,6 +3,7 @@
 use std::fmt::Display;
 
 use bracket_terminal::prelude::{ColorPair, DrawBatch, Point, Rect, TextAlign, RGBA, WHITESMOKE};
+use serde::{Deserialize, Serialize};
 use specs::{World, WorldExt};
 
 use crate::{
@@ -39,6 +40,7 @@ pub fn draw_turn_counter(draw_batch: &mut DrawBatch, ecs: &World) {
 }
 
 /// Resource used for logging to the message console on the screen to the player
+#[derive(Clone, Deserialize, Serialize)]
 pub struct MessageLog {
     pub messages: Vec<Message>,
 }
@@ -68,6 +70,11 @@ impl MessageLog {
         self.messages.iter().rev().take(n)
     }
 
+    /// Gets rid of all messages in the log
+    pub fn clear(&mut self) {
+        self.messages.clear();
+    }
+
     /// Adds a new message to the log. If the message is the same as it's predecessor then it will
     /// increment the `repeated` variable
     fn add_to_log(&mut self, contents: String, msg_type: MessageType) {
@@ -87,6 +94,7 @@ impl Default for MessageLog {
     }
 }
 
+#[derive(Clone, Deserialize, Serialize)]
 pub struct Message {
     pub kind: MessageType,
     pub contents: String,
@@ -116,7 +124,7 @@ impl Display for Message {
     }
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Clone, Deserialize, Serialize)]
 pub enum MessageType {
     Flavor, // conversations, flavor text
     Info,   // game info ie Fishing attempts remaining

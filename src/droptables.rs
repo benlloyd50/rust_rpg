@@ -22,11 +22,7 @@ pub struct Loot {
 
 pub enum DropQty {
     Single(usize),
-    #[allow(unused)]
-    Range {
-        min: usize,
-        max: usize,
-    },
+    Range { min: usize, max: usize },
 }
 
 const MAX_ITEM_DROPS: u32 = 10;
