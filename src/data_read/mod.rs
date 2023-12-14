@@ -16,8 +16,9 @@ pub mod prelude {
     pub use crate::data_read::ENTITY_DB;
 }
 
+use itertools::Itertools;
 use lazy_static::lazy_static;
-use log::debug;
+use log::{debug, error, warn};
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 
@@ -86,12 +87,12 @@ pub(crate) struct OptionalStats {
 impl Stats {
     fn from_optional(some_stats: &OptionalStats) -> Self {
         Self {
-            intelligence: some_stats.intelligence.map_or_else(|| 0, |stat| stat),
-            charisma: some_stats.charisma.map_or_else(|| 0, |stat| stat),
-            dexterity: some_stats.dexterity.map_or_else(|| 0, |stat| stat),
-            strength: some_stats.strength.map_or_else(|| 0, |stat| stat),
-            precision: some_stats.precision.map_or_else(|| 0, |stat| stat),
-            vitality: some_stats.vitality.map_or_else(|| 0, |stat| stat),
+            intelligence: some_stats.intelligence.map_or(0, |stat| stat),
+            charisma: some_stats.charisma.map_or(0, |stat| stat),
+            dexterity: some_stats.dexterity.map_or(0, |stat| stat),
+            strength: some_stats.strength.map_or(0, |stat| stat),
+            precision: some_stats.precision.map_or(0, |stat| stat),
+            vitality: some_stats.vitality.map_or(0, |stat| stat),
         }
     }
 }
@@ -119,6 +120,27 @@ impl Drops {
 
 impl DropQty {
     fn from_str(qty: &str) -> DropQty {
-        DropQty::Single(qty.parse().expect(&format!("{} cannot be parsed into a number", qty)))
+        if let Some((colon, _)) = qty.chars().find_position(|c| c.eq(&':')) {
+            let first: String = qty[..colon].chars().collect();
+            let second: String = qty[(colon + 1)..].chars().collect();
+            let min = first.parse().unwrap_or(0);
+            let max = second.parse().unwrap_or(1);
+            if min >= max {
+                warn!("Drop range defined by {} is invalid: The range is empty. Using Single(1) instead", qty);
+                DropQty::Single(1)
+            } else {
+                debug!("Creating Drop range from {} to {}", min, max);
+                DropQty::Range { min, max }
+            }
+        } else {
+            let single_qty = match qty.parse() {
+                Ok(qty) => qty,
+                Err(_) => {
+                    error!("Invalid qty provided, {} for drop qty falling back to 1", qty);
+                    1
+                }
+            };
+            DropQty::Single(single_qty)
+        }
     }
 }

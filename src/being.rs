@@ -3,12 +3,13 @@ use bracket_terminal::prelude::Point;
 use log::{info, warn};
 use pathfinding::prelude::astar;
 use serde::{Deserialize, Serialize};
+#[allow(deprecated)] // specs's saveload requires this import so it's not our choice
 use specs::error::NoError;
-use specs::saveload::ConvertSaveload;
-use specs::saveload::Marker;
 use specs::{
-    shred::PanicHandler, Component, ConvertSaveload, Entities, Entity, Join, ReadExpect, ReadStorage, System,
-    VecStorage, Write, WriteExpect, WriteStorage,
+    saveload::{ConvertSaveload, Marker},
+    shred::PanicHandler,
+    Component, ConvertSaveload, Entities, Entity, Join, ReadExpect, ReadStorage, System, VecStorage, Write,
+    WriteExpect, WriteStorage,
 };
 
 use crate::{

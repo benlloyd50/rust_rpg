@@ -66,8 +66,8 @@ mod crafting;
 mod fishing;
 
 use fishing::{
-    CatchFishSystem, FishingMinigameCheck, FishingMinigameUpdate, PollFishingTiles, SetupFishingActions,
-    UpdateFishingTiles, WaitingForFishSystem,
+    CatchFishSystem, CreateFishingBubbles, FishingMinigameCheck, FishingMinigameUpdate, PollFishingTiles,
+    SetupFishingActions, WaitingForFishSystem,
 };
 use indexing::{IndexBlockedTiles, IndexBreakableTiles, IndexFishableTiles, IndexItemTiles, IndexReset};
 use tile_animation::TileAnimationSpawner;
@@ -113,11 +113,23 @@ impl State {
         let mut handle_attack_actions = AttackActionHandler;
         handle_attack_actions.run_now(&self.ecs);
 
-        let mut update_fishing_tiles = UpdateFishingTiles;
+        let mut update_fishing_tiles = CreateFishingBubbles;
         update_fishing_tiles.run_now(&self.ecs);
     }
 
-    fn run_continuous_systems(&mut self, _ctx: &mut BTerm) {
+    fn run_activity_bound_systems(&mut self) {
+        // Fishing Minigame Systems ====================>
+        let mut waiting_for_fish = WaitingForFishSystem;
+        waiting_for_fish.run_now(&self.ecs);
+        let mut fish_mini_update = FishingMinigameUpdate;
+        fish_mini_update.run_now(&self.ecs);
+        let mut fish_mini_check = FishingMinigameCheck;
+        fish_mini_check.run_now(&self.ecs);
+        let mut catch_fish = CatchFishSystem;
+        catch_fish.run_now(&self.ecs);
+    }
+
+    fn run_ingame_systems(&mut self) {
         // Indexing Systems ===============================>
         let mut index_reset = IndexReset;
         index_reset.run_now(&self.ecs);
@@ -135,10 +147,6 @@ impl State {
         setup_fishing_actions.run_now(&self.ecs);
         let mut waiting_for_fish = WaitingForFishSystem;
         waiting_for_fish.run_now(&self.ecs);
-        let mut fish_mini_update = FishingMinigameUpdate;
-        fish_mini_update.run_now(&self.ecs);
-        let mut fish_mini_check = FishingMinigameCheck;
-        fish_mini_check.run_now(&self.ecs);
         let mut catch_fish = CatchFishSystem;
         catch_fish.run_now(&self.ecs);
         let mut poll_fishing_tiles = PollFishingTiles;
@@ -253,7 +261,7 @@ impl GameState for State {
                         frame_state.change_to(delta_state);
                     }
                 }
-                self.run_continuous_systems(ctx);
+                self.run_ingame_systems();
                 self.run_eof_systems();
             }
             AppState::PlayerInInventory => {
@@ -288,7 +296,7 @@ impl GameState for State {
             }
             AppState::ActivityBound { response_delay } => {
                 p_input_activity(&mut self.ecs, ctx);
-                self.run_continuous_systems(ctx);
+                self.run_activity_bound_systems();
 
                 frame_state.change_to(if check_player_finished(&mut self.ecs) {
                     turn_counter_incr(&mut self.ecs);
@@ -297,8 +305,6 @@ impl GameState for State {
                 } else {
                     AppState::ActivityBound { response_delay }
                 });
-
-                self.run_eof_systems();
             }
             AppState::MapChange { level_name, player_world_pos } => {
                 debug!("going to {}", level_name);

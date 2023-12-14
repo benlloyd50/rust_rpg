@@ -15,7 +15,14 @@
             "max_hp" : 3,
             "defense": 0
         },
-        "foreground": [255, 255, 255]
+        "foreground": [255, 255, 255],
+        "loot": {
+            "drop_chance": 70,
+            "loot_table": [
+                {"item": "Flint", "item_qty": "1:", "weight": 20 },
+                {"item": "Fire Flint", "item_qty": "1", "weight": 1 }
+            ]
+        }
     },
     {
         "identifier": 12,

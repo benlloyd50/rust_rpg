@@ -111,7 +111,7 @@ impl<'a> System<'a> for WaitingForFishSystem {
                 continue;
             }
 
-            // Bite on the line
+            // Bite on the line, succeeding in fishing attempt
             finished_fishers.push(e);
             if e == p_entity.0 {
                 let _ = minigames.insert(
@@ -252,12 +252,11 @@ impl<'a> System<'a> for CatchFishSystem {
     }
 }
 
-pub struct UpdateFishingTiles;
+pub struct CreateFishingBubbles;
 
-// pub const BUBBLE_SPAWN_RATE: usize = 9000;
 pub const BUBBLE_SPAWN_RATE: usize = 1000;
 pub const BUBBLE_LIFETIME_SECS: u64 = 10;
-impl<'a> System<'a> for UpdateFishingTiles {
+impl<'a> System<'a> for CreateFishingBubbles {
     type SystemData = (WriteStorage<'a, Fishable>, WriteStorage<'a, Renderable>, ReadStorage<'a, Water>, Entities<'a>);
 
     fn run(&mut self, (mut fishables, mut renderables, waters, entities): Self::SystemData) {

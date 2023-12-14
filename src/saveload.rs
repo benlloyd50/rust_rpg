@@ -2,7 +2,7 @@ use std::convert::Infallible;
 use std::fs::{self, File};
 use std::path::Path;
 
-use log::{debug, error, info};
+use log::{error, info};
 use serde::{Deserialize, Serialize};
 use specs::saveload::{DeserializeComponents, MarkedBuilder, SerializeComponents, SimpleMarker, SimpleMarkerAllocator};
 #[allow(deprecated)] // must be imported so ConvertSaveload works
