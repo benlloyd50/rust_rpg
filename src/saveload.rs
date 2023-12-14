@@ -91,8 +91,11 @@ pub fn save_game_exists() -> bool {
 pub fn save_game(ecs: &mut World) {
     let map = ecs.get_mut::<Map>().unwrap().clone();
     let message_log = ecs.get_mut::<MessageLog>().unwrap().clone();
-    let savehelper =
-        ecs.create_entity().with(SerializationHelper { map, message_log }).marked::<SimpleMarker<SerializeMe>>().build();
+    let savehelper = ecs
+        .create_entity()
+        .with(SerializationHelper { map, message_log })
+        .marked::<SimpleMarker<SerializeMe>>()
+        .build();
 
     {
         let data = (ecs.entities(), ecs.read_storage::<SimpleMarker<SerializeMe>>());

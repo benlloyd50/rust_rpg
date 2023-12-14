@@ -4,7 +4,8 @@ use bracket_terminal::prelude::{to_char, to_cp437, ColorPair, DrawBatch, Point, 
 use crate::{
     colors::{Color, DARKBLUE, DARKBLUEPURPLE, MIDDLERED, SALMON},
     player::MenuSelection,
-    CL_TEXT, DISPLAY_HEIGHT, DISPLAY_WIDTH, saveload::save_game_exists,
+    saveload::save_game_exists,
+    CL_TEXT, DISPLAY_HEIGHT, DISPLAY_WIDTH,
 };
 
 // Menu contianing the new, load, and settings
@@ -22,7 +23,11 @@ const MAIN_MENU_TEXT_HL: Color = SALMON;
 
 pub fn draw_main_menu(draw_batch: &mut DrawBatch, hovered: &MenuSelection) {
     draw_batch.target(CL_TEXT);
-    draw_batch.fill_region(Rect::with_size(0, 0, DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2), ColorPair::new(WHITESMOKE, MAIN_MENU_BG), to_cp437(' '));
+    draw_batch.fill_region(
+        Rect::with_size(0, 0, DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2),
+        ColorPair::new(WHITESMOKE, MAIN_MENU_BG),
+        to_cp437(' '),
+    );
 
     let menu_rect = Rect::with_size(MENU_START_X, MENU_START_Y, MENU_WIDTH, MENU_HEIGHT);
     draw_batch.draw_hollow_double_box(menu_rect, ColorPair::new(MAIN_MENU_ACCENT, MAIN_MENU_BG));

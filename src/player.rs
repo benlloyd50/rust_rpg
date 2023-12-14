@@ -6,7 +6,7 @@ use crate::{
     game_init::{find_next_map, PlayerEntity},
     items::inventory_contains,
     map::{Map, TileEntity},
-    saveload::{SaveAction, save_game_exists},
+    saveload::{save_game_exists, SaveAction},
     ui::message_log::MessageLog,
     AppState, Position,
 };
