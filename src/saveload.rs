@@ -2,7 +2,7 @@ use std::convert::Infallible;
 use std::fs::{self, File};
 use std::path::Path;
 
-use log::{error, info};
+use log::{debug, error, info};
 use serde::{Deserialize, Serialize};
 use specs::saveload::{DeserializeComponents, MarkedBuilder, SerializeComponents, SimpleMarker, SimpleMarkerAllocator};
 #[allow(deprecated)] // must be imported so ConvertSaveload works
@@ -138,6 +138,11 @@ pub fn load_game(ecs: &mut World) {
                                 Player, EquipmentSlots, Water, Grass, Interactor, AttackBonus, SerializationHelper);
     }
 
+    // This is going to be replaced when it gets loaded below but it cannot be inserted in there
+    // since some borrowing is going on
+    let temp = ecs.create_entity().build();
+    ecs.insert(PlayerEntity(temp));
+
     let mut delete_me = None;
     {
         let entities = ecs.entities();
@@ -151,6 +156,7 @@ pub fn load_game(ecs: &mut World) {
 
             let mut msg_log = ecs.write_resource::<MessageLog>();
             *msg_log = helper_data.message_log.clone();
+            debug!("Message and map loaded Successful");
 
             delete_me = Some(helper_e);
         } else {
@@ -194,10 +200,12 @@ pub fn load_game(ecs: &mut World) {
         if let Some((player_e, _)) = (&entities, &player).join().next() {
             let mut player_e_res = ecs.write_resource::<PlayerEntity>();
             *player_e_res = PlayerEntity(player_e);
+            debug!("Player res set Successful");
         } else {
-            error!("No player found when loading the savegame.");
+            error!("No player found when loading the savegame. Resulting to temp player variable.");
         }
     }
 
+    debug!("Loading game complete");
     ecs.delete_entity(delete_me.unwrap()).expect("Unable to delete helper after loading.");
 }

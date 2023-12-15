@@ -1,10 +1,11 @@
 use bracket_color::prelude::GREY4;
-use bracket_terminal::prelude::{to_char, to_cp437, ColorPair, DrawBatch, Point, Rect, WHITESMOKE};
+use bracket_terminal::prelude::{to_char, to_cp437, ColorPair, DrawBatch, Point, Rect, TextAlign, WHITESMOKE};
 
 use crate::{
-    colors::{Color, DARKBLUE, DARKBLUEPURPLE, MIDDLERED, SALMON},
+    colors::{Color, DARKBLUE, DARKBLUEPURPLE, MIDDLERED, PL_SETTINGS_HIGHLIGHT, PL_SETTINGS_TEXT, SALMON},
     player::MenuSelection,
     saveload::save_game_exists,
+    settings::{SettingsConfig, SpriteMode},
     CL_TEXT, DISPLAY_HEIGHT, DISPLAY_WIDTH,
 };
 
@@ -52,4 +53,32 @@ pub fn draw_main_menu(draw_batch: &mut DrawBatch, hovered: &MenuSelection) {
         };
         draw_batch.print_color(Point::new(MENU_START_X + 3, MENU_START_Y + 2 + (2 * idx)), text, colors);
     }
+}
+
+pub fn draw_settings(draw_batch: &mut DrawBatch, cfg: &SettingsConfig) {
+    draw_batch.target(CL_TEXT);
+    // Background
+    draw_batch.fill_region(
+        Rect::with_size(0, 0, DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2),
+        ColorPair::new(WHITESMOKE, MAIN_MENU_BG),
+        to_cp437(' '),
+    );
+
+    // Settings Box
+    draw_batch.draw_hollow_double_box(
+        Rect::with_size(MENU_START_X, MENU_START_Y, MENU_WIDTH, MENU_HEIGHT),
+        ColorPair::new(MAIN_MENU_ACCENT, MAIN_MENU_BG),
+    );
+
+    // Sprite Mode
+    let (blocked, outline) = match cfg.sprite_mode {
+        SpriteMode::Outline => (PL_SETTINGS_TEXT, PL_SETTINGS_HIGHLIGHT),
+        SpriteMode::Blocked => (PL_SETTINGS_HIGHLIGHT, PL_SETTINGS_TEXT),
+    };
+    draw_batch.printer(
+        Point::new(MENU_START_X + 1, MENU_START_Y + 2),
+        format!("#[{}]Sprite Mode: #[{}]Blocked #[{}]Outline", PL_SETTINGS_TEXT, blocked, outline),
+        TextAlign::Left,
+        Some(MAIN_MENU_BG.into()),
+    );
 }

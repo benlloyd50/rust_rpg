@@ -25,6 +25,7 @@ use items::{ConsumeHandler, ItemPickupHandler, ItemSpawnerSystem, ZeroQtyItemCle
 use log::{debug, error, info, warn};
 use mining::{DamageSystem, RemoveDeadTiles, TileDestructionSystem};
 use saveload::{cleanup_game, load_game, save_game, save_game_exists, SaveAction};
+use settings::{handle_setting_selected, SettingsAction, SettingsSelection};
 use specs::prelude::*;
 
 mod camera;
@@ -41,6 +42,7 @@ mod indexing;
 mod inventory;
 mod logger;
 mod saveload;
+mod settings;
 mod storage_utils;
 mod ui;
 use inventory::{handle_one_item_actions, handle_two_item_actions, p_input_inventory, InventoryResponse};
@@ -55,8 +57,8 @@ use specs::saveload::{SimpleMarker, SimpleMarkerAllocator};
 use tile_animation::TileAnimationCleanUpSystem;
 mod time;
 use player::{
-    check_player_finished, p_input_activity, p_input_game, p_input_main_menu, p_input_save_game, MenuAction,
-    MenuSelection, PlayerResponse,
+    check_player_finished, p_input_activity, p_input_game, p_input_main_menu, p_input_save_game, p_input_settings,
+    MenuAction, MenuSelection, PlayerResponse,
 };
 mod map;
 use map::Map;
@@ -191,13 +193,13 @@ impl State {
 #[derive(Clone, PartialEq, Eq)]
 pub enum AppState {
     MainMenu { hovering: MenuSelection },
+    SettingsMenu { hovering: SettingsSelection },
     NewGameStart,
     LoadGameStart,
     MapChange { level_name: String, player_world_pos: Position },
     InGame,
     ActivityBound { response_delay: Duration },
     PlayerInInventory,
-    SettingsMenu,
     SaveGame,
 }
 
@@ -325,18 +327,29 @@ impl GameState for State {
                                     AppState::MainMenu { hovering: MenuSelection::NewGame }
                                 }
                             }
-                            MenuSelection::Settings => AppState::SettingsMenu,
+                            MenuSelection::Settings => {
+                                AppState::SettingsMenu { hovering: SettingsSelection::SpriteMode }
+                            }
                         });
                     }
                     MenuAction::Hovering(new_selection) => {
                         frame_state.change_to(AppState::MainMenu { hovering: new_selection });
                     }
-                    MenuAction::Stalling => {
+                    MenuAction::Waiting => {
                         // do nothing..
                     }
                 }
             }
-            AppState::SettingsMenu => todo!("eventually..."),
+            AppState::SettingsMenu { hovering } => match p_input_settings(ctx) {
+                SettingsAction::Selected => {
+                    handle_setting_selected(&hovering, &mut self.cfg.general, ctx);
+                }
+                SettingsAction::ReturnToMainMenu => {
+                    self.cfg.general.save();
+                    frame_state.change_to(AppState::MainMenu { hovering: MenuSelection::Settings });
+                }
+                SettingsAction::Waiting => {}
+            },
             AppState::SaveGame => match p_input_save_game(ctx) {
                 SaveAction::Save => {
                     save_game(&mut self.ecs);
@@ -359,7 +372,7 @@ impl GameState for State {
         delta_time_update(&mut self.ecs, ctx);
         self.ecs.maintain();
 
-        draw_ui(&self.ecs, &frame_state.current, &self.cfg.inventory);
+        draw_ui(&self.ecs, &frame_state.current, &self.cfg);
         // NOTE: for some unknown reason this must be called before the debug info so that
         // the debug info is drawn ontop of the ui
         render_draw_buffer(ctx).expect("Render error??");
@@ -371,7 +384,7 @@ impl GameState for State {
                 debug_input(ctx, &self.ecs);
             }
             AppState::MainMenu { .. }
-            | AppState::SettingsMenu
+            | AppState::SettingsMenu { .. }
             | AppState::ActivityBound { .. }
             | AppState::SaveGame
             | AppState::LoadGameStart => (),
@@ -406,11 +419,12 @@ pub const CL_INTERACTABLES: usize = 1; // Used for the few or so moving items/en
 pub const FONT_EFFECTS: usize = 0;
 pub const FONT_TEXT: usize = 1;
 pub const FONT_INTERACTABLES: usize = 2;
-pub const FONT_TERRAIN_FOREST: usize = 3;
-pub const FONT_TERRAIN_TOWN_FOREST: usize = 4;
+pub const FONT_INTERACTABLES_OUTLINE: usize = 3;
+pub const FONT_TERRAIN_FOREST: usize = 4;
+pub const FONT_TERRAIN_TOWN_FOREST: usize = 5;
 
-// embedded_resource!(TILE_FONT, "../resources/interactable_tiles.png");
-embedded_resource!(TILE_FONT, "../resources/interactable_tiles_outline.png");
+embedded_resource!(TILE_FONT, "../resources/interactable_tiles.png");
+embedded_resource!(TILE_OUTLINE_FONT, "../resources/interactable_tiles_outline.png");
 embedded_resource!(TILE_EFFECT, "../resources/effects_tiles.png");
 embedded_resource!(CHAR_FONT, "../resources/terminal8x8.png");
 embedded_resource!(TERRAIN_FOREST, "../resources/terrain_forest.png");
@@ -419,6 +433,7 @@ embedded_resource!(LDTK_WORLD, "../resources/ldtk/rpg_world_v2.ldtk");
 
 fn main() -> BError {
     link_resource!(TILE_FONT, "resources/interactable_tiles.png");
+    link_resource!(TILE_OUTLINE_FONT, "resources/interactable_tiles_outline.png");
     link_resource!(TILE_EFFECT, "resources/effects_tiles.png");
     link_resource!(CHAR_FONT, "resources/terminal8x8.png");
     link_resource!(TERRAIN_FOREST, "resources/terrain_forest.png");
@@ -439,6 +454,7 @@ fn main() -> BError {
         .with_font("effects_tiles.png", 8u32, 8u32)
         .with_font("terminal8x8.png", 8u32, 8u32)
         .with_font("interactable_tiles.png", 8u32, 8u32)
+        .with_font("interactable_tiles_outline.png", 8u32, 8u32)
         .with_font("terrain_forest.png", 8u32, 8u32)
         .with_font("terrain_town_forest.png", 8u32, 8u32)
         .with_dimensions(160, 120)
@@ -504,7 +520,6 @@ fn main() -> BError {
 
     // Resource Initialization, the ECS needs a basic definition of every resource that will be in the game
     world.insert(AppState::NewGameStart);
-    // world.insert(AppState::MainMenu { hovering: MenuSelection::NewGame });
     world.insert(DeltaTime(Duration::ZERO));
     world.insert(TileAnimationBuilder::new());
     world.insert(ItemSpawner::new());
@@ -512,6 +527,6 @@ fn main() -> BError {
     world.insert(Map::empty());
     world.insert(TurnCounter::zero());
 
-    let game_state: State = State { ecs: world, cfg: ConfigMaster::default() };
+    let game_state: State = State { ecs: world, cfg: ConfigMaster::load() };
     main_loop(context, game_state)
 }

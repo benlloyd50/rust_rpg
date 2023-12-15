@@ -1,15 +1,18 @@
 use std::fmt::Display;
 
+use crate::settings::SettingsConfig;
+
 /// Contains all configs for various game things
 /// Note - For now it resides on the `State` variable since we shouldn't have systems modifying it as that
 /// involves checking if the player is the entity in the system.
 pub struct ConfigMaster {
     pub inventory: InventoryConfig,
+    pub general: SettingsConfig,
 }
 
-impl Default for ConfigMaster {
-    fn default() -> Self {
-        Self { inventory: InventoryConfig { sort_mode: SortMode::NameABC } }
+impl ConfigMaster {
+    pub fn load() -> Self {
+        Self { inventory: InventoryConfig { sort_mode: SortMode::NameABC }, general: SettingsConfig::load() }
     }
 }
 

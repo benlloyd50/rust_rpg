@@ -16,7 +16,7 @@ use specs::{
     Component, ConvertSaveload, Entity, NullStorage, VecStorage,
 };
 
-use crate::{indexing::idx_to_point, inventory::UseMenuResult, items::ItemID};
+use crate::{fishing::ReelBar, indexing::idx_to_point, inventory::UseMenuResult, items::ItemID};
 
 #[derive(Debug, Component, ConvertSaveload, Clone)]
 #[storage(VecStorage)]
@@ -504,4 +504,5 @@ pub struct FishingMinigame {
     pub cursor: Cursor,
     pub goal_bar: GoalBar,
     pub attempts_left: usize,
+    pub reel: ReelBar,
 }

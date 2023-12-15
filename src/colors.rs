@@ -21,6 +21,9 @@ pub fn initialize_printer_palette() {
     register_palette_color(PL_MAIN_MENU_TEXT, to_rgb(MIDDLERED));
     register_palette_color(PL_MAIN_MENU_TEXT_HIGHLIGHT, to_rgb(SALMON));
 
+    register_palette_color(PL_SETTINGS_TEXT, to_rgb(WHITE));
+    register_palette_color(PL_SETTINGS_HIGHLIGHT, to_rgb(MIDDLERED));
+
     register_palette_color("orange", to_rgb(SALMON));
 
     register_palette_color("red", to_rgb(MIDDLERED));
@@ -37,6 +40,9 @@ pub const INVENTORY_OUTLINE: Color = (61, 84, 107);
 pub const PL_KEYBIND: &str = "keybind";
 pub const PL_MAIN_MENU_TEXT: &str = "main_menu_text";
 pub const PL_MAIN_MENU_TEXT_HIGHLIGHT: &str = "main_menu_text_hl";
+
+pub const PL_SETTINGS_TEXT: &str = "settings_text";
+pub const PL_SETTINGS_HIGHLIGHT: &str = "settings_highlight";
 
 // Color Definitions
 pub const MIDDLERED: Color = (183, 65, 50);

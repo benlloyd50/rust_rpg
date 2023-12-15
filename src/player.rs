@@ -7,6 +7,7 @@ use crate::{
     items::inventory_contains,
     map::{Map, TileEntity},
     saveload::{save_game_exists, SaveAction},
+    settings::SettingsAction,
     ui::message_log::MessageLog,
     AppState, Position,
 };
@@ -202,7 +203,7 @@ impl MenuSelection {
 pub enum MenuAction {
     Selected(MenuSelection),
     Hovering(MenuSelection),
-    Stalling,
+    Waiting,
 }
 
 pub fn p_input_main_menu(ctx: &mut BTerm, hovering: &MenuSelection) -> MenuAction {
@@ -221,10 +222,10 @@ pub fn p_input_main_menu(ctx: &mut BTerm, hovering: &MenuSelection) -> MenuActio
                 MenuSelection::Settings => MenuSelection::NewGame,
             }),
             VKC::Return => MenuAction::Selected(*hovering),
-            _ => MenuAction::Stalling,
+            _ => MenuAction::Waiting,
         }
     } else {
-        MenuAction::Stalling
+        MenuAction::Waiting
     }
 }
 
@@ -237,5 +238,17 @@ pub fn p_input_save_game(ctx: &mut BTerm) -> SaveAction {
         VKC::Escape => SaveAction::Cancel,
         VKC::D => SaveAction::QuitWithoutSaving,
         _ => SaveAction::Waiting,
+    }
+}
+
+pub fn p_input_settings(ctx: &mut BTerm) -> SettingsAction {
+    if let Some(key) = ctx.key {
+        match key {
+            VKC::Return => SettingsAction::Selected,
+            VKC::Escape => SettingsAction::ReturnToMainMenu,
+            _ => SettingsAction::Waiting,
+        }
+    } else {
+        SettingsAction::Waiting
     }
 }

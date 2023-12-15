@@ -107,7 +107,9 @@ impl<'a> System<'a> for WaitingForFishSystem {
             let roll = rng.range(1, 100);
             log.debug(format!("Attempts left: {} | Rolled: {} ", waiter.attempts, roll));
 
-            if roll < 80 {
+            if roll < 1 {
+                // for testing fix with below
+                // FIX: if roll < 80 {
                 continue;
             }
 
@@ -117,9 +119,10 @@ impl<'a> System<'a> for WaitingForFishSystem {
                 let _ = minigames.insert(
                     e,
                     FishingMinigame {
-                        cursor: Cursor::new(25.0),
-                        goal_bar: GoalBar { goal: 5, bar_width: 18, goal_width: 3 },
+                        cursor: Cursor::new(15.0),
+                        goal_bar: GoalBar { goal: 5, bar_width: 18, goal_width: 9 },
                         attempts_left: 3,
+                        reel: ReelBar { catch_percent: 60.0, runaway_speed: 1.0 },
                     },
                 );
             } else {
@@ -151,19 +154,78 @@ impl<'a> System<'a> for WaitingForFishSystem {
     }
 }
 
+pub struct Cursor {
+    /// The precise location of the cursor in the world
+    pub position: f32,
+    /// Speed = blocks per sec
+    pub speed: f32,
+}
+
+impl Cursor {
+    pub fn new(speed: f32) -> Self {
+        Self { position: 0.0, speed }
+    }
+
+    /// Where the cursor is on the bar
+    pub fn bar_position(&self) -> usize {
+        self.position.trunc() as usize
+    }
+}
+
+pub struct GoalBar {
+    /// Index at which the goal is located at
+    pub goal: usize,
+    /// Size of the goals
+    pub goal_width: usize,
+    /// The width of the goal bar
+    pub bar_width: usize,
+}
+
+pub struct ReelBar {
+    /// Perecent of where the reel is in the bar 100% = fish lost
+    pub catch_percent: f32,
+    pub runaway_speed: f32,
+}
+
 pub struct FishingMinigameUpdate;
 
 impl<'a> System<'a> for FishingMinigameUpdate {
-    type SystemData = (WriteStorage<'a, FishingMinigame>, Read<'a, DeltaTime>);
+    type SystemData = (
+        WriteStorage<'a, FishingMinigame>,
+        WriteStorage<'a, FinishedActivity>,
+        WriteStorage<'a, FishOnTheLine>,
+        Write<'a, MessageLog>,
+        Entities<'a>,
+        Read<'a, DeltaTime>,
+    );
 
-    fn run(&mut self, (mut minigames, dt): Self::SystemData) {
-        for minigame in (&mut minigames).join() {
+    fn run(&mut self, (mut minigames, mut finished_activities, mut hooks, mut log, entities, dt): Self::SystemData) {
+        let mut remove_mes = vec![];
+        for (fisher, minigame) in (&entities, &mut minigames).join() {
             let seconds_past = dt.0.as_millis() as f32 / 1000.0;
             minigame.cursor.position += minigame.cursor.speed * seconds_past;
 
             if minigame.cursor.position >= minigame.goal_bar.bar_width as f32 {
                 minigame.cursor.position = 0.0;
             }
+
+            if minigame.reel.catch_percent <= 0.0 {
+                let _ = finished_activities.insert(fisher, FinishedActivity {});
+                log.log("#[bright_green]Success!#[]");
+                continue;
+            }
+
+            minigame.reel.catch_percent += minigame.reel.runaway_speed * seconds_past;
+
+            if minigame.reel.catch_percent >= 100.0 || minigame.attempts_left == 0 {
+                log.log("#[red]Ahhh, the fish got away.#[]");
+                hooks.remove(fisher);
+                remove_mes.push(fisher);
+                let _ = finished_activities.insert(fisher, FinishedActivity {});
+            }
+        }
+        for me in remove_mes {
+            minigames.remove(me);
         }
     }
 }
@@ -173,48 +235,33 @@ pub struct FishingMinigameCheck;
 impl<'a> System<'a> for FishingMinigameCheck {
     type SystemData = (
         WriteStorage<'a, GameAction>,
-        WriteStorage<'a, FinishedActivity>,
         WriteStorage<'a, FishingMinigame>,
-        WriteStorage<'a, FishOnTheLine>,
         Write<'a, MessageLog>,
+        ReadStorage<'a, FinishedActivity>,
+        ReadStorage<'a, FishOnTheLine>,
         Read<'a, PlayerEntity>,
         Entities<'a>,
     );
 
     fn run(
         &mut self,
-        (
-            mut game_actions,
-            mut finished_activities,
-            mut minigames,
-            mut hooks,
-            mut log,
-            p_entity,
-            entities,
-        ): Self::SystemData,
+        (mut game_actions, mut minigames, mut log, finished_activities, hooks, p_entity, entities): Self::SystemData,
     ) {
-        if let Some((fisher, _, _, game, ())) =
-            (&entities, &game_actions, &hooks, &mut minigames, !&finished_activities)
-                .join()
-                .find(|(e, _, _, _, _)| *e == p_entity.0)
+        if let Some((_, _, _, game, ())) = (&entities, &game_actions, &hooks, &mut minigames, !&finished_activities)
+            .join()
+            .find(|(e, _, _, _, _)| *e == p_entity.0)
         {
             info!("Game action read, checking if in_pos");
-            let idx = game.cursor.bar_position();
-            let goal = game.goal_bar.goal;
-            let goals = (goal..(goal + game.goal_bar.goal_width)).collect::<Vec<usize>>();
-            if goals.contains(&idx) {
-                // button was hit on time
+            let hit_idx = game.cursor.bar_position();
+            let start_idx = game.goal_bar.goal;
+            if hit_idx <= start_idx + game.goal_bar.goal_width && hit_idx >= start_idx {
                 log.log("#[bright_green]Success!#[]");
-                let _ = finished_activities.insert(fisher, FinishedActivity {});
+                game.reel.catch_percent -= 15.0;
+                // let _ = finished_activities.insert(fisher, FinishedActivity {});
             } else {
                 log.log("#[orange]Missed#[] the fish zone.");
                 game.attempts_left = game.attempts_left.saturating_sub(1);
-                if game.attempts_left == 0 {
-                    log.log("#[red]Ahhh, the fish got away.#[]");
-                    hooks.remove(fisher);
-                    minigames.remove(fisher);
-                    let _ = finished_activities.insert(fisher, FinishedActivity {});
-                }
+                game.reel.catch_percent += 5.0;
             }
         }
 
@@ -294,31 +341,4 @@ impl<'a> System<'a> for PollFishingTiles {
             fishables.remove(me);
         }
     }
-}
-
-pub struct Cursor {
-    /// The precise location of the cursor in the world
-    pub position: f32,
-    /// Speed = blocks per sec
-    pub speed: f32,
-}
-
-impl Cursor {
-    pub fn new(speed: f32) -> Self {
-        Self { position: 0.0, speed }
-    }
-
-    /// Where the cursor is on the bar
-    pub fn bar_position(&self) -> usize {
-        self.position.trunc() as usize
-    }
-}
-
-pub struct GoalBar {
-    /// Index at which the goal is located at
-    pub goal: usize,
-    /// Size of the goals
-    pub goal_width: usize,
-    /// The width of the goal bar
-    pub bar_width: usize,
 }
