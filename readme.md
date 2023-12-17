@@ -1,7 +1,9 @@
 # RPG Game
-###### Yet another attempt at making a game with Rust
+###### A pretty good attempt at trying to make a game
 
-An rpg game that is about leveling your characters through fun and meaningful quests as well as interesting 
+This rpg game that is about leveling your characters through fun and meaningful quests as well as interesting 
+skills. These will be repetitive but fun and rewarding tasks everywhere throughout the game. Remember this is progress
+to leveling your character to the max to "complete the game".
 
 ## Screenshots
 ![Main Menu](./screenshots/rust_rpg_mainmenu.gif)
