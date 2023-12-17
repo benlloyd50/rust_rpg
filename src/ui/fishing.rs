@@ -39,7 +39,7 @@ pub fn draw_fishing_bar(draw_batch: &mut DrawBatch, ecs: &World) {
             Point::new(left_bar_x, MINIGAME_HEIGHT - 2),
             to_char(28).to_string().repeat(reel_length),
             ColorPair { fg: WHITE.into(), bg: CLEAR },
-        ); // Draw the reel line 
+        ); // Draw the reel line
         draw_batch.print_color(
             Point::new(left_bar_x + reel_length, MINIGAME_HEIGHT - 2),
             to_char(29),

@@ -201,7 +201,6 @@ impl Display for Name {
 pub struct RandomWalkerAI {}
 
 /// Makes the entity walk towards a goal which is targeted
-// TEST: can't implement SaveLoad onto this is there some work around
 #[derive(Component, Clone)]
 #[storage(VecStorage)]
 pub struct GoalMoverAI {

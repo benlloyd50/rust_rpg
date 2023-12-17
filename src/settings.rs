@@ -62,7 +62,7 @@ impl Default for SpriteMode {
     }
 }
 
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Copy)]
 pub enum SettingsSelection {
     SpriteMode,
 }

@@ -1,3 +1,4 @@
+mod animations;
 mod beings;
 mod items;
 mod levels;
@@ -9,6 +10,7 @@ mod world_objs;
 ///    use crate::data_read::prelude::*;
 /// ```
 pub mod prelude {
+    pub use crate::data_read::animations::ANIMATION_DB;
     pub use crate::data_read::beings::build_being;
     pub use crate::data_read::levels::{create_map, LDTK_FILE};
     pub use crate::data_read::recipes::RECIPE_DB;
@@ -19,6 +21,7 @@ pub mod prelude {
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use log::{debug, error, warn};
+use prelude::ANIMATION_DB;
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 
@@ -71,6 +74,7 @@ pub fn initialize_game_databases() {
 
     ENTITY_DB.lock().unwrap().load(game_db);
     RECIPE_DB.lock().unwrap().load();
+    ANIMATION_DB.lock().unwrap().load();
     debug!("startup: finished loading game databases");
 }
 

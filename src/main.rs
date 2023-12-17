@@ -1,5 +1,6 @@
 use crate::being::BeingID;
 use crate::colors::initialize_printer_palette;
+use crate::frame_animation::AnimationRenderer;
 use crate::game_init::{cleanup_old_map, load_map, move_player_to};
 use crate::logger::create_logger;
 use crate::saveload::{SerializationHelper, SerializeMe};
@@ -8,6 +9,7 @@ use crate::ui::message_log::MessageLog;
 use std::time::Duration;
 
 use being::{GoalFindEntities, GoalMoveToEntities, HandleMoveActions, RandomMonsterMovementSystem};
+use bracket_geometry::prelude::Point;
 use bracket_terminal::{
     embedded_resource, link_resource,
     prelude::{main_loop, render_draw_buffer, BError, BTerm, BTermBuilder, GameState},
@@ -20,6 +22,7 @@ use debug::{debug_info, debug_input};
 use draw_sprites::{draw_sprite_layers, update_fancy_positions};
 use droptables::DeathLootDrop;
 use equipment::EquipActionHandler;
+use frame_animation::{AnimationPlay, UpdateAnimationTimers};
 use game_init::initialize_new_game_world;
 use items::{ConsumeHandler, ItemPickupHandler, ItemSpawnerSystem, ZeroQtyItemCleanup};
 use log::{debug, error, info, warn};
@@ -37,6 +40,7 @@ mod debug;
 mod draw_sprites;
 mod droptables;
 mod equipment;
+mod frame_animation;
 mod game_init;
 mod indexing;
 mod inventory;
@@ -201,6 +205,7 @@ pub enum AppState {
     ActivityBound { response_delay: Duration },
     PlayerInInventory,
     SaveGame,
+    PreRun { next_state: Box<AppState> },
 }
 
 struct FrameState {
@@ -316,6 +321,8 @@ impl GameState for State {
                 frame_state.change_to(AppState::InGame);
             }
             AppState::MainMenu { hovering } => {
+                let mut timer_update = UpdateAnimationTimers;
+                timer_update.run_now(&mut self.ecs);
                 match p_input_main_menu(ctx, &hovering) {
                     MenuAction::Selected(selected) => {
                         frame_state.change_to(match selected {
@@ -365,6 +372,10 @@ impl GameState for State {
                 }
                 SaveAction::Waiting => {}
             },
+            AppState::PreRun { next_state } => {
+                run_pre_state_systems(next_state.as_ref(), &mut self.ecs);
+                frame_state.change_to(*next_state);
+            }
         }
 
         // Essential Systems run every frame
@@ -383,16 +394,29 @@ impl GameState for State {
                 debug_info(ctx, &self.ecs, &self.cfg.inventory);
                 debug_input(ctx, &self.ecs);
             }
-            AppState::MainMenu { .. }
-            | AppState::SettingsMenu { .. }
+            AppState::MainMenu { .. } => {}
+            AppState::SettingsMenu { .. }
             | AppState::ActivityBound { .. }
             | AppState::SaveGame
-            | AppState::LoadGameStart => (),
+            | AppState::LoadGameStart
+            | AppState::PreRun { .. } => (),
         }
 
         // Insert the state resource to overwrite it's existing and update the state of the app
         let mut state_writer = self.ecs.write_resource::<AppState>();
         *state_writer = frame_state.next;
+    }
+}
+
+fn run_pre_state_systems(state: &AppState, ecs: &mut World) {
+    match state {
+        AppState::MainMenu { .. } => {
+            ecs.write_resource::<AnimationRenderer>().request(
+                "main_menu_intro",
+                AnimationPlay::lasting(Point::new(DISPLAY_WIDTH / 4, DISPLAY_HEIGHT / 3)),
+            );
+        }
+        _ => {}
     }
 }
 
@@ -519,9 +543,10 @@ fn main() -> BError {
     world.insert(SimpleMarkerAllocator::<SerializeMe>::new());
 
     // Resource Initialization, the ECS needs a basic definition of every resource that will be in the game
-    world.insert(AppState::NewGameStart);
+    world.insert(AppState::PreRun { next_state: Box::new(AppState::MainMenu { hovering: MenuSelection::NewGame }) });
     world.insert(DeltaTime(Duration::ZERO));
     world.insert(TileAnimationBuilder::new());
+    world.insert(AnimationRenderer::new());
     world.insert(ItemSpawner::new());
     world.insert(MessageLog::new());
     world.insert(Map::empty());

@@ -6,7 +6,7 @@ use crate::{
     player::MenuSelection,
     saveload::save_game_exists,
     settings::{SettingsConfig, SpriteMode},
-    CL_TEXT, DISPLAY_HEIGHT, DISPLAY_WIDTH,
+    CL_EFFECTS, CL_TEXT, DISPLAY_HEIGHT, DISPLAY_WIDTH,
 };
 
 // Menu contianing the new, load, and settings
@@ -23,13 +23,15 @@ const MAIN_MENU_HL: Color = DARKBLUE;
 const MAIN_MENU_TEXT_HL: Color = SALMON;
 
 pub fn draw_main_menu(draw_batch: &mut DrawBatch, hovered: &MenuSelection) {
-    draw_batch.target(CL_TEXT);
+    // This should target a layer that is low so then layers can be drawn on top of it if needed
+    draw_batch.target(CL_EFFECTS);
     draw_batch.fill_region(
         Rect::with_size(0, 0, DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2),
         ColorPair::new(WHITESMOKE, MAIN_MENU_BG),
         to_cp437(' '),
     );
 
+    draw_batch.target(CL_TEXT);
     let menu_rect = Rect::with_size(MENU_START_X, MENU_START_Y, MENU_WIDTH, MENU_HEIGHT);
     draw_batch.draw_hollow_double_box(menu_rect, ColorPair::new(MAIN_MENU_ACCENT, MAIN_MENU_BG));
     draw_batch.fill_region(
