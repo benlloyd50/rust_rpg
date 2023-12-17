@@ -4,6 +4,7 @@
 An rpg game that is about leveling your characters through fun and meaningful quests as well as interesting 
 
 ## Screenshots
+![Main Menu](./screenshots/rust_rpg_mainmenu.gif)
 ![Greg](./screenshots/starting_greg.png)
 ![Orc](./screenshots/starting_orcs.png)
 
