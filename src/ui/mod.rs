@@ -51,7 +51,6 @@ pub fn draw_ui(ecs: &World, appstate: &AppState, cfg: &ConfigMaster) {
         }
         AppState::MainMenu { hovering } => {
             draw_main_menu(&mut draw_batch, &hovering);
-            debug!("MainMenu state");
             print_frame_animations(&mut draw_batch, ecs);
         }
         AppState::SaveGame => {

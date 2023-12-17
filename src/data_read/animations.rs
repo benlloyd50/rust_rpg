@@ -1,11 +1,11 @@
 use std::{collections::HashMap, fs, sync::Mutex};
 
 use bracket_color::prelude::PURPLE;
+use json5::from_str;
 use log::error;
 use serde::Deserialize;
-use json5::from_str;
 
-use crate::{frame_animation::Animation, colors::WHITE};
+use crate::{colors::WHITE, frame_animation::Animation};
 
 use lazy_static::lazy_static;
 
@@ -35,7 +35,7 @@ impl AnimationDatabase {
             Err(e) => {
                 error!("Error while reading animation file: {}", e);
                 *self = anim_db;
-                return; 
+                return;
             }
         };
 
@@ -48,13 +48,12 @@ impl AnimationDatabase {
             }
         };
 
-
         for anim in anims {
             let mut hash = HashMap::new();
             for (glyph, raw_color) in anim.key_colors {
                 let value = match raw_color.as_str() {
                     "white" => WHITE,
-                    _ => PURPLE
+                    _ => PURPLE,
                 };
                 hash.insert(glyph, value);
             }

@@ -6,6 +6,7 @@ use crate::logger::create_logger;
 use crate::saveload::{SerializationHelper, SerializeMe};
 use crate::ui::draw_ui;
 use crate::ui::message_log::MessageLog;
+use std::mem::discriminant;
 use std::time::Duration;
 
 use being::{GoalFindEntities, GoalMoveToEntities, HandleMoveActions, RandomMonsterMovementSystem};
@@ -222,6 +223,10 @@ impl FrameState {
     fn change_to(&mut self, new: AppState) {
         self.next = new;
     }
+
+    pub fn different(&self) -> bool {
+        discriminant(&self.current) != discriminant(&self.next)
+    }
 }
 
 impl AppState {
@@ -353,7 +358,9 @@ impl GameState for State {
                 }
                 SettingsAction::ReturnToMainMenu => {
                     self.cfg.general.save();
-                    frame_state.change_to(AppState::MainMenu { hovering: MenuSelection::Settings });
+                    frame_state.change_to(AppState::PreRun {
+                        next_state: Box::new(AppState::MainMenu { hovering: MenuSelection::Settings }),
+                    });
                 }
                 SettingsAction::Waiting => {}
             },
@@ -361,14 +368,18 @@ impl GameState for State {
                 SaveAction::Save => {
                     save_game(&mut self.ecs);
                     cleanup_game(&mut self.ecs);
-                    frame_state.change_to(AppState::MainMenu { hovering: MenuSelection::NewGame });
+                    frame_state.change_to(AppState::PreRun {
+                        next_state: Box::new(AppState::MainMenu { hovering: MenuSelection::NewGame }),
+                    });
                 }
                 SaveAction::Cancel => {
                     frame_state.change_to(AppState::InGame);
                 }
                 SaveAction::QuitWithoutSaving => {
                     cleanup_game(&mut self.ecs);
-                    frame_state.change_to(AppState::MainMenu { hovering: MenuSelection::NewGame });
+                    frame_state.change_to(AppState::PreRun {
+                        next_state: Box::new(AppState::MainMenu { hovering: MenuSelection::NewGame }),
+                    });
                 }
                 SaveAction::Waiting => {}
             },
@@ -402,6 +413,10 @@ impl GameState for State {
             | AppState::PreRun { .. } => (),
         }
 
+        if frame_state.different() {
+            run_exit_state_systems(&frame_state.current, &mut self.ecs);
+        }
+
         // Insert the state resource to overwrite it's existing and update the state of the app
         let mut state_writer = self.ecs.write_resource::<AppState>();
         *state_writer = frame_state.next;
@@ -411,10 +426,17 @@ impl GameState for State {
 fn run_pre_state_systems(state: &AppState, ecs: &mut World) {
     match state {
         AppState::MainMenu { .. } => {
-            ecs.write_resource::<AnimationRenderer>().request(
-                "main_menu_intro",
-                AnimationPlay::lasting(Point::new(DISPLAY_WIDTH / 4, DISPLAY_HEIGHT / 3)),
-            );
+            ecs.write_resource::<AnimationRenderer>()
+                .request("main_menu_intro", AnimationPlay::lasting(Point::new(DISPLAY_WIDTH / 4, DISPLAY_HEIGHT / 3)));
+        }
+        _ => {}
+    }
+}
+
+fn run_exit_state_systems(state: &AppState, ecs: &mut World) {
+    match state {
+        AppState::MainMenu { .. } => {
+            ecs.write_resource::<AnimationRenderer>().clear();
         }
         _ => {}
     }
@@ -471,6 +493,12 @@ fn main() -> BError {
 
     initialize_game_databases();
 
+    let cfg = ConfigMaster::load();
+    let interactable_font = match cfg.general.sprite_mode {
+        settings::SpriteMode::Outline => "interactable_tiles_outline.png",
+        settings::SpriteMode::Blocked => "interactable_tiles.png",
+    };
+
     // Setup Terminal (incl Window, Input, Font Loading)
     let mut context = BTermBuilder::new()
         .with_title("Tile RPG")
@@ -483,7 +511,7 @@ fn main() -> BError {
         .with_font("terrain_town_forest.png", 8u32, 8u32)
         .with_dimensions(160, 120)
         .with_simple_console(DISPLAY_WIDTH, DISPLAY_HEIGHT, "terrain_forest.png")
-        .with_fancy_console(DISPLAY_WIDTH, DISPLAY_HEIGHT, "interactable_tiles.png")
+        .with_fancy_console(DISPLAY_WIDTH, DISPLAY_HEIGHT, interactable_font)
         .with_fancy_console(DISPLAY_WIDTH, DISPLAY_HEIGHT, "effects_tiles.png")
         .with_fancy_console(DISPLAY_WIDTH, DISPLAY_HEIGHT, "effects_tiles.png")
         .with_fancy_console(DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2, "terminal8x8.png")
@@ -552,6 +580,6 @@ fn main() -> BError {
     world.insert(Map::empty());
     world.insert(TurnCounter::zero());
 
-    let game_state: State = State { ecs: world, cfg: ConfigMaster::load() };
+    let game_state: State = State { ecs: world, cfg };
     main_loop(context, game_state)
 }

@@ -24,7 +24,7 @@ pub fn initialize_printer_palette() {
     register_palette_color(PL_SETTINGS_TEXT, to_rgb(WHITE));
     register_palette_color(PL_SETTINGS_HIGHLIGHT, to_rgb(MIDDLERED));
 
-    register_palette_color("orange", to_rgb(SALMON));
+    register_palette_color(PL_ORANGE, to_rgb(SALMON));
 
     register_palette_color("red", to_rgb(MIDDLERED));
     register_palette_color("bright_green", RGB::from_u8(52, 156, 88));
@@ -43,6 +43,8 @@ pub const PL_MAIN_MENU_TEXT_HIGHLIGHT: &str = "main_menu_text_hl";
 
 pub const PL_SETTINGS_TEXT: &str = "settings_text";
 pub const PL_SETTINGS_HIGHLIGHT: &str = "settings_highlight";
+
+pub const PL_ORANGE: &str = "orange";
 
 // Color Definitions
 pub const MIDDLERED: Color = (183, 65, 50);

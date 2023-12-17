@@ -17,7 +17,7 @@ pub const WHITE: (u8, u8, u8) = (255, 255, 255);
 
 use bracket_random::prelude::*;
 use bracket_terminal::prelude::BLACK;
-use log::info;
+use log::{debug, info};
 use specs::{Entities, Join, Read, ReadStorage, System, Write, WriteExpect, WriteStorage};
 
 pub struct SetupFishingActions;
@@ -107,9 +107,9 @@ impl<'a> System<'a> for WaitingForFishSystem {
             let roll = rng.range(1, 100);
             log.debug(format!("Attempts left: {} | Rolled: {} ", waiter.attempts, roll));
 
-            if roll < 1 {
-                // for testing fix with below
-                // FIX: if roll < 80 {
+            // if roll < 1 {
+            // for testing fix with below
+            if roll < 80 {
                 continue;
             }
 
@@ -119,10 +119,11 @@ impl<'a> System<'a> for WaitingForFishSystem {
                 let _ = minigames.insert(
                     e,
                     FishingMinigame {
-                        cursor: Cursor::new(15.0),
+                        cursor: Cursor::new(15.0, Direction::Right),
                         goal_bar: GoalBar { goal: 5, bar_width: 18, goal_width: 9 },
                         attempts_left: 3,
                         reel: ReelBar { catch_percent: 60.0, runaway_speed: 1.0 },
+                        mode: FishingBehavior::BackNForth,
                     },
                 );
             } else {
@@ -159,11 +160,17 @@ pub struct Cursor {
     pub position: f32,
     /// Speed = blocks per sec
     pub speed: f32,
+    pub direction: Direction,
+}
+
+pub enum Direction {
+    Left,
+    Right,
 }
 
 impl Cursor {
-    pub fn new(speed: f32) -> Self {
-        Self { position: 0.0, speed }
+    pub fn new(speed: f32, direction: Direction) -> Self {
+        Self { position: 0.0, speed, direction }
     }
 
     /// Where the cursor is on the bar
@@ -187,6 +194,11 @@ pub struct ReelBar {
     pub runaway_speed: f32,
 }
 
+pub enum FishingBehavior {
+    BackNForth,
+    LoopAround,
+}
+
 pub struct FishingMinigameUpdate;
 
 impl<'a> System<'a> for FishingMinigameUpdate {
@@ -203,10 +215,20 @@ impl<'a> System<'a> for FishingMinigameUpdate {
         let mut remove_mes = vec![];
         for (fisher, minigame) in (&entities, &mut minigames).join() {
             let seconds_past = dt.0.as_millis() as f32 / 1000.0;
-            minigame.cursor.position += minigame.cursor.speed * seconds_past;
+            let dir = match minigame.cursor.direction {
+                Direction::Left => -1.0,
+                Direction::Right => 1.0,
+            };
+            minigame.cursor.position += minigame.cursor.speed * seconds_past * dir;
+            debug!("{}", minigame.cursor.position);
 
-            if minigame.cursor.position >= minigame.goal_bar.bar_width as f32 {
-                minigame.cursor.position = 0.0;
+            if minigame.cursor.position >= minigame.goal_bar.bar_width as f32 - 1.0 {
+                minigame.cursor.direction = Direction::Left;
+                // minigame.cursor.position = 0.0;
+                // TODO: add enum with different styles of fish bar movement
+                // add their definiton in a fish db?
+            } else if minigame.cursor.position <= 0.2 {
+                minigame.cursor.direction = Direction::Right;
             }
 
             if minigame.reel.catch_percent <= 0.0 {
@@ -257,7 +279,6 @@ impl<'a> System<'a> for FishingMinigameCheck {
             if hit_idx <= start_idx + game.goal_bar.goal_width && hit_idx >= start_idx {
                 log.log("#[bright_green]Success!#[]");
                 game.reel.catch_percent -= 15.0;
-                // let _ = finished_activities.insert(fisher, FinishedActivity {});
             } else {
                 log.log("#[orange]Missed#[] the fish zone.");
                 game.attempts_left = game.attempts_left.saturating_sub(1);

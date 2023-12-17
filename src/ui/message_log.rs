@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use specs::{World, WorldExt};
 
 use crate::{
-    colors::{INVENTORY_BACKGROUND, INVENTORY_OUTLINE},
+    colors::{INVENTORY_BACKGROUND, INVENTORY_OUTLINE, PL_ORANGE},
     TurnCounter, CL_TEXT,
 };
 
@@ -110,7 +110,7 @@ impl Message {
     pub fn colored(&self) -> String {
         let color = match self.kind {
             MessageType::Info => "lightgray",
-            MessageType::Debug => "orange",
+            MessageType::Debug => PL_ORANGE,
             MessageType::Flavor => "white",
         };
         let suffix_amt = if self.repeated > 1 { format!(" x{}", self.repeated) } else { "".to_string() };

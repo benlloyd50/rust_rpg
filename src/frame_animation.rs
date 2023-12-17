@@ -28,7 +28,12 @@ pub struct Animation {
 }
 
 impl Animation {
-    pub fn from_vec(frames: &[Vec<String>], char_keys: &HashMap<char, u8>, key_colors: &HashMap<char, Color>, time_between_ms: usize) -> Self {
+    pub fn from_vec(
+        frames: &[Vec<String>],
+        char_keys: &HashMap<char, u8>,
+        key_colors: &HashMap<char, Color>,
+        time_between_ms: usize,
+    ) -> Self {
         let height = frames[0].len();
         let width = frames[0][0].len();
         let frames: Vec<Frame> = frames.iter().map(|frame| Frame::from_vec(frame, char_keys, key_colors)).collect();
@@ -106,6 +111,10 @@ impl AnimationRenderer {
         Self { running_anims: vec![] }
     }
 
+    pub fn clear(&mut self) {
+        self.running_anims.clear();
+    }
+
     pub fn request(&mut self, name: &str, play: AnimationPlay) {
         let adb = &ANIMATION_DB.lock().unwrap();
         let anim = match adb.get_by_name(name) {
@@ -128,14 +137,14 @@ impl<'a> System<'a> for UpdateAnimationTimers {
         for (anim, play) in anim_render.running_anims.iter_mut() {
             if play.lasting && play.curr_frame >= anim.frames.len() - 1 {
                 continue; // get out so we dont increment the frame
-            } 
+            }
             play.timer = play.timer.saturating_add(dt.0);
 
             if !play.lasting && play.curr_frame >= anim.frames.len() {
                 remove_me_uuid.push(play.id);
                 continue; // get out so we dont increment the frame
             } else if play.looping && play.curr_frame >= anim.frames.len() {
-                play.curr_frame = 0;  // restart the animation
+                play.curr_frame = 0; // restart the animation
                 continue;
             }
 
@@ -167,7 +176,11 @@ pub fn print_frame_animations(draw_batch: &mut DrawBatch, ecs: &World) {
         draw_batch.target(CL_EFFECTS);
         for cell in &curr_frame.cells {
             let Point { x, y } = idx_to_point(i, anim.width);
-            draw_batch.set(Point::new(play.top_left.x + x, play.top_left.y + y), ColorPair { fg: cell.fg.into(), bg: cell.bg }, cell.glyph);
+            draw_batch.set(
+                Point::new(play.top_left.x + x, play.top_left.y + y),
+                ColorPair { fg: cell.fg.into(), bg: cell.bg },
+                cell.glyph,
+            );
 
             i += 1;
         }
