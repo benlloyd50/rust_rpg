@@ -189,6 +189,10 @@ pub struct GoalBar {
 }
 
 pub struct ReelBar {
+    // NOTE: ingame the movement of the cursor may seem to slow down at the left side of the bar.
+    //       i'm convinced this is a side effect of using f32, we should switch to something more
+    //       precise if it does become a percision issue
+    
     /// Perecent of where the reel is in the bar 100% = fish lost
     pub catch_percent: f32,
     pub runaway_speed: f32,
@@ -196,6 +200,7 @@ pub struct ReelBar {
 
 pub enum FishingBehavior {
     BackNForth,
+    #[allow(dead_code)]
     LoopAround,
 }
 
@@ -220,18 +225,23 @@ impl<'a> System<'a> for FishingMinigameUpdate {
                 Direction::Right => 1.0,
             };
             minigame.cursor.position += minigame.cursor.speed * seconds_past * dir;
-            debug!("{}", minigame.cursor.position);
 
-            if minigame.cursor.position >= minigame.goal_bar.bar_width as f32 - 1.0 {
-                minigame.cursor.direction = Direction::Left;
-                // minigame.cursor.position = 0.0;
-                // TODO: add enum with different styles of fish bar movement
-                // add their definiton in a fish db?
-            } else if minigame.cursor.position <= 0.2 {
-                minigame.cursor.direction = Direction::Right;
+            match minigame.mode {
+                FishingBehavior::BackNForth => {
+                    if minigame.cursor.position >= minigame.goal_bar.bar_width as f32 - 1.0 {
+                        minigame.cursor.direction = Direction::Left;
+                    } else if minigame.cursor.position <= 0.2 {
+                        minigame.cursor.direction = Direction::Right;
+                    }
+                }
+                FishingBehavior::LoopAround => {
+                    if minigame.cursor.position >= minigame.goal_bar.bar_width as f32 - 1.0 {
+                        minigame.cursor.position = 0.0;
+                    }
+                }
             }
 
-            if minigame.reel.catch_percent <= 0.0 {
+            if minigame.reel.catch_percent.abs() <= 1.0 {
                 let _ = finished_activities.insert(fisher, FinishedActivity {});
                 log.log("#[bright_green]Success!#[]");
                 continue;
