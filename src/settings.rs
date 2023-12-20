@@ -30,8 +30,8 @@ impl SettingsConfig {
             Ok(raw_config) => match serde_json::from_str(&raw_config) {
                 Ok(g) => g,
                 Err(e) => {
-                    error!("General Config Parsing Error: {}", e);
-                    warn!("Config file at {} could not be parsed using default instead.", GENERAL_CONFIG_PATH);
+                    error!("General Config Reading Error: {}", e);
+                    warn!("Config file at {} could not be read. Falling back to default.", GENERAL_CONFIG_PATH);
                     SettingsConfig::default()
                 }
             },

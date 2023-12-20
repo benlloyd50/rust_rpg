@@ -17,7 +17,7 @@ pub const WHITE: (u8, u8, u8) = (255, 255, 255);
 
 use bracket_random::prelude::*;
 use bracket_terminal::prelude::BLACK;
-use log::{debug, info};
+use log::info;
 use specs::{Entities, Join, Read, ReadStorage, System, Write, WriteExpect, WriteStorage};
 
 pub struct SetupFishingActions;
@@ -189,10 +189,6 @@ pub struct GoalBar {
 }
 
 pub struct ReelBar {
-    // NOTE: ingame the movement of the cursor may seem to slow down at the left side of the bar.
-    //       i'm convinced this is a side effect of using f32, we should switch to something more
-    //       precise if it does become a percision issue
-    
     /// Perecent of where the reel is in the bar 100% = fish lost
     pub catch_percent: f32,
     pub runaway_speed: f32,
@@ -230,7 +226,7 @@ impl<'a> System<'a> for FishingMinigameUpdate {
                 FishingBehavior::BackNForth => {
                     if minigame.cursor.position >= minigame.goal_bar.bar_width as f32 - 1.0 {
                         minigame.cursor.direction = Direction::Left;
-                    } else if minigame.cursor.position <= 0.2 {
+                    } else if minigame.cursor.position <= 1.0 {
                         minigame.cursor.direction = Direction::Right;
                     }
                 }
@@ -241,7 +237,7 @@ impl<'a> System<'a> for FishingMinigameUpdate {
                 }
             }
 
-            if minigame.reel.catch_percent.abs() <= 1.0 {
+            if minigame.reel.catch_percent <= 0.0 {
                 let _ = finished_activities.insert(fisher, FinishedActivity {});
                 log.log("#[bright_green]Success!#[]");
                 continue;
