@@ -12,9 +12,8 @@ use std::time::Duration;
 use being::{GoalFindEntities, GoalMoveToEntities, HandleMoveActions, RandomMonsterMovementSystem};
 use bracket_geometry::prelude::Point;
 use bracket_terminal::{
-    embedded_resource, link_resource,
+    // EMBED, embedded_resource, link_resource, 
     prelude::{main_loop, render_draw_buffer, BError, BTerm, BTermBuilder, GameState},
-    EMBED,
 };
 use combat::{AttackActionHandler, HealActionHandler};
 use config::ConfigMaster;
@@ -50,6 +49,7 @@ mod saveload;
 mod settings;
 mod storage_utils;
 mod ui;
+mod audio;
 use inventory::{handle_one_item_actions, handle_two_item_actions, p_input_inventory, InventoryResponse};
 mod being;
 mod items;
@@ -469,22 +469,23 @@ pub const FONT_INTERACTABLES_OUTLINE: usize = 3;
 pub const FONT_TERRAIN_FOREST: usize = 4;
 pub const FONT_TERRAIN_TOWN_FOREST: usize = 5;
 
-embedded_resource!(TILE_FONT, "../resources/interactable_tiles.png");
-embedded_resource!(TILE_OUTLINE_FONT, "../resources/interactable_tiles_outline.png");
-embedded_resource!(TILE_EFFECT, "../resources/effects_tiles.png");
-embedded_resource!(CHAR_FONT, "../resources/terminal8x8.png");
-embedded_resource!(TERRAIN_FOREST, "../resources/terrain_forest.png");
-embedded_resource!(TERRAIN_TOWN_FOREST, "../resources/terrain_town_forest.png");
-embedded_resource!(LDTK_WORLD, "../resources/ldtk/rpg_world_v2.ldtk");
+// embedded_resource!(TILE_FONT, "../resources/interactable_tiles.png");
+// embedded_resource!(TILE_OUTLINE_FONT, "../resources/interactable_tiles_outline.png");
+// embedded_resource!(TILE_EFFECT, "../resources/effects_tiles.png");
+// embedded_resource!(CHAR_FONT, "../resources/terminal8x8.png");
+// embedded_resource!(TERRAIN_FOREST, "../resources/terrain_forest.png");
+// embedded_resource!(TERRAIN_TOWN_FOREST, "../resources/terrain_town_forest.png");
+// embedded_resource!(LDTK_WORLD, "../resources/ldtk/rpg_world_v2.ldtk");
 
 fn main() -> BError {
-    link_resource!(TILE_FONT, "resources/interactable_tiles.png");
-    link_resource!(TILE_OUTLINE_FONT, "resources/interactable_tiles_outline.png");
-    link_resource!(TILE_EFFECT, "resources/effects_tiles.png");
-    link_resource!(CHAR_FONT, "resources/terminal8x8.png");
-    link_resource!(TERRAIN_FOREST, "resources/terrain_forest.png");
-    link_resource!(TERRAIN_TOWN_FOREST, "resources/terrain_town_forest.png");
-    link_resource!(LDTK_WORLD, "../resources/ldtk/rpg_world_v2.ldtk");
+    // TODO: setup for release builds
+    // link_resource!(TILE_FONT, "resources/interactable_tiles.png");
+    // link_resource!(TILE_OUTLINE_FONT, "resources/interactable_tiles_outline.png");
+    // link_resource!(TILE_EFFECT, "resources/effects_tiles.png");
+    // link_resource!(CHAR_FONT, "resources/terminal8x8.png");
+    // link_resource!(TERRAIN_FOREST, "resources/terrain_forest.png");
+    // link_resource!(TERRAIN_TOWN_FOREST, "resources/terrain_town_forest.png");
+    // link_resource!(LDTK_WORLD, "../resources/ldtk/rpg_world_v2.ldtk");
 
     create_logger();
     info!("Info will be tracked in this file.");
@@ -580,6 +581,6 @@ fn main() -> BError {
     world.insert(Map::empty());
     world.insert(TurnCounter::zero());
 
-    let game_state: State = State { ecs: world, cfg };
+    let game_state = State { ecs: world, cfg };
     main_loop(context, game_state)
 }

@@ -4,6 +4,7 @@ mod items;
 mod levels;
 mod recipes;
 mod world_objs;
+mod audio;
 
 /// A tight bunch of important data reading stuff such as the databases and json loading
 /// ```rust
@@ -16,12 +17,13 @@ pub mod prelude {
     pub use crate::data_read::recipes::RECIPE_DB;
     pub use crate::data_read::world_objs::build_world_obj;
     pub use crate::data_read::ENTITY_DB;
+    pub use crate::data_read::audio::{AUDIOMAN, AUDIO_DB};
 }
 
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use log::{debug, error, warn};
-use prelude::ANIMATION_DB;
+use prelude::{ANIMATION_DB, AUDIO_DB};
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 
@@ -75,6 +77,8 @@ pub fn initialize_game_databases() {
     ENTITY_DB.lock().unwrap().load(game_db);
     RECIPE_DB.lock().unwrap().load();
     ANIMATION_DB.lock().unwrap().load();
+    AUDIO_DB.lock().unwrap().load();
+
     debug!("startup: finished loading game databases");
 }
 

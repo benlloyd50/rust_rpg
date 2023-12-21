@@ -1,6 +1,6 @@
 The files in this repository are separated into two categories, each with it's own license:
     1. src folder
-    2. resources folder
+    2. resources/, raws/, and screenshots/ folder
 
 The files in category 1 are licensed under the MIT license.
 The files in category 2 are copyrighted to Benjamin Lloyd.

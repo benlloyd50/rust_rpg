@@ -1,5 +1,4 @@
 use bracket_terminal::prelude::DrawBatch;
-use log::debug;
 use specs::World;
 
 use crate::{
