@@ -12,14 +12,14 @@
         ],
         "breakable": "Hand",
         "health_stats": {
-            "max_hp" : 3,
-            "defense": 0
+            "max_hp" : 11,
+            "defense": 1
         },
         "foreground": [255, 255, 255],
         "loot": {
             "drop_chance": 70,
             "loot_table": [
-                {"item": "Flint", "item_qty": "1:", "weight": 20 },
+                {"item": "Flint", "item_qty": "1", "weight": 50 },
                 {"item": "Fire Flint", "item_qty": "1", "weight": 1 }
             ]
         }
@@ -44,7 +44,7 @@
         "is_blocking": true,
         "breakable": "Hand",
         "health_stats": {
-            "max_hp" : 2,
+            "max_hp" : 5,
             "defense": 0
         },
         "foreground": [255, 255, 255],

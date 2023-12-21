@@ -38,7 +38,7 @@ pub fn initialize_new_game_world(ecs: &mut World, ctx: &mut BTerm) {
 
     let mut player_stats = get_random_stats();
     player_stats.set.vitality = 25;
-    player_stats.set.strength = 75;
+    player_stats.set.strength = 2;
     let player_entity = ecs
         .create_entity()
         .with(Position::new(67, 30))

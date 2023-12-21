@@ -1,10 +1,10 @@
 mod animations;
+mod audio;
 mod beings;
 mod items;
 mod levels;
 mod recipes;
 mod world_objs;
-mod audio;
 
 /// A tight bunch of important data reading stuff such as the databases and json loading
 /// ```rust
@@ -12,12 +12,12 @@ mod audio;
 /// ```
 pub mod prelude {
     pub use crate::data_read::animations::ANIMATION_DB;
+    pub use crate::data_read::audio::{AUDIOMAN, AUDIO_DB};
     pub use crate::data_read::beings::build_being;
     pub use crate::data_read::levels::{create_map, LDTK_FILE};
     pub use crate::data_read::recipes::RECIPE_DB;
     pub use crate::data_read::world_objs::build_world_obj;
     pub use crate::data_read::ENTITY_DB;
-    pub use crate::data_read::audio::{AUDIOMAN, AUDIO_DB};
 }
 
 use itertools::Itertools;

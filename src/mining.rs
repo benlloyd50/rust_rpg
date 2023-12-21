@@ -1,5 +1,6 @@
 use crate::{
-    components::{BreakAction, Breakable, EntityStats, HealthStats, Name, SufferDamage, ToolType},
+    components::{BreakAction, Breakable, EntityStats, HealthStats, Name, SizeFlexor, SufferDamage, ToolType},
+    tile_animation::{AnimationRequest, TileAnimationBuilder},
     ui::message_log::MessageLog,
 };
 use log::{error, info};
@@ -15,6 +16,7 @@ impl<'a> System<'a> for TileDestructionSystem {
         WriteStorage<'a, BreakAction>,
         WriteStorage<'a, SufferDamage>,
         Write<'a, MessageLog>,
+        Write<'a, TileAnimationBuilder>,
         ReadStorage<'a, EntityStats>,
         ReadStorage<'a, Breakable>,
         ReadStorage<'a, HealthStats>,
@@ -28,6 +30,7 @@ impl<'a> System<'a> for TileDestructionSystem {
             mut break_actions,
             mut suffer_damage,
             mut log,
+            mut anim_builder,
             stats,
             breakable,
             health_stats,
@@ -36,7 +39,7 @@ impl<'a> System<'a> for TileDestructionSystem {
         ): Self::SystemData,
     ) {
         for (stats, action, name) in (&stats, &break_actions, &names).join() {
-            if let Some((_, tile_name, target_breakable, target_stats)) =
+            if let Some((tile_entity, tile_name, target_breakable, target_stats)) =
                 (&entities, &names, &breakable, &health_stats).join().find(|(e, _, _, _)| *e == action.target)
             {
                 if !inventory_contains_tool(&target_breakable.by) {
@@ -51,6 +54,9 @@ impl<'a> System<'a> for TileDestructionSystem {
                 let damage = stats.set.strength - target_stats.defense;
                 log.log(format!("{} dealt {} damage to {}", name.0, damage, tile_name.0));
                 SufferDamage::new_damage(&mut suffer_damage, action.target, -(damage as i32));
+                let size_flex =
+                    AnimationRequest::StretchShrink(tile_entity, SizeFlexor::new(&vec![(0.6, 1.4), (1.5, 0.5), (1.0, 1.0)], 7.5));
+                anim_builder.request(size_flex);
             }
         }
 

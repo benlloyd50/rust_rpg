@@ -3,7 +3,7 @@ use specs::{Join, World, WorldExt};
 
 use crate::{
     camera::get_camera_bounds,
-    components::{Renderable, Transform},
+    components::{Renderable, Transform, SizeFlexor},
     debug::CLEAR,
     map::render_map,
     time::DeltaTime,
@@ -16,10 +16,12 @@ pub const SPRITE_SPEED: f32 = 8.0;
 pub fn update_fancy_positions(ecs: &World) {
     let mut transforms = ecs.write_storage::<Transform>();
     let positions = ecs.read_storage::<Position>();
+    let flexors = ecs.read_storage::<SizeFlexor>();
     let dt = ecs.read_resource::<DeltaTime>();
 
-    for (ftrans, pos) in (&mut transforms, &positions).join() {
-        ftrans.sprite_pos = lerp_positon(&ftrans.sprite_pos, pos, SPRITE_SPEED * dt.0.as_secs_f32());
+    for (ftrans, pos, ()) in (&mut transforms, &positions, !(&flexors)).join() {
+        ftrans.sprite_pos =
+            lerp_point(&ftrans.sprite_pos, pos.x as f32, pos.y as f32, SPRITE_SPEED * dt.0.as_secs_f32());
     }
 }
 
@@ -84,9 +86,9 @@ fn draw_fancy_sprites(ecs: &World, draw_batch: &mut DrawBatch) {
     }
 }
 
-fn lerp_positon(curr: &PointF, actual: &Position, scalar: f32) -> PointF {
-    let fx = curr.x + (actual.x as f32 - curr.x) * scalar;
-    let fy = curr.y + (actual.y as f32 - curr.y) * scalar;
+pub fn lerp_point(curr: &PointF, x: f32, y: f32, scalar: f32) -> PointF {
+    let fx = curr.x + (x as f32 - curr.x) * scalar;
+    let fy = curr.y + (y as f32 - curr.y) * scalar;
     PointF { x: fx, y: fy }
 }
 

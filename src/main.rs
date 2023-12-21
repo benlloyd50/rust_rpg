@@ -31,6 +31,7 @@ use saveload::{cleanup_game, load_game, save_game, save_game_exists, SaveAction}
 use settings::{handle_setting_selected, SettingsAction, SettingsSelection};
 use specs::prelude::*;
 
+mod audio;
 mod camera;
 mod colors;
 mod combat;
@@ -49,7 +50,6 @@ mod saveload;
 mod settings;
 mod storage_utils;
 mod ui;
-mod audio;
 use inventory::{handle_one_item_actions, handle_two_item_actions, p_input_inventory, InventoryResponse};
 mod being;
 mod items;
@@ -59,7 +59,7 @@ mod stats;
 mod tile_animation;
 mod z_order;
 use specs::saveload::{SimpleMarker, SimpleMarkerAllocator};
-use tile_animation::TileAnimationCleanUpSystem;
+use tile_animation::{TileAnimationCleanUpSystem, TileAnimationUpdater};
 mod time;
 use player::{
     check_player_finished, p_input_activity, p_input_game, p_input_main_menu, p_input_save_game, p_input_settings,
@@ -82,7 +82,7 @@ use time::delta_time_update;
 
 use crate::components::{
     AttackBonus, Consumable, ConsumeAction, CraftAction, EntityStats, EquipAction, Equipable, EquipmentSlots, Equipped,
-    FishingMinigame, GameAction, HealAction, InBag, LevelPersistent,
+    FishingMinigame, GameAction, HealAction, InBag, LevelPersistent, SizeFlexor,
 };
 use crate::{
     components::{
@@ -178,6 +178,8 @@ impl State {
         // Animation Systems =========================================>
         let mut tile_anim_spawner = TileAnimationSpawner;
         tile_anim_spawner.run_now(&self.ecs);
+        let mut tile_anim_updater = TileAnimationUpdater;
+        tile_anim_updater.run_now(&self.ecs);
         let mut tile_anim_cleanup_system = TileAnimationCleanUpSystem;
         tile_anim_cleanup_system.run_now(&self.ecs);
 
@@ -566,6 +568,7 @@ fn main() -> BError {
     world.register::<GameAction>();
     world.register::<FishingMinigame>();
     world.register::<LevelPersistent>();
+    world.register::<SizeFlexor>();
 
     world.register::<SimpleMarker<SerializeMe>>();
     world.register::<SerializationHelper>();

@@ -44,7 +44,7 @@ impl Renderable {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Clone, Copy)]
 #[storage(VecStorage)]
 pub struct Transform {
     pub sprite_pos: PointF,
@@ -325,7 +325,7 @@ pub struct SufferDamage {
 #[derive(Component, Clone, Copy, ConvertSaveload)]
 #[storage(VecStorage)]
 pub enum DeleteCondition {
-    _Timed(Duration),       // Condition is based on deleting after a specificed amount of time
+    Timed(Duration),        // Condition is based on deleting after a specificed amount of time
     ActivityFinish(Entity), // Condition is based on when the entity finishes their activity
 }
 
@@ -510,4 +510,18 @@ pub struct FishingMinigame {
     pub attempts_left: usize,
     pub reel: ReelBar,
     pub mode: FishingBehavior,
+}
+
+#[derive(Component, Clone)]
+#[storage(VecStorage)]
+pub struct SizeFlexor {
+    pub curr: usize,
+    pub points: Vec<(f32, f32)>, // we will lerp through these points in order
+    pub scalar: f32,
+}
+
+impl SizeFlexor {
+    pub fn new(points: &[(f32, f32)], scalar: f32) -> Self {
+        Self { curr: 0, points: points.to_vec(), scalar }
+    }
 }

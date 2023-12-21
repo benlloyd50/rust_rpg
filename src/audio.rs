@@ -6,7 +6,6 @@ use crate::data_read::prelude::{AUDIOMAN, AUDIO_DB};
 /// what is already loaded
 /// data_read/audio.rs describes how the audio data is loaded and setup
 
-
 pub fn play_sound_effect(sfx: &str) {
     let mut audioman = AUDIOMAN.lock().unwrap();
     if audioman.player.is_none() {
@@ -18,8 +17,8 @@ pub fn play_sound_effect(sfx: &str) {
         None => {
             warn!("{} does not exist as a sound file.", sfx);
             return;
-        },
+        }
     };
-    
+
     let _ = audioman.player.as_mut().unwrap().play(sfx_file);
 }

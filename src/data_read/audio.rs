@@ -1,9 +1,11 @@
+use std::{collections::HashMap, fs, sync::Mutex};
 
-use std::{sync::Mutex, fs, collections::HashMap};
-
-use kira::{manager::{ AudioManager, AudioManagerSettings, backend::DefaultBackend}, sound::static_sound::{StaticSoundData, StaticSoundSettings}};
+use kira::{
+    manager::{backend::DefaultBackend, AudioManager, AudioManagerSettings},
+    sound::static_sound::{StaticSoundData, StaticSoundSettings},
+};
 use lazy_static::lazy_static;
-use log::{error, info, warn, debug};
+use log::{debug, error, info, warn};
 
 lazy_static! {
     pub static ref AUDIOMAN: Mutex<AudioPlayer> = Mutex::new(AudioPlayer::new());
@@ -26,7 +28,7 @@ impl AudioPlayer {
                     error!("Internal audio loading error: {}", e);
                     info!("Since audio is glitched, you may want to try restarting/reinstalling to fix this issue.");
                     None
-                },
+                }
             },
         }
     }
@@ -38,9 +40,7 @@ pub struct AudioDatabase {
 
 impl AudioDatabase {
     fn new() -> Self {
-        Self {
-            sounds: HashMap::new(),
-        }
+        Self { sounds: HashMap::new() }
     }
 
     pub fn load(&mut self) {
@@ -66,10 +66,10 @@ impl AudioDatabase {
                     Ok(file_name) => {
                         debug!("file name inserted as {}", file_name);
                         self.sounds.insert(file_name, sound);
-                    },
+                    }
                     Err(e) => {
                         warn!("Improper file name for {:#?}, Skipping file.", e);
-                    },
+                    }
                 }
             }
         }

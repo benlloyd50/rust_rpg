@@ -6,7 +6,7 @@ use uuid::Uuid;
 use bracket_color::{prelude::ColorPair, rgba::RGBA};
 use bracket_terminal::{
     prelude::{to_char, to_cp437, DrawBatch},
-    FontCharType,
+    FontCharTyp as FontCharType,
 };
 use specs::{Read, System, World, WorldExt, Write};
 

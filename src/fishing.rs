@@ -7,7 +7,7 @@ use crate::{
     },
     game_init::PlayerEntity,
     items::{ItemID, ItemSpawner, SpawnType},
-    tile_animation::TileAnimationBuilder,
+    tile_animation::{AnimationRequest, TileAnimationBuilder},
     time::DeltaTime,
     ui::message_log::MessageLog,
     z_order::EFFECT_Z,
@@ -15,6 +15,7 @@ use crate::{
 
 pub const WHITE: (u8, u8, u8) = (255, 255, 255);
 
+use bracket_color::prelude::ColorPair;
 use bracket_random::prelude::*;
 use bracket_terminal::prelude::BLACK;
 use log::info;
@@ -29,14 +30,12 @@ impl<'a> System<'a> for SetupFishingActions {
     fn run(&mut self, (entities, mut fish_actions, mut fish_waiters, mut anim_builder): Self::SystemData) {
         for (fisher, fish_action) in (&entities, &mut fish_actions).join() {
             let mut rng = RandomNumberGenerator::new();
-            anim_builder.request(
+            anim_builder.request(AnimationRequest::StaticTile(
                 112,
-                fish_action.target.x,
-                fish_action.target.y,
-                WHITE.into(),
-                BLACK.into(),
+                fish_action.target,
+                ColorPair::new(WHITE, BLACK),
                 DeleteCondition::ActivityFinish(fisher),
-            );
+            ));
 
             let attempts = rng.range(2, 6); // this could be affected by a fishing skill level?
             match fish_waiters.insert(fisher, WaitingForFish::new(attempts)) {
