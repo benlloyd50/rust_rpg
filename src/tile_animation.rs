@@ -1,10 +1,11 @@
 use std::time::Duration;
 
 use bracket_terminal::prelude::ColorPair;
+use log::debug;
 use specs::{Entities, Entity, Join, Read, ReadStorage, System, Write, WriteStorage};
 
 use crate::{
-    components::{DeleteCondition, FinishedActivity, Position, Renderable, SizeFlexor, Transform},
+    components::{DeleteCondition, FinishedActivity, GlyphFlash, Position, Renderable, SizeFlexor, Transform},
     draw_sprites::lerp_point,
     time::DeltaTime,
     z_order::TILE_ANIM_Z,
@@ -28,6 +29,7 @@ impl TileAnimationBuilder {
 pub enum AnimationRequest {
     StaticTile(u8, Position, ColorPair, DeleteCondition),
     StretchShrink(Entity, SizeFlexor),
+    GlyphFlash(Entity, Duration, Renderable),
 }
 
 pub struct TileAnimationSpawner;
@@ -40,6 +42,7 @@ impl<'a> System<'a> for TileAnimationSpawner {
         WriteStorage<'a, Transform>,
         WriteStorage<'a, Renderable>,
         WriteStorage<'a, SizeFlexor>,
+        WriteStorage<'a, GlyphFlash>,
         WriteStorage<'a, DeleteCondition>,
     );
 
@@ -52,13 +55,14 @@ impl<'a> System<'a> for TileAnimationSpawner {
             mut transforms,
             mut renderables,
             mut flexors,
+            mut color_flashes,
             mut delete_conditions,
         ): Self::SystemData,
     ) {
         for request in anim_builder.requests.iter() {
-            let new_anim = entities.create();
             match request {
                 AnimationRequest::StaticTile(atlas_index, at, fgbg, delete_condition) => {
+                    let new_anim = entities.create();
                     let _ = positions.insert(new_anim, *at);
                     let _ = renderables.insert(
                         new_anim,
@@ -73,6 +77,14 @@ impl<'a> System<'a> for TileAnimationSpawner {
                     let default = Transform::new(pos.x as f32, pos.y as f32, 0.0, 1.0, 1.0);
                     let _ = transforms.insert(*who, default);
                 }
+                AnimationRequest::GlyphFlash(who, time_left, flash) => {
+                    let at = positions.get(*who).unwrap();
+
+                    let new_anim = entities.create();
+                    let _ = positions.insert(new_anim, *at);
+                    let _ = color_flashes.insert(new_anim, GlyphFlash { time_left: *time_left, sprite: flash.clone() });
+                    let _ = delete_conditions.insert(new_anim, DeleteCondition::Timed(*time_left));
+                }
             }
         }
         anim_builder.requests.clear();
@@ -82,18 +94,13 @@ impl<'a> System<'a> for TileAnimationSpawner {
 pub struct TileAnimationUpdater;
 
 impl<'a> System<'a> for TileAnimationUpdater {
-    type SystemData = (
-        WriteStorage<'a, Transform>,
-        WriteStorage<'a, SizeFlexor>,
-        WriteStorage<'a, DeleteCondition>,
-        Read<'a, DeltaTime>,
-        Entities<'a>,
-    );
+    type SystemData = (WriteStorage<'a, Transform>, WriteStorage<'a, SizeFlexor>, Read<'a, DeltaTime>, Entities<'a>);
 
-    fn run(&mut self, (mut transforms, mut flexors, mut delete_conditions, dt, entities): Self::SystemData) {
+    fn run(&mut self, (mut transforms, mut flexors, dt, entities): Self::SystemData) {
+        let mut remove_mes = vec![];
         for (e, transform, flex) in (&entities, &mut transforms, &mut flexors).join() {
             if flex.curr >= flex.points.len() {
-                let _ = delete_conditions.insert(e, DeleteCondition::Timed(Duration::ZERO));
+                remove_mes.push(e);
                 continue;
             }
             transform.scale = lerp_point(
@@ -102,9 +109,13 @@ impl<'a> System<'a> for TileAnimationUpdater {
                 flex.points[flex.curr].1,
                 flex.scalar * dt.0.as_secs_f32(),
             );
-            if (transform.scale.x - flex.points[flex.curr].0).abs() <= 0.1 {
+            if (transform.scale.x - flex.points[flex.curr].0).abs() <= 0.01 {
+                println!("{}", transform.scale.x);
                 flex.curr += 1;
             }
+        }
+        for remove in remove_mes {
+            flexors.remove(remove);
         }
     }
 }
@@ -115,16 +126,10 @@ impl<'a> System<'a> for TileAnimationUpdater {
 pub struct TileAnimationCleanUpSystem;
 
 impl<'a> System<'a> for TileAnimationCleanUpSystem {
-    type SystemData = (
-        Entities<'a>,
-        ReadStorage<'a, FinishedActivity>,
-        WriteStorage<'a, DeleteCondition>,
-        WriteStorage<'a, Transform>,
-        Read<'a, DeltaTime>,
-    );
+    type SystemData =
+        (Entities<'a>, ReadStorage<'a, FinishedActivity>, WriteStorage<'a, DeleteCondition>, Read<'a, DeltaTime>);
 
-    fn run(&mut self, (entities, finished_activities, mut delete_conditions, mut transforms, dt): Self::SystemData) {
-        let mut remove_mes = vec![];
+    fn run(&mut self, (entities, finished_activities, mut delete_conditions, dt): Self::SystemData) {
         for (e, condition) in (&entities, &mut delete_conditions).join() {
             match condition {
                 DeleteCondition::ActivityFinish(spawner) => {
@@ -135,17 +140,10 @@ impl<'a> System<'a> for TileAnimationCleanUpSystem {
                 DeleteCondition::Timed(time_left) => {
                     *time_left = time_left.saturating_sub(dt.0);
                     if time_left.is_zero() {
-                        remove_mes.push(e);
-                        // for now timed tile anims are on a related important object
-                        // let _ = entities.delete(e);
+                        let _ = entities.delete(e);
                     }
                 }
             }
-        }
-
-        for e in remove_mes.iter() {
-            transforms.remove(*e);
-            delete_conditions.remove(*e);
         }
     }
 }

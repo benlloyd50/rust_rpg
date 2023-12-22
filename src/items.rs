@@ -18,6 +18,7 @@ use specs::{
 };
 
 use crate::{
+    audio::play_sound_effect,
     components::{
         AttackBonus, Consumable, ConsumeAction, Equipable, HealAction, InBag, Item, LevelPersistent, Name,
         PickupAction, Position, Renderable,
@@ -255,6 +256,9 @@ impl<'a> System<'a> for ItemPickupHandler {
                 }
             }
             log.log(format!("{} picked up a {}", picker_name, item_name.0.to_lowercase()));
+            if player_entity.0 == picker {
+                play_sound_effect("pickup");
+            }
         }
 
         pickup_actions.clear();

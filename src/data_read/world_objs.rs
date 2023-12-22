@@ -8,7 +8,6 @@ use crate::{
     z_order::WORLD_OBJECT_Z,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::from_str;
 use specs::{
     saveload::{MarkedBuilder, SimpleMarker},
     Builder, Entity, World, WorldExt,
@@ -32,6 +31,7 @@ pub struct RawWorldObject {
     grass: Option<String>,
     foreground: Option<(u8, u8, u8)>,
     loot: Option<RawDrops>,
+    impact_sound: Option<String>,
 }
 
 #[derive(Deserialize, Serialize, Clone)]
@@ -46,9 +46,9 @@ impl WorldObjectDatabase {
     }
 
     pub(crate) fn load(game_data: &GameData) -> Self {
-        let contents: String = fs::read_to_string("raws/world_objs.json")
-            .expect("Unable to find world_objs.json at `raws/world_objs.json`");
-        let world_objs: Vec<RawWorldObject> = from_str(&contents).expect("Bad JSON in world_objs.json fix it");
+        let contents: String = fs::read_to_string("raws/world_objs.json5")
+            .expect("Unable to find world_objs.json at `raws/world_objs.json5`");
+        let world_objs: Vec<RawWorldObject> = json5::from_str(&contents).expect("Bad JSON in world_objs.json5 fix it");
         let data = world_objs
             .iter()
             .map(|raw| WorldObject {
@@ -61,6 +61,7 @@ impl WorldObjectDatabase {
                 grass: raw.grass.clone(),
                 foreground: raw.foreground,
                 loot: raw.loot.as_ref().map(|raw| Drops::from_raw(raw, game_data)),
+                impact_sound: raw.impact_sound.clone().unwrap_or("".to_string()),
             })
             .collect();
         WorldObjectDatabase { data }

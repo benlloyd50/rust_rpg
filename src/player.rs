@@ -1,4 +1,5 @@
 use crate::{
+    audio::play_sound_effect,
     components::{
         AttackAction, BreakAction, FinishedActivity, FishAction, GameAction, Interactor, InteractorMode, Name,
         PickupAction,
@@ -40,7 +41,10 @@ pub fn p_input_game(ecs: &mut World, ctx: &BTerm) -> PlayerResponse {
                     switch_interaction_mode(ecs);
                     PlayerResponse::Waiting
                 }
-                VKC::I => PlayerResponse::StateChange(AppState::PlayerInInventory),
+                VKC::I => {
+                    play_sound_effect("ui_inventory");
+                    PlayerResponse::StateChange(AppState::PlayerInInventory)
+                }
                 VKC::Escape => PlayerResponse::StateChange(AppState::SaveGame),
                 VKC::Space => {
                     let mut log = ecs.fetch_mut::<MessageLog>();
@@ -236,6 +240,7 @@ pub fn p_input_save_game(ctx: &mut BTerm) -> SaveAction {
     match ctx.key.unwrap() {
         VKC::Return | VKC::S => SaveAction::Save,
         VKC::Escape => SaveAction::Cancel,
+        VKC::Space => SaveAction::QuickSave,
         VKC::D => SaveAction::QuitWithoutSaving,
         _ => SaveAction::Waiting,
     }

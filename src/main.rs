@@ -9,12 +9,10 @@ use crate::ui::message_log::MessageLog;
 use std::mem::discriminant;
 use std::time::Duration;
 
+use audio::play_sound_effect;
 use being::{GoalFindEntities, GoalMoveToEntities, HandleMoveActions, RandomMonsterMovementSystem};
 use bracket_geometry::prelude::Point;
-use bracket_terminal::{
-    // EMBED, embedded_resource, link_resource, 
-    prelude::{main_loop, render_draw_buffer, BError, BTerm, BTermBuilder, GameState},
-};
+use bracket_terminal::prelude::{main_loop, render_draw_buffer, BError, BTerm, BTermBuilder, GameState};
 use combat::{AttackActionHandler, HealActionHandler};
 use config::ConfigMaster;
 use crafting::HandleCraftingSystem;
@@ -82,7 +80,7 @@ use time::delta_time_update;
 
 use crate::components::{
     AttackBonus, Consumable, ConsumeAction, CraftAction, EntityStats, EquipAction, Equipable, EquipmentSlots, Equipped,
-    FishingMinigame, GameAction, HealAction, InBag, LevelPersistent, SizeFlexor,
+    FishingMinigame, GameAction, GlyphFlash, HealAction, InBag, LevelPersistent, SizeFlexor,
 };
 use crate::{
     components::{
@@ -226,7 +224,8 @@ impl FrameState {
         self.next = new;
     }
 
-    pub fn different(&self) -> bool {
+    /// will change if the next state is different from the current
+    pub fn will_change(&self) -> bool {
         discriminant(&self.current) != discriminant(&self.next)
     }
 }
@@ -333,23 +332,29 @@ impl GameState for State {
                 match p_input_main_menu(ctx, &hovering) {
                     MenuAction::Selected(selected) => {
                         frame_state.change_to(match selected {
-                            MenuSelection::NewGame => AppState::NewGameStart,
+                            MenuSelection::NewGame => {
+                                play_sound_effect("confirm");
+                                AppState::NewGameStart
+                            }
                             MenuSelection::LoadGame => {
                                 if save_game_exists() {
+                                    play_sound_effect("confirm");
                                     AppState::LoadGameStart
                                 } else {
                                     AppState::MainMenu { hovering: MenuSelection::NewGame }
                                 }
                             }
                             MenuSelection::Settings => {
+                                play_sound_effect("confirm");
                                 AppState::SettingsMenu { hovering: SettingsSelection::SpriteMode }
                             }
                         });
                     }
-                    MenuAction::Hovering(new_selection) => {
+                    MenuAction::Hovering(new_selection) if new_selection != hovering => {
                         frame_state.change_to(AppState::MainMenu { hovering: new_selection });
+                        play_sound_effect("ui_move");
                     }
-                    MenuAction::Waiting => {
+                    MenuAction::Waiting | MenuAction::Hovering(..) => {
                         // do nothing..
                     }
                 }
@@ -383,6 +388,11 @@ impl GameState for State {
                         next_state: Box::new(AppState::MainMenu { hovering: MenuSelection::NewGame }),
                     });
                 }
+                SaveAction::QuickSave => {
+                    save_game(&mut self.ecs);
+                    frame_state.change_to(AppState::PreRun { next_state: Box::new(AppState::InGame) });
+                    self.ecs.write_resource::<MessageLog>().log("Saved game.");
+                }
                 SaveAction::Waiting => {}
             },
             AppState::PreRun { next_state } => {
@@ -407,15 +417,15 @@ impl GameState for State {
                 debug_info(ctx, &self.ecs, &self.cfg.inventory);
                 debug_input(ctx, &self.ecs);
             }
-            AppState::MainMenu { .. } => {}
-            AppState::SettingsMenu { .. }
+            AppState::MainMenu { .. }
+            | AppState::SettingsMenu { .. }
             | AppState::ActivityBound { .. }
             | AppState::SaveGame
             | AppState::LoadGameStart
             | AppState::PreRun { .. } => (),
         }
 
-        if frame_state.different() {
+        if frame_state.will_change() {
             run_exit_state_systems(&frame_state.current, &mut self.ecs);
         }
 
@@ -425,6 +435,7 @@ impl GameState for State {
     }
 }
 
+/// These systems are ran every time upon entering a state
 fn run_pre_state_systems(state: &AppState, ecs: &mut World) {
     match state {
         AppState::MainMenu { .. } => {
@@ -435,6 +446,7 @@ fn run_pre_state_systems(state: &AppState, ecs: &mut World) {
     }
 }
 
+/// These systems are ran every time a state is changed
 fn run_exit_state_systems(state: &AppState, ecs: &mut World) {
     match state {
         AppState::MainMenu { .. } => {
@@ -501,13 +513,14 @@ fn main() -> BError {
         settings::SpriteMode::Outline => "interactable_tiles_outline.png",
         settings::SpriteMode::Blocked => "interactable_tiles.png",
     };
+    let text_font = "zaratustra.png";
 
     // Setup Terminal (incl Window, Input, Font Loading)
     let mut context = BTermBuilder::new()
         .with_title("Tile RPG")
         .with_fps_cap(60.0)
         .with_font("effects_tiles.png", 8u32, 8u32)
-        .with_font("terminal8x8.png", 8u32, 8u32)
+        .with_font("zaratustra.png", 8u32, 8u32)
         .with_font("interactable_tiles.png", 8u32, 8u32)
         .with_font("interactable_tiles_outline.png", 8u32, 8u32)
         .with_font("terrain_forest.png", 8u32, 8u32)
@@ -517,7 +530,7 @@ fn main() -> BError {
         .with_fancy_console(DISPLAY_WIDTH, DISPLAY_HEIGHT, interactable_font)
         .with_fancy_console(DISPLAY_WIDTH, DISPLAY_HEIGHT, "effects_tiles.png")
         .with_fancy_console(DISPLAY_WIDTH, DISPLAY_HEIGHT, "effects_tiles.png")
-        .with_fancy_console(DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2, "terminal8x8.png")
+        .with_fancy_console(DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2, text_font)
         .build()?;
     context.cls();
 
@@ -569,6 +582,7 @@ fn main() -> BError {
     world.register::<FishingMinigame>();
     world.register::<LevelPersistent>();
     world.register::<SizeFlexor>();
+    world.register::<GlyphFlash>();
 
     world.register::<SimpleMarker<SerializeMe>>();
     world.register::<SerializationHelper>();

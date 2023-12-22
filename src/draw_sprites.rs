@@ -1,14 +1,15 @@
 use bracket_terminal::prelude::{DrawBatch, Point, *};
+use log::debug;
 use specs::{Join, World, WorldExt};
 
 use crate::{
     camera::get_camera_bounds,
-    components::{Renderable, Transform, SizeFlexor},
+    components::{GlyphFlash, Renderable, SizeFlexor, Transform},
     debug::CLEAR,
     map::render_map,
     time::DeltaTime,
     z_order::PLAYER_Z,
-    Position, CL_INTERACTABLES, CL_WORLD,
+    Position, CL_EFFECTS, CL_INTERACTABLES, CL_WORLD,
 };
 
 pub const SPRITE_SPEED: f32 = 8.0;
@@ -46,21 +47,35 @@ fn draw_sprites(ecs: &World, draw_batch: &mut DrawBatch) {
     let positions = ecs.read_storage::<Position>();
     let renderables = ecs.read_storage::<Renderable>();
     let transforms = ecs.read_storage::<Transform>();
+    let flashes = ecs.read_storage::<GlyphFlash>();
 
     let bounding_box = get_camera_bounds(ecs);
 
-    let data = (&positions, &renderables, !&transforms)
+    let data = (&positions, &renderables, !&transforms, !&flashes)
         .join()
-        .map(|(p, r, _)| (p, r))
+        .map(|(p, r, ..)| (p, r))
         .filter(|(pos, _)| bounding_box.point_in_rect(pos.to_point()));
     for (pos, render) in data {
         draw_batch.set_with_z(
             Point::new(pos.x as i32 - bounding_box.x1, pos.y as i32 - bounding_box.y1),
             ColorPair { fg: render.color_pair.fg, bg: CLEAR },
-            // render.color_pair,
             render.atlas_index,
             render.z_priority,
         );
+    }
+}
+
+pub fn draw_flashes(ecs: &World, draw_batch: &mut DrawBatch) {
+    draw_batch.target(CL_EFFECTS);
+    let positions = ecs.read_storage::<Position>();
+    let flashes = ecs.read_storage::<GlyphFlash>();
+
+    let bounding_box = get_camera_bounds(ecs);
+
+    for (pos, flash) in (&positions, &flashes).join().filter(|(pos, _)| bounding_box.point_in_rect(pos.to_point())) {
+        let point = Point::new(pos.x as i32 - bounding_box.x1, pos.y as i32 - bounding_box.y1);
+        debug!("Drawing at {:?}", point);
+        draw_batch.set(point, flash.sprite.color_pair, flash.sprite.atlas_index);
     }
 }
 

@@ -525,3 +525,10 @@ impl SizeFlexor {
         Self { curr: 0, points: points.to_vec(), scalar }
     }
 }
+
+#[derive(Component, Clone)]
+#[storage(VecStorage)]
+pub struct GlyphFlash {
+    pub time_left: Duration,
+    pub sprite: Renderable,
+}

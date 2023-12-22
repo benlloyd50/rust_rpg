@@ -23,20 +23,26 @@ pub fn draw_save_menu(draw_batch: &mut DrawBatch) {
         Some(MIDDLERED.into()),
     );
     draw_batch.printer(
+        Point::new(MENU_X + 2, MENU_Y + 1),
+        format!("#[white]Quicksave#[{}]<SPACE>", PL_KEYBIND),
+        TextAlign::Left,
+        Some(SALMON.into()),
+    );
+    draw_batch.printer(
         Point::new(MENU_X + 2, MENU_Y + 2),
-        format!("#[{}]s#[white]ave", PL_KEYBIND),
+        format!("#[{}]S#[white]ave", PL_KEYBIND),
         TextAlign::Left,
         Some(SALMON.into()),
     );
     draw_batch.printer(
         Point::new(MENU_X + 2, MENU_Y + 3),
-        format!("#[{}]d#[white]ont save", PL_KEYBIND),
+        format!("#[{}]D#[white]ont Save", PL_KEYBIND),
         TextAlign::Left,
         Some(SALMON.into()),
     );
     draw_batch.printer(
         Point::new(MENU_X + 2, MENU_Y + 4),
-        format!("#[{}]<esc>", PL_KEYBIND),
+        format!("#[white]Return#[{}]<ESC>", PL_KEYBIND),
         TextAlign::Left,
         Some(SALMON.into()),
     );

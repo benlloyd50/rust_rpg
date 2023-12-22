@@ -3,6 +3,7 @@ use specs::World;
 
 use crate::{
     config::ConfigMaster,
+    draw_sprites::draw_flashes,
     frame_animation::print_frame_animations,
     inventory::{check_inventory_selection, SelectionStatus},
     AppState, CL_EFFECTS, CL_EFFECTS2, CL_TEXT,
@@ -35,6 +36,7 @@ pub fn draw_ui(ecs: &World, appstate: &AppState, cfg: &ConfigMaster) {
         AppState::InGame => {
             draw_message_log(&mut draw_batch, ecs);
             draw_turn_counter(&mut draw_batch, ecs);
+            draw_flashes(ecs, &mut draw_batch);
         }
         AppState::PlayerInInventory => {
             draw_inventory(&mut draw_batch, ecs, &cfg.inventory);

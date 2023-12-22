@@ -1,0 +1,51 @@
+[
+    { 
+        name: "hit_wood",
+        directory: "hit",
+        file_names: [ "wood4.wav","wood5.wav"],
+        volume: 0.5,
+    },
+    { 
+        name: "hit_stone",
+        directory: "hit",
+        file_names: [ "stone1.wav",],
+        volume: -25.0,
+    },
+    {
+        name: "cancel",
+        file_names: [ "cancel1.wav",],
+        volume: 1.0,
+    },
+    {
+        name: "select",
+        file_names: [ "select1.wav",],
+        volume: 1.0,
+    },
+    {
+        name: "pickup",
+        file_names: [ "pickup2.ogg",],
+        volume: 1.0,
+    },
+    {
+        name: "confirm",
+        file_names: [ "confirm1.wav",],
+        volume: 1.0,
+    },
+    {
+        name: "ui_inventory",
+        directory: "ui",
+        file_names: [ "inventory_open1.wav",],
+        volume: -15.0,
+    },
+    {
+        name: "ui_move",
+        file_names: [ "ui_move1.wav",],
+        volume: -15.0,
+    },
+    {
+        name: "step_dirt",
+        directory: "step",
+        file_names: ["dirt1.wav","dirt2.wav","dirt3.wav","dirt4.wav",],
+        volume: 0.5,
+    }
+]

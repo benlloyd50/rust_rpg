@@ -4,6 +4,7 @@ use specs::{Join, ReadStorage, World, WorldExt};
 
 use crate::{
     camera::mouse_to_map_pos,
+    colors::{PL_MENU_TEXT, TEXASROSE},
     components::{HealthStats, InBag, Interactor, Item, Name, Position, SelectedInventoryItem, Transform},
     config::{InventoryConfig, SortMode},
     game_init::PlayerEntity,
@@ -41,9 +42,9 @@ fn draw_interaction_mode(ctx: &mut BTerm, ecs: &World) {
     ctx.printer(
         1,
         50,
-        format!("#[white]> {} <#[]", player_mode),
+        format!("#[{}]> {} <#[]", PL_MENU_TEXT, player_mode),
         TextAlign::Left,
-        Some(RGB::from_u8(61, 84, 107).into()),
+        Some(RGB::from(TEXASROSE).into()),
     );
 }
 

@@ -2,12 +2,15 @@ use bracket_terminal::prelude::{ColorPair, DrawBatch, Point, Rect, TextAlign};
 use specs::{World, WorldExt};
 
 use crate::{
-    colors::{to_rgb, INVENTORY_BACKGROUND, INVENTORY_OUTLINE},
+    colors::to_rgb,
     components::{Consumable, Equipable, SelectedInventoryItem},
     game_init::PlayerEntity,
 };
 
-use super::drawing::AccentBox;
+use super::{
+    drawing::AccentBox,
+    inventory::{INVENTORY_BACKGROUND, INVENTORY_OUTLINE},
+};
 
 const BASE_ACTIONS: [&str; 4] =
     ["#[orange]U#[]se with", "#[orange]E#[]xamine", "#[orange]D#[]rop", "#[lightgray]<Esc>#[]"];

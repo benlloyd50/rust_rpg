@@ -1,10 +1,21 @@
+use std::time::Duration;
+
 use crate::{
-    components::{BreakAction, Breakable, EntityStats, HealthStats, Name, SizeFlexor, SufferDamage, ToolType},
+    audio::play_sound_effect,
+    components::{
+        BreakAction, Breakable, EntityStats, HealthStats, Name, Renderable, SizeFlexor, SufferDamage, ToolType,
+    },
+    data_read::ENTITY_DB,
+    game_init::PlayerEntity,
     tile_animation::{AnimationRequest, TileAnimationBuilder},
     ui::message_log::MessageLog,
+    z_order::EFFECT_Z,
 };
+use bracket_color::prelude::WHITE;
 use log::{error, info};
-use specs::{Entities, Entity, Join, ReadStorage, System, Write, WriteStorage};
+use specs::{Entities, Entity, Join, Read, ReadStorage, System, Write, WriteStorage};
+
+const CH_STRIKE: u8 = 2;
 
 /// Allows tile to be breakable. The tile must contain a breakable and health stats component.
 /// The attacker must contain a strength and have breakactions queued up in their system.
@@ -21,6 +32,7 @@ impl<'a> System<'a> for TileDestructionSystem {
         ReadStorage<'a, Breakable>,
         ReadStorage<'a, HealthStats>,
         ReadStorage<'a, Name>,
+        Read<'a, PlayerEntity>,
         Entities<'a>,
     );
 
@@ -35,12 +47,14 @@ impl<'a> System<'a> for TileDestructionSystem {
             breakable,
             health_stats,
             names,
+            player_e,
             entities,
         ): Self::SystemData,
     ) {
-        for (stats, action, name) in (&stats, &break_actions, &names).join() {
+        let edb = &ENTITY_DB.lock().unwrap();
+        for (breaker, stats, action, name) in (&entities, &stats, &break_actions, &names).join() {
             if let Some((tile_entity, tile_name, target_breakable, target_stats)) =
-                (&entities, &names, &breakable, &health_stats).join().find(|(e, _, _, _)| *e == action.target)
+                (&entities, &names, &breakable, &health_stats).join().find(|(e, ..)| *e == action.target)
             {
                 if !inventory_contains_tool(&target_breakable.by) {
                     log.log(format!("You do not own the correct tool for this {name}."));
@@ -54,9 +68,26 @@ impl<'a> System<'a> for TileDestructionSystem {
                 let damage = stats.set.strength - target_stats.defense;
                 log.log(format!("{} dealt {} damage to {}", name.0, damage, tile_name.0));
                 SufferDamage::new_damage(&mut suffer_damage, action.target, -(damage as i32));
-                let size_flex =
-                    AnimationRequest::StretchShrink(tile_entity, SizeFlexor::new(&vec![(0.6, 1.4), (1.5, 0.5), (1.0, 1.0)], 7.5));
+
+                if breaker == player_e.0 {
+                    let sound_name = match edb.world_objs.get_by_name(&tile_name.0) {
+                        Some(info) => &info.impact_sound,
+                        None => "",
+                    };
+                    play_sound_effect(sound_name);
+                }
+
+                let size_flex = AnimationRequest::StretchShrink(
+                    tile_entity,
+                    SizeFlexor::new(&vec![(0.75, 1.25), (1.0, 1.0)], 25.0),
+                );
+                let flash_white = AnimationRequest::GlyphFlash(
+                    tile_entity,
+                    Duration::from_secs_f32(0.15),
+                    Renderable::clear_bg(CH_STRIKE, WHITE, EFFECT_Z),
+                );
                 anim_builder.request(size_flex);
+                anim_builder.request(flash_white);
             }
         }
 

@@ -69,6 +69,7 @@ pub struct SerializationHelper {
 
 pub enum SaveAction {
     Save,
+    QuickSave,
     Cancel,
     Waiting,
     QuitWithoutSaving,
@@ -107,6 +108,7 @@ pub fn save_game(ecs: &mut World) {
                                 BeingID,
                                 Player, EquipmentSlots, Water, Grass, Interactor, AttackBonus, SerializationHelper);
     }
+    info!("Game was saved");
 
     ecs.delete_entity(savehelper).expect("Crash in cleanup, hopefully we still saved.");
 }

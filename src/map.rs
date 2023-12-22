@@ -61,6 +61,7 @@ pub struct WorldObject {
     pub grass: Option<String>,
     pub foreground: Option<(u8, u8, u8)>,
     pub loot: Option<Drops>,
+    pub impact_sound: String,
 }
 
 /// Defines the type of entity existing in a tile for quick lookup and action handling

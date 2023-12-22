@@ -1,15 +1,20 @@
+use crate::colors::{PL_MENU_ACCENT_TEXT, PL_MENU_TEXT};
 use crate::{
-    colors::{to_rgb, white_fg, INVENTORY_BACKGROUND, INVENTORY_OUTLINE},
+    colors::{self, to_rgb, Color},
     components::{Equipped, InBag, Item, Name},
     config::{InventoryConfig, SortMode},
 };
-use bracket_terminal::prelude::{ColorPair, DrawBatch};
+use bracket_terminal::prelude::{ColorPair, DrawBatch, TextAlign};
 use bracket_terminal::prelude::{Point, Rect};
 use specs::{Join, LendJoin, ReadStorage, World, WorldExt};
 
 use crate::{components::SelectedInventoryItem, game_init::PlayerEntity};
 
 use super::drawing::AccentBox;
+//
+// Usage Definitions these should move into their own file
+pub const INVENTORY_BACKGROUND: Color = colors::PARCHMENT; // (44, 57, 71);
+pub const INVENTORY_OUTLINE: Color = colors::TEXASROSE; //(61, 84, 107);
 
 pub(crate) fn draw_inventory(draw_batch: &mut DrawBatch, ecs: &World, cfg: &InventoryConfig) {
     let player_entity = ecs.read_resource::<PlayerEntity>();
@@ -44,10 +49,11 @@ pub(crate) fn draw_inventory(draw_batch: &mut DrawBatch, ecs: &World, cfg: &Inve
     for (offset, (item_entity, item, _, Name(name), equipped)) in data.iter().enumerate() {
         let status = if equipped.is_some() { "(E)" } else { "" };
         let qty = if item.qty.0 > 1 { format!("{}x ", item.qty) } else { "".to_string() };
-        draw_batch.print_color(
+        draw_batch.printer(
             Point::new(42, 2 + offset + 1),
-            format!("{:X}| {status}{qty}{name}", offset + 1),
-            white_fg(to_rgb(INVENTORY_BACKGROUND)),
+            format!("#[{PL_MENU_TEXT}]{:X}| #[{PL_MENU_ACCENT_TEXT}]{status}{qty}{name}", offset + 1),
+            TextAlign::Left,
+            Some(to_rgb(INVENTORY_BACKGROUND).into()),
         );
 
         if Some(item_entity) == selected_item {

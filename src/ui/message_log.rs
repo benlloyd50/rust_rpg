@@ -2,16 +2,19 @@
 // therefore, drawing the message log is defined in user_interface
 use std::fmt::Display;
 
-use bracket_terminal::prelude::{ColorPair, DrawBatch, Point, Rect, TextAlign, RGBA, WHITESMOKE};
+use bracket_terminal::prelude::{ColorPair, DrawBatch, Point, Rect, TextAlign, RGBA};
 use serde::{Deserialize, Serialize};
 use specs::{World, WorldExt};
 
 use crate::{
-    colors::{INVENTORY_BACKGROUND, INVENTORY_OUTLINE, PL_ORANGE},
+    colors::{DARKERBROWN, PL_MENU_ACCENT_TEXT, PL_MENU_TEXT, PL_ORANGE},
     TurnCounter, CL_TEXT,
 };
 
-use super::drawing::AccentBox;
+use super::{
+    drawing::AccentBox,
+    inventory::{INVENTORY_BACKGROUND, INVENTORY_OUTLINE},
+};
 
 pub(crate) fn draw_message_log(draw_batch: &mut DrawBatch, ecs: &World) {
     let log = ecs.fetch::<MessageLog>();
@@ -35,7 +38,7 @@ pub fn draw_turn_counter(draw_batch: &mut DrawBatch, ecs: &World) {
     draw_batch.print_color(
         Point { x: 1, y: 2 },
         format!("Turn:{}", turn_counter.0),
-        ColorPair { fg: WHITESMOKE.into(), bg: INVENTORY_BACKGROUND.into() },
+        ColorPair { fg: DARKERBROWN.into(), bg: INVENTORY_BACKGROUND.into() },
     );
 }
 
@@ -109,11 +112,15 @@ impl Message {
     /// Returns a colored output of the message based on type and amt
     pub fn colored(&self) -> String {
         let color = match self.kind {
-            MessageType::Info => "lightgray",
+            MessageType::Info => PL_MENU_TEXT,
             MessageType::Debug => PL_ORANGE,
-            MessageType::Flavor => "white",
+            MessageType::Flavor => PL_MENU_ACCENT_TEXT,
         };
-        let suffix_amt = if self.repeated > 1 { format!(" x{}", self.repeated) } else { "".to_string() };
+        let suffix_amt = if self.repeated > 1 {
+            format!("#[{}] x{}#[]", PL_MENU_ACCENT_TEXT, self.repeated)
+        } else {
+            "".to_string()
+        };
         format!("#[{}]{}#[]{}", color, &self.contents, suffix_amt)
     }
 }

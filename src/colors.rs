@@ -25,16 +25,14 @@ pub fn initialize_printer_palette() {
     register_palette_color(PL_SETTINGS_HIGHLIGHT, to_rgb(MIDDLERED));
 
     register_palette_color(PL_ORANGE, to_rgb(SALMON));
+    register_palette_color(PL_MENU_TEXT, to_rgb(DARKERBROWN));
+    register_palette_color(PL_MENU_ACCENT_TEXT, to_rgb(DARKBROWN));
 
     register_palette_color("red", to_rgb(MIDDLERED));
     register_palette_color("bright_green", RGB::from_u8(52, 156, 88));
     register_palette_color("white", to_rgb(WHITE));
     register_palette_color("lightgray", RGB::from_u8(161, 161, 161));
 }
-
-// Usage Definitions these should move into their own file
-pub const INVENTORY_BACKGROUND: Color = (44, 57, 71);
-pub const INVENTORY_OUTLINE: Color = (61, 84, 107);
 
 // Palette Definitions always start with PL_*
 pub const PL_KEYBIND: &str = "keybind";
@@ -45,6 +43,8 @@ pub const PL_SETTINGS_TEXT: &str = "settings_text";
 pub const PL_SETTINGS_HIGHLIGHT: &str = "settings_highlight";
 
 pub const PL_ORANGE: &str = "orange";
+pub const PL_MENU_TEXT: &str = "menu_text";
+pub const PL_MENU_ACCENT_TEXT: &str = "menu_accent_text";
 
 // Color Definitions
 pub const MIDDLERED: Color = (183, 65, 50);
@@ -53,3 +53,9 @@ pub const MAROON: Color = (122, 40, 73);
 pub const DARKBLUEPURPLE: Color = (18, 14, 35);
 pub const DARKBLUE: Color = (42, 41, 66);
 pub const WHITE: Color = (222, 222, 222);
+pub const PARCHMENT: Color = (255, 241, 169);
+pub const TEXASROSE: Color = (235, 184, 91);
+#[allow(unused)]
+pub const DARKESTBROWN: Color = (64, 46, 43);
+pub const DARKERBROWN: Color = (118, 64, 50);
+pub const DARKBROWN: Color = (161, 92, 52);

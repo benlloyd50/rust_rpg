@@ -14,6 +14,7 @@ const GENERAL_CONFIG_PATH: &str = "./config.json";
 #[derive(Serialize, Deserialize)]
 pub struct SettingsConfig {
     pub sprite_mode: SpriteMode,
+    pub text_font: TextFonts,
 }
 
 impl SettingsConfig {
@@ -45,7 +46,19 @@ impl SettingsConfig {
 
 impl Default for SettingsConfig {
     fn default() -> Self {
-        Self { sprite_mode: SpriteMode::Outline }
+        Self { sprite_mode: SpriteMode::default(), text_font: TextFonts::default() }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub enum TextFonts {
+    Zaratustra,
+    Terminal,
+}
+
+impl Default for TextFonts {
+    fn default() -> Self {
+        Self::Zaratustra
     }
 }
 
