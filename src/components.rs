@@ -532,3 +532,9 @@ pub struct GlyphFlash {
     pub time_left: Duration,
     pub sprite: Renderable,
 }
+
+#[derive(Component, Clone)]
+#[storage(VecStorage)]
+pub struct Viewshed {
+    pub tiles: Vec<Position>,
+}
