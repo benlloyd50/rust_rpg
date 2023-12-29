@@ -5,7 +5,7 @@ pub(crate) use crate::{
     map::xy_to_idx_given_width,
     stats::Stats,
 };
-use std::{fmt::Display, str::FromStr, time::Duration};
+use std::{collections::HashSet, fmt::Display, str::FromStr, time::Duration};
 
 use bracket_lib::terminal::{ColorPair, Degrees, Point, PointF};
 use serde::{Deserialize, Serialize};
@@ -533,8 +533,9 @@ pub struct GlyphFlash {
     pub sprite: Renderable,
 }
 
-#[derive(Component, Clone)]
+#[derive(Component, Clone, ConvertSaveload)]
 #[storage(VecStorage)]
 pub struct Viewshed {
-    pub tiles: Vec<Position>,
+    pub tiles: HashSet<Point>,
+    pub range: usize,
 }

@@ -28,7 +28,7 @@ pub fn create_map(ecs: &mut World, level_name: &str) -> Map {
     };
 
     for (idx, tile) in new_level.level().iter().enumerate() {
-        map.tiles[idx] = WorldTile { atlas_index: tile.atlas_index() };
+        map.tiles[idx] = WorldTile { atlas_index: tile.atlas_index(), transparent: true };
 
         if let Some(name) = tile.entity_name() {
             if let Some(tag) = tile.entity_tag() {

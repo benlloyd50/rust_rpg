@@ -1,10 +1,10 @@
 use bracket_lib::terminal::{Point, Rect};
 use specs::{Join, World, WorldExt};
 
-use crate::{components::Position, map::Map, player::Player, DISPLAY_HEIGHT, DISPLAY_WIDTH};
+use crate::{components::Position, map::MapRes, player::Player, DISPLAY_HEIGHT, DISPLAY_WIDTH};
 
-const PLAYER_CAMERA_OFFSET_X: i32 = 13;
-const PLAYER_CAMERA_OFFSET_Y: i32 = 13;
+const PLAYER_CAMERA_OFFSET_X: i32 = (DISPLAY_WIDTH / 2) as i32;
+const PLAYER_CAMERA_OFFSET_Y: i32 = (DISPLAY_HEIGHT / 2) as i32;
 
 /// Gets the bounds of the camera positioned at the player.
 pub fn get_camera_bounds(ecs: &World) -> Rect {
@@ -31,10 +31,10 @@ pub fn get_camera_bounds(ecs: &World) -> Rect {
 pub fn mouse_to_map_pos(mouse_pos: &(i32, i32), ecs: &World) -> Option<Position> {
     let bounds = get_camera_bounds(ecs);
 
-    let map = ecs.read_resource::<Map>();
+    let map = ecs.read_resource::<MapRes>();
     let tile_pos = Point::new(bounds.x1 + mouse_pos.0, bounds.y1 + mouse_pos.1);
 
-    if !map.in_bounds(tile_pos) {
+    if !map.0.in_bounds(tile_pos) {
         eprintln!("{:?} is outside of the map", mouse_pos);
         return None;
     }

@@ -6,7 +6,7 @@ use crate::{
     },
     game_init::{find_next_map, PlayerEntity},
     items::inventory_contains,
-    map::{Map, TileEntity},
+    map::{MapRes, TileEntity},
     saveload::{save_game_exists, SaveAction},
     settings::SettingsAction,
     ui::message_log::MessageLog,
@@ -65,11 +65,12 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) -> PlayerRespons
     for (player_entity, pos, interactor, _) in (&entities, &mut positions, &interactors, &players).join() {
         let target_pos = Point::new(pos.x as i32 + delta_x, pos.y as i32 + delta_y);
 
-        let map = ecs.fetch::<Map>();
-        if !map.in_bounds(target_pos) {
+        let map = ecs.fetch::<MapRes>();
+        if !map.0.in_bounds(target_pos) {
             // NOTE: this is most likely safe to perform because the world_coords will always be
             // positive and away from (0, 0) thus resulting in a point that is (+, +) which can be converted
-            let new_pt = Point::new(map.world_coords.x as i32 + target_pos.x, map.world_coords.y as i32 + target_pos.y);
+            let new_pt =
+                Point::new(map.0.world_coords.x as i32 + target_pos.x, map.0.world_coords.y as i32 + target_pos.y);
             let target_world_pos = Position::from(new_pt);
             return match find_next_map(&target_world_pos) {
                 Some(level_name) => {
@@ -79,7 +80,7 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) -> PlayerRespons
             };
         }
 
-        match map.first_entity_in_pos(&Position::from(target_pos)) {
+        match map.0.first_entity_in_pos(&Position::from(target_pos)) {
             Some(tile) => match tile {
                 TileEntity::Breakable(entity) => {
                     info!("Map is breakable at {}, {} : id: {}", target_pos.x, target_pos.y, entity.id());
@@ -131,10 +132,10 @@ fn try_pickup(ecs: &mut World) -> PlayerResponse {
 
     let player_entity = ecs.read_resource::<PlayerEntity>();
     let positions = ecs.read_storage::<Position>();
-    let map = ecs.fetch::<Map>();
+    let map = ecs.fetch::<MapRes>();
 
     if let Some(pos) = positions.get(player_entity.0) {
-        let mut item_iter = map.all_items_at_pos(pos);
+        let mut item_iter = map.0.all_items_at_pos(pos);
         if let Some(item_entity) = item_iter.next() {
             let _ = pickups.insert(player_entity.0, PickupAction { item: *item_entity.as_item_entity().unwrap() });
         }

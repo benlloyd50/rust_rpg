@@ -3,6 +3,7 @@ use crate::colors::initialize_printer_palette;
 use crate::frame_animation::AnimationRenderer;
 use crate::game_init::{cleanup_old_map, load_map, move_player_to};
 use crate::logger::create_logger;
+use crate::map::MapRes;
 use crate::saveload::{SerializationHelper, SerializeMe};
 use crate::ui::draw_ui;
 use crate::ui::message_log::MessageLog;
@@ -20,6 +21,7 @@ use debug::{debug_info, debug_input};
 use draw_sprites::{draw_sprite_layers, update_fancy_positions};
 use droptables::DeathLootDrop;
 use equipment::EquipActionHandler;
+use fov::UpdateViewsheds;
 use frame_animation::{AnimationPlay, UpdateAnimationTimers};
 use game_init::initialize_new_game_world;
 use items::{ConsumeHandler, ItemPickupHandler, ItemSpawnerSystem, ZeroQtyItemCleanup};
@@ -168,6 +170,8 @@ impl State {
         item_pickup_handler.run_now(&self.ecs);
         let mut death_loot_spawn = DeathLootDrop;
         death_loot_spawn.run_now(&self.ecs);
+        let mut viewshed_update = UpdateViewsheds;
+        viewshed_update.run_now(&self.ecs);
 
         // Request Based Systems ================================>
         let mut item_spawner = ItemSpawnerSystem;
@@ -517,7 +521,7 @@ fn main() -> BError {
 
     // Setup Terminal (incl Window, Input, Font Loading)
     let mut context = BTermBuilder::new()
-        .with_title("Tile RPG")
+        .with_title("RPG")
         .with_fps_cap(60.0)
         .with_font("effects_tiles.png", 8u32, 8u32)
         .with_font("zaratustra.png", 8u32, 8u32)
@@ -596,7 +600,7 @@ fn main() -> BError {
     world.insert(AnimationRenderer::new());
     world.insert(ItemSpawner::new());
     world.insert(MessageLog::new());
-    world.insert(Map::empty());
+    world.insert(MapRes(Map::empty()));
     world.insert(TurnCounter::zero());
 
     let game_state = State { ecs: world, cfg };

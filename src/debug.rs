@@ -9,7 +9,7 @@ use crate::{
     config::{InventoryConfig, SortMode},
     game_init::PlayerEntity,
     inventory::UseMenuResult,
-    map::Map,
+    map::MapRes,
     CL_INTERACTABLES, CL_TEXT, CL_WORLD,
 };
 
@@ -130,14 +130,14 @@ fn print_position(ecs: &World) {
 }
 
 fn print_tile_contents(ctx: &mut BTerm, ecs: &World) {
-    let map = ecs.read_resource::<Map>();
+    let map = ecs.read_resource::<MapRes>();
     ctx.set_active_console(CL_WORLD);
     print!("MousePos on CL_WORLD: {:?} | ", &ctx.mouse_pos());
 
     let cursor_map_pos = mouse_to_map_pos(&ctx.mouse_pos(), ecs);
 
     let tile_idx = match cursor_map_pos {
-        Some(pos) => pos.to_idx(map.width),
+        Some(pos) => pos.to_idx(map.0.width),
         None => {
             println!("Cannot print tile entities at {:?}", &cursor_map_pos);
             return;
@@ -145,8 +145,9 @@ fn print_tile_contents(ctx: &mut BTerm, ecs: &World) {
     };
 
     print!("Tileidx {} | ", tile_idx);
-    if !map.tile_entities[tile_idx].is_empty() {
-        println!("Contents: {:?} | BLOCKED: {}", map.tile_entities[tile_idx], map.is_blocked(&cursor_map_pos.unwrap()),);
+    let ents = &map.0.tile_entities[tile_idx];
+    if !ents.is_empty() {
+        println!("Contents: {:?} | BLOCKED: {}", ents, map.0.is_blocked(&cursor_map_pos.unwrap()),);
     } else {
         println!("There are no entities at {:?}", cursor_map_pos);
     }

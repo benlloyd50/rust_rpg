@@ -1,8 +1,8 @@
 use std::convert::Infallible;
-use std::fs::{self, File};
+use std::fs::{self, create_dir, File};
 use std::path::Path;
 
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
 use specs::saveload::{DeserializeComponents, MarkedBuilder, SerializeComponents, SimpleMarker, SimpleMarkerAllocator};
 #[allow(deprecated)] // must be imported so ConvertSaveload works
@@ -21,7 +21,7 @@ use crate::components::{
 };
 use crate::data_read::ENTITY_DB;
 use crate::game_init::PlayerEntity;
-use crate::map::Map;
+use crate::map::{Map, MapRes};
 use crate::player::Player;
 use crate::ui::message_log::MessageLog;
 
@@ -75,7 +75,7 @@ pub enum SaveAction {
     QuitWithoutSaving,
 }
 
-pub const SAVE_PATH: &str = "./saves/mysavegame.json";
+pub const SAVE_PATH: &str = "./saves/";
 
 pub fn cleanup_game(ecs: &mut World) {
     info!("Cleaning up game world.");
@@ -90,7 +90,7 @@ pub fn save_game_exists() -> bool {
 }
 
 pub fn save_game(ecs: &mut World) {
-    let map = ecs.get_mut::<Map>().unwrap().clone();
+    let MapRes(map) = ecs.get_mut::<MapRes>().unwrap().clone();
     let message_log = ecs.get_mut::<MessageLog>().unwrap().clone();
     let savehelper = ecs
         .create_entity()
@@ -98,9 +98,23 @@ pub fn save_game(ecs: &mut World) {
         .marked::<SimpleMarker<SerializeMe>>()
         .build();
 
+    let writer = match File::create(format!("{}mysavegame.json", SAVE_PATH)) {
+        Ok(w) => w,
+        Err(_e) => {
+            warn!("Failed to create file trying to create directory and try again.");
+            let _ = create_dir(SAVE_PATH);
+            match File::create(format!("{}mysavegame.json", SAVE_PATH)) {
+                Ok(w) => w,
+                Err(e) => {
+                    error!("Could not save file successfully, {}", e);
+                    return;
+                }
+            }
+        }
+    };
     {
         let data = (ecs.entities(), ecs.read_storage::<SimpleMarker<SerializeMe>>());
-        let writer = File::create(format!("{}", SAVE_PATH)).unwrap();
+
         let mut serializer = serde_json::Serializer::new(writer);
         #[rustfmt::skip]
         serialize_individually!(ecs, serializer, data, Position, Renderable, LevelPersistent, EntityStats, Blocking, Fishable,
@@ -116,7 +130,7 @@ pub fn load_game(ecs: &mut World) {
     // make sure everything is wiped out
     cleanup_game(ecs);
 
-    let save_data = match fs::read_to_string(SAVE_PATH) {
+    let save_data = match fs::read_to_string(format!("{}mysavegame.json", SAVE_PATH)) {
         Ok(data) => data,
         Err(e) => {
             error!("Save game file cannot be loaded from `{}`", SAVE_PATH);
@@ -152,9 +166,9 @@ pub fn load_game(ecs: &mut World) {
         let player = ecs.read_storage::<Player>();
 
         if let Some((helper_e, helper_data)) = (&entities, &helper).join().next() {
-            let mut map = ecs.write_resource::<Map>();
-            *map = helper_data.map.clone();
-            map.tile_entities = vec![Vec::new(); map.width * map.height];
+            let mut map = ecs.write_resource::<MapRes>();
+            *map = MapRes(helper_data.map.clone());
+            map.0.tile_entities = vec![Vec::new(); map.0.width * map.0.height];
 
             let mut msg_log = ecs.write_resource::<MessageLog>();
             *msg_log = helper_data.message_log.clone();

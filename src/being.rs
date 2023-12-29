@@ -16,7 +16,7 @@ use crate::{
     components::{AttackAction, BreakAction, GoalMoverAI, MoveAction, Name, Position, RandomWalkerAI},
     data_read::ENTITY_DB,
     droptables::Drops,
-    map::{distance, is_goal, successors, Map, TileEntity},
+    map::{distance, is_goal, successors, MapRes, TileEntity},
     stats::Stats,
     ui::message_log::MessageLog,
 };
@@ -56,7 +56,7 @@ impl<'a> System<'a> for RandomMonsterMovementSystem {
         ReadStorage<'a, Name>,
         ReadStorage<'a, RandomWalkerAI>,
         WriteExpect<'a, MessageLog>,
-        ReadExpect<'a, Map>,
+        ReadExpect<'a, MapRes>,
         Entities<'a>,
     );
 
@@ -91,11 +91,11 @@ impl<'a> System<'a> for RandomMonsterMovementSystem {
             };
 
             let target_pos = Point::new(pos.x as i32 + delta.x, pos.y as i32 + delta.y);
-            if !map.in_bounds(target_pos) {
+            if !map.0.in_bounds(target_pos) {
                 return;
             }
 
-            if let Some(tile) = map.first_entity_in_pos(&Position::from(target_pos)) {
+            if let Some(tile) = map.0.first_entity_in_pos(&Position::from(target_pos)) {
                 match tile {
                     TileEntity::Item(_) => {}
                     TileEntity::Breakable(target) => {
@@ -177,7 +177,7 @@ impl<'a> System<'a> for GoalMoveToEntities {
         WriteStorage<'a, GoalMoverAI>,
         ReadStorage<'a, Position>,
         ReadStorage<'a, Name>,
-        ReadExpect<'a, Map>,
+        ReadExpect<'a, MapRes>,
         Entities<'a>,
     );
 
@@ -205,13 +205,17 @@ impl<'a> System<'a> for GoalMoveToEntities {
                 info!("{} tries to attack {}", mover_name, target_name);
                 continue;
             }
-            let path: (Vec<Position>, u32) =
-                match astar(mover_pos, |p| successors(&map, p), |p| distance(p, goal_pos), |p| is_goal(p, goal_pos)) {
-                    Some(path) => path,
-                    None => {
-                        continue;
-                    }
-                };
+            let path: (Vec<Position>, u32) = match astar(
+                mover_pos,
+                |p| successors(&map.0, p),
+                |p| distance(p, goal_pos),
+                |p| is_goal(p, goal_pos),
+            ) {
+                Some(path) => path,
+                None => {
+                    continue;
+                }
+            };
             if path.0.len() > 1 {
                 let new_position = path.0[1];
                 let _ = move_actions.insert(entity, MoveAction::new(new_position));
@@ -224,14 +228,14 @@ impl<'a> System<'a> for GoalMoveToEntities {
 pub struct HandleMoveActions;
 
 impl<'a> System<'a> for HandleMoveActions {
-    type SystemData = (WriteStorage<'a, MoveAction>, WriteStorage<'a, Position>, WriteExpect<'a, Map>, Entities<'a>);
+    type SystemData = (WriteStorage<'a, MoveAction>, WriteStorage<'a, Position>, WriteExpect<'a, MapRes>, Entities<'a>);
 
     fn run(&mut self, (mut move_actions, mut positions, mut map, entities): Self::SystemData) {
         for (entity, want, mover_pos) in (&entities, &move_actions, &mut positions).join() {
-            let idx = mover_pos.to_idx(map.width);
-            match map.tile_entities[idx].iter().position(|tile| tile == &TileEntity::Blocking(entity)) {
+            let idx = mover_pos.to_idx(map.0.width);
+            match map.0.tile_entities[idx].iter().position(|tile| tile == &TileEntity::Blocking(entity)) {
                 Some(remove_idx) => {
-                    map.tile_entities[idx].remove(remove_idx);
+                    map.0.tile_entities[idx].remove(remove_idx);
                 }
                 None => {
                     // if ever a monster exists that doesn't block their own position, then change
@@ -245,8 +249,8 @@ impl<'a> System<'a> for HandleMoveActions {
 
             *mover_pos = want.new_pos;
 
-            let idx = mover_pos.to_idx(map.width);
-            map.tile_entities[idx].push(TileEntity::Blocking(entity));
+            let idx = mover_pos.to_idx(map.0.width);
+            map.0.tile_entities[idx].push(TileEntity::Blocking(entity));
         }
 
         move_actions.clear();

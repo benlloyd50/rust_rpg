@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use bracket_lib::terminal::BTerm;
 use ldtk_map::prelude::DesignMap;
 use log::debug;
@@ -14,7 +16,7 @@ use crate::{
     },
     data_read::prelude::{build_being, create_map, LDTK_FILE},
     items::{ItemID, ItemSpawner, SpawnType},
-    map::Map,
+    map::MapRes,
     player::Player,
     saveload::SerializeMe,
     stats::get_random_stats,
@@ -46,7 +48,7 @@ pub fn initialize_new_game_world(ecs: &mut World, ctx: &mut BTerm) {
         .with(Position::new(67, 30))
         .with(Interactor::new(InteractorMode::Reactive))
         .with(Player {})
-        .with(Viewshed { tiles: vec![], range: 8 })
+        .with(Viewshed { tiles: HashSet::new(), range: 16 })
         .with(EquipmentSlots::human())
         .with(player_stats)
         .with(player_stats.set.get_health_stats())
@@ -87,8 +89,8 @@ pub fn cleanup_old_map(ecs: &mut World) {
 pub fn move_player_to(world_pos: &Position, ecs: &mut World) {
     let mut positions = ecs.write_storage::<Position>();
     let player_e = ecs.read_resource::<PlayerEntity>();
-    let map = ecs.read_resource::<Map>();
-    let local_pos = Position::new(world_pos.x - map.world_x(), world_pos.y - map.world_y());
+    let map = ecs.read_resource::<MapRes>();
+    let local_pos = Position::new(world_pos.x - map.0.world_x(), world_pos.y - map.0.world_y());
     let _ = positions.insert(player_e.0, local_pos);
 }
 
@@ -96,7 +98,7 @@ pub fn load_map(level: &str, ecs: &mut World, ctx: &mut BTerm) {
     let map = create_map(ecs, level);
     ctx.set_active_console(CL_WORLD);
     ctx.set_active_font(map.tile_atlas_index, false);
-    ecs.insert(map);
+    ecs.insert(MapRes(map));
 }
 
 pub fn find_next_map(pos: &Position) -> Option<String> {

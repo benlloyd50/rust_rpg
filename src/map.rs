@@ -9,7 +9,7 @@ use specs::{Entity, World};
 
 pub const WHITE: (u8, u8, u8) = (255, 255, 255);
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Default)]
 pub struct Map {
     pub tiles: Vec<WorldTile>,
     pub width: usize,
@@ -21,9 +21,12 @@ pub struct Map {
     pub tile_entities: Vec<Vec<TileEntity>>,
 }
 
+#[derive(Default, Clone)]
+pub struct MapRes(pub Map);
+
 /// This is used over position when (de)serialization is needed.
 /// Position cannot impl Deserialize because it needs to impl ConvertSaveload
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Deserialize, Serialize, Clone, Default)]
 pub struct WorldCoords {
     pub x: usize,
     pub y: usize,
@@ -38,11 +41,12 @@ impl From<(usize, usize)> for WorldCoords {
 #[derive(Clone, Serialize, Deserialize)]
 pub struct WorldTile {
     pub atlas_index: usize,
+    pub transparent: bool,
 }
 
 impl WorldTile {
     pub fn default() -> Self {
-        Self { atlas_index: 4 }
+        Self { atlas_index: 4, transparent: true }
     }
 }
 
@@ -183,14 +187,14 @@ pub fn is_goal(curr_pos: &Position, dest_pos: &Position) -> bool {
 
 /// Renders the current map resource to the current console layer
 pub fn render_map(ecs: &World, batch: &mut DrawBatch) {
-    let map = ecs.fetch::<Map>();
+    let map = ecs.fetch::<MapRes>();
 
     let bounding_box = get_camera_bounds(ecs);
 
     for x in bounding_box.x1..bounding_box.x2 {
         for y in bounding_box.y1..bounding_box.y2 {
-            let atlas_index = if x < map.width as i32 && y < map.height as i32 && x >= 0 && y >= 0 {
-                map.tiles[map.xy_to_idx(x as usize, y as usize)].atlas_index
+            let atlas_index = if x < map.0.width as i32 && y < map.0.height as i32 && x >= 0 && y >= 0 {
+                map.0.tiles[map.0.xy_to_idx(x as usize, y as usize)].atlas_index
             } else {
                 xy_to_idx_given_width(0, 2, 16)
             };
