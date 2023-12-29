@@ -1,4 +1,4 @@
-use bracket_random::prelude::RandomNumberGenerator;
+use bracket_lib::random::RandomNumberGenerator;
 use serde::{Deserialize, Serialize};
 
 use crate::components::{EntityStats, HealthStats};

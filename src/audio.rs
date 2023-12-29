@@ -1,4 +1,4 @@
-use bracket_random::prelude::RandomNumberGenerator;
+use bracket_lib::random::RandomNumberGenerator;
 use kira::sound::static_sound::StaticSoundData;
 use log::warn;
 
@@ -22,7 +22,7 @@ pub fn play_sound_effect(sfx: &str) {
 
     let adb = AUDIO_DB.lock().unwrap();
     let sfx_file = match adb.sounds.get(&format!("{}", sfx)) {
-        Some(s) => s.clone(),
+        Some(s) => s,
         None => {
             warn!("{} does not exist as a sound file.", sfx);
             return;

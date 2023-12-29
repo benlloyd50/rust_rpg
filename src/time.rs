@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use bracket_terminal::prelude::BTerm;
+use bracket_lib::terminal::BTerm;
 use specs::{World, WorldExt};
 
 /// The time since the last frame

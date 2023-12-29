@@ -11,7 +11,7 @@ use crate::{
     ui::message_log::MessageLog,
     z_order::EFFECT_Z,
 };
-use bracket_color::prelude::WHITE;
+use bracket_lib::color::WHITE;
 use log::{error, info};
 use specs::{Entities, Entity, Join, Read, ReadStorage, System, Write, WriteStorage};
 

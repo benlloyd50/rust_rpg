@@ -2,7 +2,7 @@
 // therefore, drawing the message log is defined in user_interface
 use std::fmt::Display;
 
-use bracket_terminal::prelude::{ColorPair, DrawBatch, Point, Rect, TextAlign, RGBA};
+use bracket_lib::terminal::{ColorPair, DrawBatch, Point, Rect, TextAlign, RGBA};
 use serde::{Deserialize, Serialize};
 use specs::{World, WorldExt};
 

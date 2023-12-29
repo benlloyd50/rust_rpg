@@ -17,7 +17,7 @@ use crate::being::BeingID;
 use crate::components::{
     AttackBonus, Blocking, Breakable, Consumable, DeleteCondition, EntityStats, Equipable, EquipmentSlots, Equipped,
     Fishable, GoalMoverAI, Grass, HealthStats, InBag, Interactor, Item, LevelPersistent, Name, Position,
-    RandomWalkerAI, Renderable, Water,
+    RandomWalkerAI, Renderable, Viewshed, Water,
 };
 use crate::data_read::ENTITY_DB;
 use crate::game_init::PlayerEntity;
@@ -105,7 +105,7 @@ pub fn save_game(ecs: &mut World) {
         #[rustfmt::skip]
         serialize_individually!(ecs, serializer, data, Position, Renderable, LevelPersistent, EntityStats, Blocking, Fishable,
                                 Name, HealthStats, Breakable, DeleteCondition, Item, InBag, Consumable, Equipped, Equipable,
-                                BeingID,
+                                BeingID, Viewshed,
                                 Player, EquipmentSlots, Water, Grass, Interactor, AttackBonus, SerializationHelper);
     }
     info!("Game was saved");
@@ -136,7 +136,7 @@ pub fn load_game(ecs: &mut World) {
         #[rustfmt::skip]
         deserialize_individually!(ecs, deserializer, d, Position, Renderable, LevelPersistent, EntityStats, Blocking, Fishable,
                                 Name, HealthStats, Breakable, DeleteCondition, Item, InBag, Consumable, Equipped, Equipable,
-                                BeingID,
+                                BeingID, Viewshed,
                                 Player, EquipmentSlots, Water, Grass, Interactor, AttackBonus, SerializationHelper);
     }
 

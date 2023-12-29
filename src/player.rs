@@ -12,7 +12,7 @@ use crate::{
     ui::message_log::MessageLog,
     AppState, Position,
 };
-use bracket_terminal::prelude::{BTerm, Point, VirtualKeyCode as VKC};
+use bracket_lib::terminal::{BTerm, Point, VirtualKeyCode as VKC};
 use log::info;
 use serde::{Deserialize, Serialize};
 use specs::{prelude::*, Component};

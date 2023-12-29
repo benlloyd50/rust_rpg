@@ -1,4 +1,4 @@
-use bracket_terminal::prelude::{to_char, BTerm, TextAlign, VirtualKeyCode, RGB, RGBA, WHITESMOKE};
+use bracket_lib::terminal::{to_char, BTerm, TextAlign, VirtualKeyCode, RGB, RGBA, WHITESMOKE};
 use itertools::Itertools;
 use specs::{Join, ReadStorage, World, WorldExt};
 

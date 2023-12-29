@@ -1,13 +1,10 @@
-use bracket_geometry::prelude::Point;
+use bracket_lib::geometry::Point;
 use log::info;
 use std::{collections::HashMap, time::Duration};
 use uuid::Uuid;
 
-use bracket_color::{prelude::ColorPair, rgba::RGBA};
-use bracket_terminal::{
-    prelude::{to_char, to_cp437, DrawBatch},
-    FontCharTyp as FontCharType,
-};
+use bracket_lib::color::{ColorPair, RGBA};
+use bracket_lib::terminal::{to_char, to_cp437, DrawBatch, FontCharType};
 use specs::{Read, System, World, WorldExt, Write};
 
 use crate::{

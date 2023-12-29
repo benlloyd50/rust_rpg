@@ -4,8 +4,8 @@ use crate::{
     components::{Equipped, InBag, Item, Name},
     config::{InventoryConfig, SortMode},
 };
-use bracket_terminal::prelude::{ColorPair, DrawBatch, TextAlign};
-use bracket_terminal::prelude::{Point, Rect};
+use bracket_lib::terminal::{ColorPair, DrawBatch, TextAlign};
+use bracket_lib::terminal::{Point, Rect};
 use specs::{Join, LendJoin, ReadStorage, World, WorldExt};
 
 use crate::{components::SelectedInventoryItem, game_init::PlayerEntity};

@@ -11,8 +11,8 @@ use std::time::Duration;
 
 use audio::play_sound_effect;
 use being::{GoalFindEntities, GoalMoveToEntities, HandleMoveActions, RandomMonsterMovementSystem};
-use bracket_geometry::prelude::Point;
-use bracket_terminal::prelude::{main_loop, render_draw_buffer, BError, BTerm, BTermBuilder, GameState};
+use bracket_lib::geometry::Point;
+use bracket_lib::terminal::{main_loop, render_draw_buffer, BError, BTerm, BTermBuilder, GameState};
 use combat::{AttackActionHandler, HealActionHandler};
 use config::ConfigMaster;
 use crafting::HandleCraftingSystem;
@@ -39,6 +39,7 @@ mod debug;
 mod draw_sprites;
 mod droptables;
 mod equipment;
+mod fov;
 mod frame_animation;
 mod game_init;
 mod indexing;
@@ -69,7 +70,6 @@ mod components;
 use components::Position;
 mod crafting;
 mod fishing;
-
 use fishing::{
     CatchFishSystem, CreateFishingBubbles, FishingMinigameCheck, FishingMinigameUpdate, PollFishingTiles,
     SetupFishingActions, WaitingForFishSystem,
@@ -80,7 +80,7 @@ use time::delta_time_update;
 
 use crate::components::{
     AttackBonus, Consumable, ConsumeAction, CraftAction, EntityStats, EquipAction, Equipable, EquipmentSlots, Equipped,
-    FishingMinigame, GameAction, GlyphFlash, HealAction, InBag, LevelPersistent, SizeFlexor,
+    FishingMinigame, GameAction, GlyphFlash, HealAction, InBag, LevelPersistent, SizeFlexor, Viewshed,
 };
 use crate::{
     components::{
@@ -583,6 +583,7 @@ fn main() -> BError {
     world.register::<LevelPersistent>();
     world.register::<SizeFlexor>();
     world.register::<GlyphFlash>();
+    world.register::<Viewshed>();
 
     world.register::<SimpleMarker<SerializeMe>>();
     world.register::<SerializationHelper>();

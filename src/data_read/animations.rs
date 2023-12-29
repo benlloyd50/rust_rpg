@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fs, sync::Mutex};
 
-use bracket_color::prelude::PURPLE;
+use bracket_lib::color::PURPLE;
 use json5::from_str;
 use log::error;
 use serde::Deserialize;

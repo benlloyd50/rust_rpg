@@ -1,4 +1,4 @@
-use bracket_terminal::prelude::{Point, Rect};
+use bracket_lib::terminal::{Point, Rect};
 use specs::{Join, World, WorldExt};
 
 use crate::{components::Position, map::Map, player::Player, DISPLAY_HEIGHT, DISPLAY_WIDTH};

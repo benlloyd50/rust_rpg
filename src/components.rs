@@ -7,7 +7,7 @@ pub(crate) use crate::{
 };
 use std::{fmt::Display, str::FromStr, time::Duration};
 
-use bracket_terminal::prelude::{ColorPair, Degrees, Point, PointF};
+use bracket_lib::terminal::{ColorPair, Degrees, Point, PointF};
 use serde::{Deserialize, Serialize};
 #[allow(deprecated)] // deprecated but specs uses it so it's not my choice, maybe this gets changed in new version
 use specs::error::NoError;

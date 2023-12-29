@@ -3,7 +3,7 @@ use crate::{
     components::{HealthStats, Position},
     droptables::Drops,
 };
-use bracket_terminal::prelude::{ColorPair, DrawBatch, Point, BLACK};
+use bracket_lib::terminal::{ColorPair, DrawBatch, Point, BLACK};
 use serde::{Deserialize, Serialize};
 use specs::{Entity, World};
 
@@ -17,8 +17,7 @@ pub struct Map {
     pub world_coords: WorldCoords,
     pub tile_atlas_index: usize,
 
-    #[serde(skip_serializing)]
-    #[serde(skip_deserializing)]
+    #[serde(skip_serializing, skip_deserializing)]
     pub tile_entities: Vec<Vec<TileEntity>>,
 }
 
@@ -204,7 +203,6 @@ pub fn render_map(ecs: &World, batch: &mut DrawBatch) {
     }
 }
 
-/// If the struct requires the ability to convert xy to 1d idx make it call this
 pub fn xy_to_idx_given_width(x: usize, y: usize, width: usize) -> usize {
     x + y * width
 }

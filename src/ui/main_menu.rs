@@ -1,5 +1,5 @@
-use bracket_color::prelude::GREY4;
-use bracket_terminal::prelude::{to_char, to_cp437, ColorPair, DrawBatch, Point, Rect, TextAlign, WHITESMOKE};
+use bracket_lib::color::GREY4;
+use bracket_lib::terminal::{to_char, to_cp437, ColorPair, DrawBatch, Point, Rect, TextAlign, WHITESMOKE};
 
 use crate::{
     colors::{Color, DARKBLUE, DARKBLUEPURPLE, MIDDLERED, PL_SETTINGS_HIGHLIGHT, PL_SETTINGS_TEXT, SALMON},

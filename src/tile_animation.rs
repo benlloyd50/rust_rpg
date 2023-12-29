@@ -1,7 +1,6 @@
 use std::time::Duration;
 
-use bracket_terminal::prelude::ColorPair;
-use log::debug;
+use bracket_lib::terminal::ColorPair;
 use specs::{Entities, Entity, Join, Read, ReadStorage, System, Write, WriteStorage};
 
 use crate::{

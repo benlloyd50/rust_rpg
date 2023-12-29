@@ -6,18 +6,13 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ldtk_map = { path = "../ldtk_map/"}
+ldtk_map = { git = "https://github.com/benlloyd50/ldtk_map" }
+bracket-lib = { version = "0.8.7", features = ["serde", "specs"] }
 
-bracket-terminal = "0.8.7"
-bracket-rex = "0.8.7"
-bracket-random = "0.8.7"
-bracket-color = { version = "0.8.7", features = ["serde"] }
-bracket-geometry = { version = "0.8.7", features = ["serde"] }
-
-specs = {version = "0.20.0", features = ["specs-derive", "serde"] }
-serde = {version = "1.0", features = ["derive"] }
+specs = { version = "0.20.0", features = ["specs-derive", "serde"] }
+serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-json5 = "0.4.1" 
+json5 = "0.4.1"
 
 kira = "0.8.5"
 lazy_static = "1.4.0"
@@ -26,4 +21,4 @@ itertools = "0.12.0"
 log = "0.4.20"
 simplelog = "0.12.1"
 weighted_rand = "0.4.2"
-uuid = { version = "1.6.1", features = [ "v4"] }
+uuid = { version = "1.6.1", features = ["v4"] }

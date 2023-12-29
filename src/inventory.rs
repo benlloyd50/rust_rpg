@@ -1,4 +1,4 @@
-use bracket_terminal::prelude::{BTerm, VirtualKeyCode as VKC};
+use bracket_lib::terminal::{BTerm, VirtualKeyCode as VKC};
 use itertools::Itertools;
 use specs::{Entity, Join, World, WorldExt};
 use specs::{LendJoin, ReadStorage};

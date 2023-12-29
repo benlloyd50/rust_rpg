@@ -1,4 +1,4 @@
-use bracket_terminal::prelude::BTerm;
+use bracket_lib::terminal::BTerm;
 use ldtk_map::prelude::DesignMap;
 use log::debug;
 use specs::{
@@ -9,7 +9,9 @@ use specs::{
 pub const WHITE: (u8, u8, u8) = (255, 255, 255);
 
 use crate::{
-    components::{EquipmentSlots, Interactor, InteractorMode, LevelPersistent, Name, Position, Renderable, Transform},
+    components::{
+        EquipmentSlots, Interactor, InteractorMode, LevelPersistent, Name, Position, Renderable, Transform, Viewshed,
+    },
     data_read::prelude::{build_being, create_map, LDTK_FILE},
     items::{ItemID, ItemSpawner, SpawnType},
     map::Map,
@@ -44,6 +46,7 @@ pub fn initialize_new_game_world(ecs: &mut World, ctx: &mut BTerm) {
         .with(Position::new(67, 30))
         .with(Interactor::new(InteractorMode::Reactive))
         .with(Player {})
+        .with(Viewshed { tiles: vec![], range: 8 })
         .with(EquipmentSlots::human())
         .with(player_stats)
         .with(player_stats.set.get_health_stats())

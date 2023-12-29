@@ -1,4 +1,4 @@
-use bracket_terminal::prelude::{ColorPair, DrawBatch, Point, Rect, TextAlign};
+use bracket_lib::terminal::{ColorPair, DrawBatch, Point, Rect, TextAlign};
 use specs::{World, WorldExt};
 
 use crate::{

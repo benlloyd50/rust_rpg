@@ -1,4 +1,4 @@
-use bracket_terminal::prelude::DrawBatch;
+use bracket_lib::terminal::DrawBatch;
 use specs::World;
 
 use crate::{

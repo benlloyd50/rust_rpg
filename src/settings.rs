@@ -1,5 +1,5 @@
 use crate::{CL_INTERACTABLES, FONT_INTERACTABLES, FONT_INTERACTABLES_OUTLINE};
-use bracket_terminal::prelude::BTerm;
+use bracket_lib::terminal::BTerm;
 use std::fs;
 
 use log::{debug, error, warn};

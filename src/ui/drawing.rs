@@ -1,4 +1,4 @@
-use bracket_terminal::prelude::{to_cp437, ColorPair, DrawBatch, Rect};
+use bracket_lib::terminal::{to_cp437, ColorPair, DrawBatch, Rect};
 
 use crate::colors::white_fg;
 

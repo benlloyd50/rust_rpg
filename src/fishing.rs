@@ -15,9 +15,7 @@ use crate::{
 
 pub const WHITE: (u8, u8, u8) = (255, 255, 255);
 
-use bracket_color::prelude::ColorPair;
-use bracket_random::prelude::*;
-use bracket_terminal::prelude::BLACK;
+use bracket_lib::{color::ColorPair, random::*, terminal::BLACK};
 use log::info;
 use specs::{Entities, Join, Read, ReadStorage, System, Write, WriteExpect, WriteStorage};
 

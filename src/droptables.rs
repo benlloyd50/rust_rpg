@@ -1,4 +1,4 @@
-use bracket_random::prelude::RandomNumberGenerator;
+use bracket_lib::random::RandomNumberGenerator;
 use log::{debug, error};
 use specs::{Join, ReadStorage, System, Write};
 use weighted_rand::builder::{NewBuilder, WalkerTableBuilder};

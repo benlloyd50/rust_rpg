@@ -3,7 +3,7 @@
  * Colors should use their color name
  * Palettes should be named after their use ingame
  */
-use bracket_terminal::prelude::{register_palette_color, ColorPair, RGB, WHITESMOKE};
+use bracket_lib::terminal::{register_palette_color, ColorPair, RGB, WHITESMOKE};
 
 pub type Color = (u8, u8, u8);
 

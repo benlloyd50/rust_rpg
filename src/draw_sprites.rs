@@ -1,4 +1,4 @@
-use bracket_terminal::prelude::{DrawBatch, Point, *};
+use bracket_lib::terminal::*;
 use log::debug;
 use specs::{Join, World, WorldExt};
 

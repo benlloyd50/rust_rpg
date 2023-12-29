@@ -1,5 +1,5 @@
-use bracket_random::prelude::RandomNumberGenerator;
-use bracket_terminal::prelude::Point;
+use bracket_lib::random::RandomNumberGenerator;
+use bracket_lib::terminal::Point;
 use log::{info, warn};
 use pathfinding::prelude::astar;
 use serde::{Deserialize, Serialize};

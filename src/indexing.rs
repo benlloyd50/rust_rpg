@@ -3,7 +3,7 @@
  *   needed.
  * */
 
-use bracket_terminal::prelude::Point;
+use bracket_lib::terminal::Point;
 use specs::{Entities, Join, ReadStorage, System, WriteExpect};
 
 use crate::{

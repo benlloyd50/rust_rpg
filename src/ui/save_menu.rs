@@ -1,4 +1,4 @@
-use bracket_terminal::prelude::{to_char, ColorPair, DrawBatch, Point, Rect, TextAlign};
+use bracket_lib::terminal::{to_char, ColorPair, DrawBatch, Point, Rect, TextAlign};
 
 use crate::{
     colors::{MIDDLERED, PL_KEYBIND, SALMON},
