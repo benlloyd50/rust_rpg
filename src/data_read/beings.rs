@@ -1,5 +1,6 @@
 use std::fs;
 
+use log::warn;
 use serde::Deserialize;
 use serde_json::from_str;
 use specs::{
@@ -116,7 +117,10 @@ pub fn build_being(name: impl ToString, pos: Position, world: &mut World) -> Res
             "goal" => {
                 let goals = match &ai.goals {
                     Some(goals) => goals.iter().map(|goal| Name(goal.to_string())).collect::<Vec<Name>>(),
-                    None => panic!("{} has Goal ai type but no defined goals", &raw.name),
+                    None => {
+                        warn!("{} has Goal ai type but no defined goals.", &raw.name);
+                        vec![]
+                    }
                 };
                 builder.with(GoalMoverAI::with_desires(&goals, ai.goal_range.unwrap()))
             }

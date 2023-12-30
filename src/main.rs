@@ -1,7 +1,8 @@
 use crate::being::BeingID;
 use crate::colors::initialize_printer_palette;
+use crate::data_read::prelude::create_map;
 use crate::frame_animation::AnimationRenderer;
-use crate::game_init::{cleanup_old_map, load_map, move_player_to};
+use crate::game_init::{cleanup_old_map, move_player_to, set_level_font};
 use crate::logger::create_logger;
 use crate::map::MapRes;
 use crate::saveload::{SerializationHelper, SerializeMe};
@@ -159,7 +160,7 @@ impl State {
         let mut poll_fishing_tiles = PollFishingTiles;
         poll_fishing_tiles.run_now(&self.ecs);
 
-        // Misc Systems ==================================>
+        // Action Systems =================================>
         let mut heal_handler = HealActionHandler;
         heal_handler.run_now(&self.ecs);
         let mut destruction_sys = TileDestructionSystem;
@@ -168,6 +169,8 @@ impl State {
         damage_sys.run_now(&self.ecs);
         let mut item_pickup_handler = ItemPickupHandler;
         item_pickup_handler.run_now(&self.ecs);
+
+        // Misc Systems ==================================>
         let mut death_loot_spawn = DeathLootDrop;
         death_loot_spawn.run_now(&self.ecs);
         let mut viewshed_update = UpdateViewsheds;
@@ -253,7 +256,9 @@ impl GameState for State {
         match frame_state.current.clone() {
             AppState::NewGameStart => {
                 info!("Game startup occured");
-                initialize_new_game_world(&mut self.ecs, ctx);
+                initialize_new_game_world(&mut self.ecs);
+                set_level_font(&self.ecs, ctx);
+
                 let mut item_spawner = ItemSpawnerSystem;
                 item_spawner.run_now(&self.ecs);
                 frame_state.change_to(AppState::InGame);
@@ -262,6 +267,8 @@ impl GameState for State {
             AppState::LoadGameStart => {
                 debug!("Attempting to load save file");
                 load_game(&mut self.ecs);
+                set_level_font(&self.ecs, ctx);
+
                 frame_state.change_to(AppState::InGame);
                 debug!("Loaded save file");
             }
@@ -326,7 +333,10 @@ impl GameState for State {
             AppState::MapChange { level_name, player_world_pos } => {
                 debug!("going to {}", level_name);
                 cleanup_old_map(&mut self.ecs);
-                load_map(&level_name, &mut self.ecs, ctx);
+                let new_level = create_map(&mut self.ecs, &level_name);
+                self.ecs.insert(MapRes(new_level));
+
+                set_level_font(&self.ecs, ctx);
                 move_player_to(&player_world_pos, &mut self.ecs);
                 frame_state.change_to(AppState::InGame);
             }

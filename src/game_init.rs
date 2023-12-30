@@ -35,9 +35,10 @@ impl Default for PlayerEntity {
 
 const LEVEL_ZERO: &str = "Level_0";
 
-pub fn initialize_new_game_world(ecs: &mut World, ctx: &mut BTerm) {
+pub fn initialize_new_game_world(ecs: &mut World) {
     debug!("startup: map loading");
-    load_map(LEVEL_ZERO, ecs, ctx);
+    let new_level = create_map(ecs, LEVEL_ZERO);
+    ecs.insert(MapRes(new_level));
     debug!("startup: map loaded");
 
     let mut player_stats = get_random_stats();
@@ -94,11 +95,12 @@ pub fn move_player_to(world_pos: &Position, ecs: &mut World) {
     let _ = positions.insert(player_e.0, local_pos);
 }
 
-pub fn load_map(level: &str, ecs: &mut World, ctx: &mut BTerm) {
-    let map = create_map(ecs, level);
+/// Updates the CL_WORLD layer's font to match the active map's tile atlas
+pub fn set_level_font(ecs: &World, ctx: &mut BTerm) {
+    let map = ecs.read_resource::<MapRes>();
     ctx.set_active_console(CL_WORLD);
-    ctx.set_active_font(map.tile_atlas_index, false);
-    ecs.insert(MapRes(map));
+    ctx.set_active_font(map.0.tile_atlas_index, false);
+    debug!("Level font changed to index {}", map.0.tile_atlas_index);
 }
 
 pub fn find_next_map(pos: &Position) -> Option<String> {

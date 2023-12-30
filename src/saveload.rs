@@ -179,7 +179,7 @@ pub fn load_game(ecs: &mut World) {
             error!("No map found when loading the savegame.");
         }
 
-        // Recreate AI for beings
+        // Recreate AI components for beings
         let beings = ecs.write_storage::<BeingID>();
         let edb = &ENTITY_DB.lock().unwrap();
         for (being_e, being_id) in (&entities, &beings).join() {
@@ -197,7 +197,7 @@ pub fn load_game(ecs: &mut World) {
                                         goals.iter().map(|goal| Name(goal.to_string())).collect::<Vec<Name>>()
                                     }
                                     None => {
-                                        error!("{} has Goal ai type but no defined goals", &being_info.name);
+                                        warn!("{} has Goal ai type but no defined goals", &being_info.name);
                                         continue;
                                     }
                                 };
