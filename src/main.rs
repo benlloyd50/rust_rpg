@@ -48,6 +48,7 @@ mod game_init;
 mod indexing;
 mod inventory;
 mod logger;
+mod map_gen;
 mod saveload;
 mod settings;
 mod storage_utils;
@@ -345,21 +346,17 @@ impl GameState for State {
                 timer_update.run_now(&mut self.ecs);
                 match p_input_main_menu(ctx, &hovering) {
                     MenuAction::Selected(selected) => {
+                        play_sound_effect("confirm");
                         frame_state.change_to(match selected {
-                            MenuSelection::NewGame => {
-                                play_sound_effect("confirm");
-                                AppState::NewGameStart
-                            }
+                            MenuSelection::NewGame => AppState::NewGameStart,
                             MenuSelection::LoadGame => {
                                 if save_game_exists() {
-                                    play_sound_effect("confirm");
                                     AppState::LoadGameStart
                                 } else {
                                     AppState::MainMenu { hovering: MenuSelection::NewGame }
                                 }
                             }
                             MenuSelection::Settings => {
-                                play_sound_effect("confirm");
                                 AppState::SettingsMenu { hovering: SettingsSelection::SpriteMode }
                             }
                         });

@@ -91,7 +91,7 @@ pub fn move_player_to(world_pos: &Position, ecs: &mut World) {
     let mut positions = ecs.write_storage::<Position>();
     let player_e = ecs.read_resource::<PlayerEntity>();
     let map = ecs.read_resource::<MapRes>();
-    let local_pos = Position::new(world_pos.x - map.0.world_x(), world_pos.y - map.0.world_y());
+    let local_pos = Position::new(world_pos.x, world_pos.y);
     let _ = positions.insert(player_e.0, local_pos);
 }
 

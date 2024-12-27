@@ -14,7 +14,7 @@ pub struct Map {
     pub tiles: Vec<WorldTile>,
     pub width: usize,
     pub height: usize,
-    pub world_coords: WorldCoords,
+    // pub world_coords: WorldCoords,
     pub tile_atlas_index: usize,
 
     #[serde(skip_serializing, skip_deserializing)]
@@ -100,18 +100,17 @@ impl Map {
             tile_entities: vec![],
             width: 0,
             height: 0,
-            world_coords: (0, 0).into(),
+            // world_coords: (0, 0).into(),
             tile_atlas_index: 0,
         }
     }
 
-    pub fn new(width: usize, height: usize, world_coords: (usize, usize)) -> Self {
+    pub fn new(width: usize, height: usize) -> Self {
         Map {
             tiles: vec![WorldTile::default(); width * height],
             tile_entities: vec![vec![]; width * height],
             width,
             height,
-            world_coords: world_coords.into(),
             tile_atlas_index: 0,
         }
     }
@@ -120,13 +119,13 @@ impl Map {
         xy_to_idx_given_width(x, y, self.width)
     }
 
-    pub fn world_x(&self) -> usize {
-        self.world_coords.x
-    }
-
-    pub fn world_y(&self) -> usize {
-        self.world_coords.y
-    }
+    // pub fn world_x(&self) -> usize {
+    //     self.world_coords.x
+    // }
+    //
+    // pub fn world_y(&self) -> usize {
+    //     self.world_coords.y
+    // }
 
     /// Gets all the entities in the tile that are an item.
     /// It returns an iterator since often only the first value is used.
