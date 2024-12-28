@@ -12,14 +12,13 @@ to leveling your character to the max to "complete the game".
 
 ## Technical Details
 - 2d 
-- semi procedural in special areas
-- fabricated and fleshed out maps with many items to pick up
+- procedural with custom made prefabs
 
 ## Gameplay Details
-- No classes, design your own stat balance to create unique builds.
+- No classes, train your stats to create unique builds.
 - Deep crafting that provides improved tools and weapons if you have the right materials.
 - Dungeons with procedural generation for replayability and continuous progress.
-- Permadeath - an ode to roguelikes you die, you restart.
+- Permadeath Mode - an ode to roguelikes you die, you restart and hi-scores(eventually).
 
 ## Play the Game
 Go over to the releases tab and download the executable for your OS.
