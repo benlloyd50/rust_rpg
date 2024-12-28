@@ -1,8 +1,7 @@
 use crate::being::BeingID;
 use crate::colors::initialize_printer_palette;
-use crate::data_read::prelude::create_map;
 use crate::frame_animation::AnimationRenderer;
-use crate::game_init::{cleanup_old_map, move_player_to, set_level_font};
+use crate::game_init::set_level_font;
 use crate::logger::create_logger;
 use crate::map::MapRes;
 use crate::saveload::{SerializationHelper, SerializeMe};
@@ -55,6 +54,7 @@ mod ui;
 use inventory::{handle_one_item_actions, handle_two_item_actions, p_input_inventory, InventoryResponse};
 mod being;
 mod items;
+mod map_gen;
 mod mining;
 mod player;
 mod stats;
@@ -330,15 +330,16 @@ impl GameState for State {
                     AppState::ActivityBound { response_delay }
                 });
             }
-            AppState::MapChange { level_name, player_world_pos } => {
+            AppState::MapChange { level_name, player_world_pos: _ } => {
                 debug!("going to {}", level_name);
-                cleanup_old_map(&mut self.ecs);
-                let new_level = create_map(&mut self.ecs, &level_name);
-                self.ecs.insert(MapRes(new_level));
+                unreachable!("TODO: donot switch to mapchange state");
+                // cleanup_old_map(&mut self.ecs);
+                // let new_level = create_map(&mut self.ecs, &level_name);
+                // self.ecs.insert(MapRes(new_level));
 
-                set_level_font(&self.ecs, ctx);
-                move_player_to(&player_world_pos, &mut self.ecs);
-                frame_state.change_to(AppState::InGame);
+                // set_level_font(&self.ecs, ctx);
+                // move_player_to(&player_world_pos, &mut self.ecs);
+                // frame_state.change_to(AppState::InGame);
             }
             AppState::MainMenu { hovering } => {
                 let mut timer_update = UpdateAnimationTimers;
@@ -599,6 +600,7 @@ fn main() -> BError {
     world.register::<GlyphFlash>();
     world.register::<Viewshed>();
 
+    // Still components but used for saving the data in the ecs
     world.register::<SimpleMarker<SerializeMe>>();
     world.register::<SerializationHelper>();
     world.insert(SimpleMarkerAllocator::<SerializeMe>::new());
@@ -610,7 +612,7 @@ fn main() -> BError {
     world.insert(AnimationRenderer::new());
     world.insert(ItemSpawner::new());
     world.insert(MessageLog::new());
-    world.insert(MapRes(Map::empty()));
+    world.insert(MapRes(Map::empty(0, 0)));
     world.insert(TurnCounter::zero());
 
     let game_state = State { ecs: world, cfg };

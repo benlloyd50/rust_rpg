@@ -1,11 +1,10 @@
 use std::collections::HashSet;
 
 use bracket_lib::terminal::BTerm;
-use ldtk_map::prelude::DesignMap;
 use log::debug;
 use specs::{
     saveload::{MarkedBuilder, SimpleMarker},
-    Builder, Entity, Join, World, WorldExt,
+    Builder, Entity, World, WorldExt,
 };
 
 pub const WHITE: (u8, u8, u8) = (255, 255, 255);
@@ -14,9 +13,10 @@ use crate::{
     components::{
         EquipmentSlots, Interactor, InteractorMode, LevelPersistent, Name, Position, Renderable, Transform, Viewshed,
     },
-    data_read::prelude::{build_being, create_map, LDTK_FILE},
+    data_read::prelude::build_being,
     items::{ItemID, ItemSpawner, SpawnType},
     map::MapRes,
+    map_gen::{gen_world, WorldConfig},
     player::Player,
     saveload::SerializeMe,
     stats::get_random_stats,
@@ -33,12 +33,13 @@ impl Default for PlayerEntity {
     }
 }
 
-const LEVEL_ZERO: &str = "Level_0";
-
 pub fn initialize_new_game_world(ecs: &mut World) {
+    //TODO: get this as an argument to this function
+    let world_config = WorldConfig::default();
+
     debug!("startup: map loading");
-    let new_level = create_map(ecs, LEVEL_ZERO);
-    ecs.insert(MapRes(new_level));
+    let new_chunk = gen_world(ecs, &world_config);
+    ecs.insert(MapRes(new_chunk));
     debug!("startup: map loaded");
 
     let mut player_stats = get_random_stats();
@@ -73,44 +74,10 @@ pub fn initialize_new_game_world(ecs: &mut World) {
     debug!("startup: sample beings loaded");
 }
 
-pub fn cleanup_old_map(ecs: &mut World) {
-    let mut remove_me = Vec::new();
-    {
-        let persistent_objs = ecs.read_storage::<LevelPersistent>();
-        let entities = ecs.entities();
-
-        for (e, _) in (&entities, !&persistent_objs).join() {
-            remove_me.push(e);
-        }
-    }
-
-    let _ = ecs.delete_entities(&remove_me);
-}
-
-pub fn move_player_to(world_pos: &Position, ecs: &mut World) {
-    let mut positions = ecs.write_storage::<Position>();
-    let player_e = ecs.read_resource::<PlayerEntity>();
-    let map = ecs.read_resource::<MapRes>();
-    let local_pos = Position::new(world_pos.x - map.0.world_x(), world_pos.y - map.0.world_y());
-    let _ = positions.insert(player_e.0, local_pos);
-}
-
 /// Updates the CL_WORLD layer's font to match the active map's tile atlas
 pub fn set_level_font(ecs: &World, ctx: &mut BTerm) {
     let map = ecs.read_resource::<MapRes>();
     ctx.set_active_console(CL_WORLD);
     ctx.set_active_font(map.0.tile_atlas_index, false);
     debug!("Level font changed to index {}", map.0.tile_atlas_index);
-}
-
-pub fn find_next_map(pos: &Position) -> Option<String> {
-    let ldtk_design = DesignMap::load(LDTK_FILE); //note: loads all levels in file
-    ldtk_design
-        .levels()
-        .values()
-        .find(|level| {
-            (level.world_tile_x()..level.world_tile_x() + level.width()).contains(&pos.x)
-                && (level.world_tile_y()..level.world_tile_y() + level.height()).contains(&pos.y)
-        })
-        .and_then(|level| Some(level.name().to_string()))
 }

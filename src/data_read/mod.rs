@@ -2,7 +2,6 @@ mod animations;
 mod audio;
 mod beings;
 mod items;
-mod levels;
 mod recipes;
 mod world_objs;
 
@@ -14,7 +13,6 @@ pub mod prelude {
     pub use crate::data_read::animations::ANIMATION_DB;
     pub use crate::data_read::audio::{AUDIOMAN, AUDIO_DB};
     pub use crate::data_read::beings::build_being;
-    pub use crate::data_read::levels::{create_map, LDTK_FILE};
     pub use crate::data_read::recipes::RECIPE_DB;
     pub use crate::data_read::world_objs::build_world_obj;
     pub use crate::data_read::ENTITY_DB;
