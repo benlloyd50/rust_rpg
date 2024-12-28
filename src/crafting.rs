@@ -53,7 +53,7 @@ impl<'a> System<'a> for HandleCraftingSystem {
             }) {
                 Some(recipe) => recipe,
                 None => {
-                    log.log("No recipe matched for the items used to craft");
+                    log.log("These things had no effect on each other.");
                     continue;
                 }
             };
