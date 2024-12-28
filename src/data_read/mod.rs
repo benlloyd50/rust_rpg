@@ -2,6 +2,7 @@ mod animations;
 mod audio;
 mod beings;
 mod items;
+mod prefab;
 mod recipes;
 mod world_objs;
 
