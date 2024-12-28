@@ -4,7 +4,7 @@ use specs::{Join, ReadStorage, World, WorldExt};
 
 use crate::{
     camera::mouse_to_map_pos,
-    colors::{PL_MENU_TEXT, TEXASROSE},
+    colors::{PL_CRITICAL_HP, PL_LOW_HP, PL_MAX_HP, PL_MED_HP, PL_MENU_TEXT, TEXASROSE},
     components::{HealthStats, InBag, Interactor, Item, Name, Position, SelectedInventoryItem, Transform},
     config::{InventoryConfig, SortMode},
     game_init::PlayerEntity,
@@ -19,13 +19,33 @@ pub fn debug_info(ctx: &mut BTerm, ecs: &World, cfg: &InventoryConfig) {
     draw_interaction_mode(ctx, ecs);
     draw_inventory_state(ctx, ecs, cfg);
     draw_health(ctx, ecs);
+    draw_position(ctx, ecs);
 }
 
 fn draw_health(ctx: &mut BTerm, ecs: &World) {
     let player_entity = ecs.read_resource::<PlayerEntity>();
     let health_stats = ecs.read_storage::<HealthStats>();
     if let Some(stats) = health_stats.get(player_entity.0) {
-        ctx.printer(2, 6, format!("#[white]{}/{}#[]", stats.hp, stats.max_hp), TextAlign::Left, None);
+        let percent = stats.hp as f32 / stats.max_hp as f32;
+        let color = if stats.hp == stats.max_hp {
+            PL_MAX_HP
+        } else if percent > 0.5 {
+            PL_MED_HP
+        } else if percent > 0.25 {
+            PL_LOW_HP
+        } else {
+            PL_CRITICAL_HP
+        };
+
+        ctx.printer(2, 7, format!("#[{}]hp: {}/{}#[]", color, stats.hp, stats.max_hp), TextAlign::Left, None);
+    }
+}
+
+fn draw_position(ctx: &mut BTerm, ecs: &World) {
+    let player_entity = ecs.read_resource::<PlayerEntity>();
+    let positions = ecs.read_storage::<Position>();
+    if let Some(pos) = positions.get(player_entity.0) {
+        ctx.printer(2, 6, format!("#[white]pos: {}, {}#[]", pos.x, pos.y), TextAlign::Left, None);
     }
 }
 

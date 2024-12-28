@@ -28,6 +28,11 @@ pub fn initialize_printer_palette() {
     register_palette_color(PL_MENU_TEXT, to_rgb(DARKERBROWN));
     register_palette_color(PL_MENU_ACCENT_TEXT, to_rgb(DARKBROWN));
 
+    register_palette_color(PL_MAX_HP, RGB::from_hex("#67fc3a").unwrap());
+    register_palette_color(PL_MED_HP, RGB::from_hex("#48aa2a").unwrap());
+    register_palette_color(PL_LOW_HP, RGB::from_hex("#eab838").unwrap());
+    register_palette_color(PL_CRITICAL_HP, RGB::from_hex("#fc321b").unwrap());
+
     register_palette_color("red", to_rgb(MIDDLERED));
     register_palette_color("bright_green", RGB::from_u8(52, 156, 88));
     register_palette_color("white", to_rgb(WHITE));
@@ -45,6 +50,11 @@ pub const PL_SETTINGS_HIGHLIGHT: &str = "settings_highlight";
 pub const PL_ORANGE: &str = "orange";
 pub const PL_MENU_TEXT: &str = "menu_text";
 pub const PL_MENU_ACCENT_TEXT: &str = "menu_accent_text";
+
+pub const PL_MAX_HP: &str = "max_hp";
+pub const PL_MED_HP: &str = "med_hp";
+pub const PL_LOW_HP: &str = "low_hp";
+pub const PL_CRITICAL_HP: &str = "critical_hp";
 
 // Color Definitions
 pub const MIDDLERED: Color = (183, 65, 50);
