@@ -1,3 +1,4 @@
+use bracket_lib::noise::FastNoise;
 use specs::World;
 
 use crate::{
@@ -28,7 +29,32 @@ pub fn gen_world(ecs: &mut World, wc: &WorldConfig) -> Map {
             new_map.set_tile(WorldTile::default(), x, y);
         }
     }
+
+    // just a random boulder
     let _ = build_world_obj("Boulder".to_string(), Position::new(15, 20), ecs);
 
+    generate_forest_terrain(&mut new_map);
+
     new_map
+}
+
+fn generate_forest_terrain(map: &mut Map) {
+    let mut noise = FastNoise::new();
+    noise.set_fractal_octaves(4);
+
+    for x in 0..map.width {
+        for y in 0..map.height {
+            let value = noise.get_noise(x as f32, y as f32);
+
+            let tile = if value > 0.5 {
+                WorldTile { atlas_index: 0, transparent: true }
+            } else if value > 0.5 {
+                WorldTile { atlas_index: 2, transparent: true }
+            } else {
+                WorldTile { atlas_index: 4, transparent: true }
+            };
+
+            map.set_tile(tile, x, y);
+        }
+    }
 }

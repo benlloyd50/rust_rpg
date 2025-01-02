@@ -1,0 +1,23 @@
+[
+    {
+        "name": "forest",
+        "noise_type": "simplex",
+        "octaves": 4,
+        "frequency": 0.05,
+        "lacunarity": 2.0,
+        "tile_mapping": [
+            {
+                "chance": 0.5,
+                "id": 12,
+            },
+            {
+                "chance": 0.75,
+                "id": 13,
+            },
+            {
+                "chance": 1.0,
+                "id": 11,
+            }
+        ]
+    },
+]
