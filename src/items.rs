@@ -66,6 +66,7 @@ impl ItemSpawner {
         Self { requests: Vec::new() }
     }
 
+    #[allow(unused)]
     pub fn request_named(&mut self, name: &str, spawn_type: SpawnType) {
         let edb = &ENTITY_DB.lock().unwrap();
         let id = edb.items.get_by_name(name).unwrap().identifier;

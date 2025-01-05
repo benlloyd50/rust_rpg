@@ -8,6 +8,7 @@ use crate::saveload::{SerializationHelper, SerializeMe};
 use crate::ui::draw_ui;
 use crate::ui::message_log::MessageLog;
 use std::mem::discriminant;
+use std::process::exit;
 use std::time::Duration;
 
 use audio::play_sound_effect;
@@ -56,6 +57,7 @@ mod being;
 mod items;
 mod map_gen;
 mod mining;
+mod noise;
 mod player;
 mod stats;
 mod tile_animation;
@@ -362,6 +364,10 @@ impl GameState for State {
                             MenuSelection::Settings => {
                                 play_sound_effect("confirm");
                                 AppState::SettingsMenu { hovering: SettingsSelection::SpriteMode }
+                            }
+                            MenuSelection::QuitGame => {
+                                info!("Quitting the game from the main menu.");
+                                exit(1);
                             }
                         });
                     }

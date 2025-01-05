@@ -9,13 +9,14 @@ use crate::{
     CL_EFFECTS, CL_TEXT, DISPLAY_HEIGHT, DISPLAY_WIDTH,
 };
 
-// Menu contianing the new, load, and settings
+// Menu contianing the starting options for the player
 const MENU_WIDTH: usize = 15;
-const MENU_HEIGHT: usize = 8;
+const MENU_HEIGHT: usize = 2 + MENU_OPTIONS.len() * 2;
 const MENU_START_Y: usize = DISPLAY_HEIGHT * 2 - MENU_HEIGHT - 10;
 const MENU_START_X: usize = DISPLAY_WIDTH - MENU_WIDTH / 2;
 
-const MENU_OPTIONS: [&str; 3] = ["new game", "load game", "settings"];
+// TODO: Somehow this should be generated from an enum like MenuSelection
+const MENU_OPTIONS: [&str; 4] = ["new game", "load game", "settings", "quit game"];
 
 const MAIN_MENU_ACCENT: Color = MIDDLERED;
 const MAIN_MENU_BG: Color = DARKBLUEPURPLE;
@@ -48,11 +49,13 @@ pub fn draw_main_menu(draw_batch: &mut DrawBatch, hovered: &MenuSelection) {
         } else {
             ColorPair::new(MAIN_MENU_ACCENT, MAIN_MENU_BG)
         };
+
         let text = if hovered.to_lowercase() == opt.to_owned() {
             format!("{}{}{}", to_char(16), opt.to_uppercase(), to_char(17))
         } else {
             opt.to_string()
         };
+
         draw_batch.print_color(Point::new(MENU_START_X + 3, MENU_START_Y + 2 + (2 * idx)), text, colors);
     }
 }
@@ -68,7 +71,7 @@ pub fn draw_settings(draw_batch: &mut DrawBatch, cfg: &SettingsConfig) {
 
     // Settings Box
     draw_batch.draw_hollow_double_box(
-        Rect::with_size(MENU_START_X, MENU_START_Y, MENU_WIDTH, MENU_HEIGHT),
+        Rect::with_size(MENU_START_X, MENU_START_Y, MENU_WIDTH * 2, MENU_HEIGHT),
         ColorPair::new(MAIN_MENU_ACCENT, MAIN_MENU_BG),
     );
 
