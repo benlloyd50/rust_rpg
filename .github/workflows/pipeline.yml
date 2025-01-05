@@ -11,10 +11,11 @@ env:
 
 jobs:
   build:
-
     runs-on: ubuntu-24.04
 
     steps:
+    - name: install deps
+      run: sudo apt install librust-alsa-sys-dev
     - uses: actions/checkout@v4
     - name: Build
       run: cargo build --verbose
