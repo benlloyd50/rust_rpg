@@ -40,23 +40,24 @@ impl From<(usize, usize)> for WorldCoords {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct WorldTile {
-    pub atlas_index: usize,
+    pub atlas_idx: usize,
     pub transparent: bool,
 }
 
-impl WorldTile {
-    pub fn default() -> Self {
-        Self { atlas_index: 4, transparent: true }
+impl Default for WorldTile {
+    fn default() -> Self {
+        Self { atlas_idx: 4, transparent: true }
     }
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct ObjectID(pub usize);
 
 #[allow(unused)]
 pub struct WorldObject {
     /// Unique id to find the world object's static data
-    pub identifier: ObjectID,
+    pub id: ObjectID,
     pub name: String,
     pub atlas_index: u8,
     pub is_blocking: bool,
@@ -196,7 +197,7 @@ pub fn render_map(ecs: &World, batch: &mut DrawBatch) {
     for x in bounding_box.x1..bounding_box.x2 {
         for y in bounding_box.y1..bounding_box.y2 {
             let atlas_index = if x < map.0.width as i32 && y < map.0.height as i32 && x >= 0 && y >= 0 {
-                map.0.tiles[map.0.xy_to_idx(x as usize, y as usize)].atlas_index
+                map.0.tiles[map.0.xy_to_idx(x as usize, y as usize)].atlas_idx
             } else {
                 xy_to_idx_given_width(0, 2, 16)
             };

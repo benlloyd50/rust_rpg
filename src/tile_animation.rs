@@ -81,7 +81,8 @@ impl<'a> System<'a> for TileAnimationSpawner {
 
                     let new_anim = entities.create();
                     let _ = positions.insert(new_anim, *at);
-                    let _ = color_flashes.insert(new_anim, GlyphFlash { time_left: *time_left, sprite: flash.clone() });
+                    let _ =
+                        color_flashes.insert(new_anim, GlyphFlash { _time_left: *time_left, sprite: flash.clone() });
                     let _ = delete_conditions.insert(new_anim, DeleteCondition::Timed(*time_left));
                 }
             }
