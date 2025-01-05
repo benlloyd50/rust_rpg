@@ -15,6 +15,7 @@ pub mod prelude {
     pub use crate::data_read::animations::ANIMATION_DB;
     pub use crate::data_read::audio::{AUDIOMAN, AUDIO_DB};
     pub use crate::data_read::beings::build_being;
+    pub use crate::data_read::noise::NOISE_DB;
     pub use crate::data_read::recipes::RECIPE_DB;
     pub use crate::data_read::world_objs::build_world_obj;
     pub use crate::data_read::ENTITY_DB;
@@ -76,7 +77,6 @@ pub fn initialize_game_databases() {
     game_db.beings = BeingDatabase::load(&game_db);
 
     ENTITY_DB.lock().unwrap().load(game_db);
-
     NOISE_DB.lock().unwrap().load();
     RECIPE_DB.lock().unwrap().load();
     ANIMATION_DB.lock().unwrap().load();

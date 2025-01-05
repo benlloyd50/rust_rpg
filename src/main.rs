@@ -57,6 +57,7 @@ mod being;
 mod items;
 mod map_gen;
 mod mining;
+mod noise;
 mod player;
 mod stats;
 mod tile_animation;

@@ -1,9 +1,8 @@
-use bracket_lib::noise::FastNoise;
 use specs::World;
 
 use crate::{
     components::Position,
-    data_read::prelude::build_world_obj,
+    data_read::prelude::{build_world_obj, NOISE_DB},
     map::{Map, WorldTile},
     FONT_TERRAIN_FOREST,
 };
@@ -26,7 +25,7 @@ pub fn gen_world(ecs: &mut World, wc: &WorldConfig) -> Map {
     new_map.tile_atlas_index = FONT_TERRAIN_FOREST;
     for x in 0..wc.width {
         for y in 0..wc.height {
-            new_map.set_tile(WorldTile::default(), x, y);
+            new_map.set_tile(&WorldTile::default(), x, y);
         }
     }
 
@@ -39,22 +38,13 @@ pub fn gen_world(ecs: &mut World, wc: &WorldConfig) -> Map {
 }
 
 fn generate_forest_terrain(map: &mut Map) {
-    let mut noise = FastNoise::new();
-    noise.set_fractal_octaves(4);
+    let noise_db = NOISE_DB.lock().unwrap();
+    let noise = noise_db.get_by_name("forest").unwrap();
 
     for x in 0..map.width {
         for y in 0..map.height {
-            let value = noise.get_noise(x as f32, y as f32);
-
-            let tile = if value > 0.5 {
-                WorldTile { atlas_index: 0, transparent: true }
-            } else if value > 0.5 {
-                WorldTile { atlas_index: 2, transparent: true }
-            } else {
-                WorldTile { atlas_index: 4, transparent: true }
-            };
-
-            map.set_tile(tile, x, y);
+            let world_tile = noise.gen_tile(x, y);
+            map.set_tile(&world_tile, x, y);
         }
     }
 }

@@ -7,16 +7,16 @@
         "lacunarity": 2.0,
         "tile_mapping": [
             {
-                "chance": 0.5,
-                "id": 12,
+                "chance": 0.3,
+                "atlas_idx": 0,
             },
             {
                 "chance": 0.75,
-                "id": 13,
+                "atlas_idx": 1,
             },
             {
-                "chance": 1.0,
-                "id": 11,
+                "chance": 0.0,
+                "atlas_idx": 7,
             }
         ]
     },

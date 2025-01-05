@@ -152,9 +152,9 @@ impl Map {
         pos.x >= 0 && pos.x < self.width as i32 && pos.y >= 0 && pos.y < self.height as i32
     }
 
-    pub fn set_tile(&mut self, tile: WorldTile, x: usize, y: usize) {
+    pub fn set_tile(&mut self, tile: &WorldTile, x: usize, y: usize) {
         let idx = self.xy_to_idx(x, y);
-        self.tiles[idx] = tile;
+        self.tiles[idx] = tile.clone();
     }
 }
 

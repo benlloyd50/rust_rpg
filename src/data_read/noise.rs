@@ -6,6 +6,8 @@ use std::sync::Mutex;
 
 use bracket_lib::noise::{FastNoise, NoiseType};
 
+use crate::noise::{Noise, TileMapping};
+
 lazy_static! {
     pub static ref NOISE_DB: Mutex<NoiseDatabase> = Mutex::new(NoiseDatabase::empty());
 }
@@ -14,12 +16,6 @@ const NOISE_PATH: &str = "raws/noise.json5";
 
 pub struct NoiseDatabase {
     pub noises: Vec<Noise>,
-}
-
-pub struct Noise {
-    pub name: String,
-    pub noise: FastNoise,
-    pub mapping: Vec<TileMapping>,
 }
 
 #[derive(Deserialize)]
@@ -33,19 +29,13 @@ struct RawNoise {
     pub tile_mapping: Option<Vec<TileMapping>>,
 }
 
-#[derive(Deserialize)]
-pub struct TileMapping {
-    chance: f32, // 0.0 to 1.0
-    #[serde(rename = "id")]
-    world_obj_id: usize,
-}
-
 impl NoiseDatabase {
     pub fn empty() -> Self {
         NoiseDatabase { noises: Vec::new() }
     }
 
     pub fn load(&mut self) {
+        let mut noise_db = Self::empty();
         let raw_noises = fs::read_to_string(NOISE_PATH).expect(&format!("Failed to read noise file: {}", NOISE_PATH));
         let raw_noises: Vec<RawNoise> =
             json5::from_str(&raw_noises).expect(&format!("Failed to parse noise file: {}", NOISE_PATH));
@@ -81,7 +71,11 @@ impl NoiseDatabase {
             if let Some(tilemap) = noise.tile_mapping {
                 parsed.mapping = tilemap;
             }
+
+            noise_db.noises.push(parsed);
         }
+
+        *self = noise_db;
     }
 
     pub fn get_by_name(&self, name: &str) -> Option<&Noise> {
