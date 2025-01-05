@@ -15,7 +15,7 @@ jobs:
 
     steps:
     - name: install deps
-      run: sudo apt install librust-alsa-sys-dev
+      run: sudo apt install librust-alsa-sys-dev libfontconfig1-dev
     - uses: actions/checkout@v4
     - name: Build
       run: cargo build --verbose
