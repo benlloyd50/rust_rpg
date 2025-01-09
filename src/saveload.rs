@@ -1,7 +1,10 @@
 use std::convert::Infallible;
+use std::fmt::Debug;
 use std::fs::{self, create_dir, File};
 use std::path::Path;
+use std::time::SystemTime;
 
+use chrono::Local;
 use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
 use specs::saveload::{DeserializeComponents, MarkedBuilder, SerializeComponents, SimpleMarker, SimpleMarkerAllocator};
@@ -98,12 +101,14 @@ pub fn save_game(ecs: &mut World) {
         .marked::<SimpleMarker<SerializeMe>>()
         .build();
 
-    let writer = match File::create(format!("{}mysavegame.json", SAVE_PATH)) {
+    //TODO: try to read existing file name from a resource?
+    let file_name = format!("{}{}", SAVE_PATH, generate_save_name(&Local::now().to_string()));
+    let writer = match File::create(&file_name) {
         Ok(w) => w,
         Err(_e) => {
             warn!("Failed to create file trying to create directory and try again.");
             let _ = create_dir(SAVE_PATH);
-            match File::create(format!("{}mysavegame.json", SAVE_PATH)) {
+            match File::create(&file_name) {
                 Ok(w) => w,
                 Err(e) => {
                     error!("Could not save file successfully, {}", e);
@@ -130,6 +135,9 @@ pub fn load_game(ecs: &mut World) {
     // make sure everything is wiped out
     cleanup_game(ecs);
 
+    // TODO: find what file is trying to be loaded
+
+    // use that to read to string
     let save_data = match fs::read_to_string(format!("{}mysavegame.json", SAVE_PATH)) {
         Ok(data) => data,
         Err(e) => {
@@ -224,4 +232,9 @@ pub fn load_game(ecs: &mut World) {
 
     debug!("Loading game complete");
     ecs.delete_entity(delete_me.unwrap()).expect("Unable to delete helper after loading.");
+}
+
+fn generate_save_name(name: &str) -> String {
+    // get the time as a string
+    format!("{}.edo", name)
 }
