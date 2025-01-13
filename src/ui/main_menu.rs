@@ -84,3 +84,39 @@ pub fn draw_settings(draw_batch: &mut DrawBatch, cfg: &SettingsConfig) {
         Some(MAIN_MENU_BG.into()),
     );
 }
+
+pub fn draw_load_game_menu(draw_batch: &mut DrawBatch, save_games: &[String], hovering: usize) {
+    // This should target a layer that is low so then layers can be drawn on top of it if needed
+    draw_batch.target(CL_EFFECTS);
+    draw_batch.fill_region(
+        Rect::with_size(0, 0, DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2),
+        ColorPair::new(WHITESMOKE, MAIN_MENU_BG),
+        to_cp437(' '),
+    );
+
+    let menu_height = save_games.len() + 2;
+
+    // Draw box for menu
+    draw_batch.target(CL_TEXT);
+    let menu_rect = Rect::with_size(MENU_START_X, MENU_START_Y - menu_height, 19, menu_height);
+    draw_batch.draw_hollow_double_box(menu_rect, ColorPair::new(MAIN_MENU_ACCENT, MAIN_MENU_BG));
+    draw_batch.fill_region(
+        Rect::with_exact(menu_rect.x1 + 1, menu_rect.y1 + 1, menu_rect.x2, menu_rect.y2),
+        ColorPair::new(WHITESMOKE, MAIN_MENU_BG),
+        to_cp437(' '),
+    );
+
+    for (idx, file_name) in save_games.iter().enumerate() {
+        let colors = if hovering == idx {
+            ColorPair::new(MAIN_MENU_TEXT_HL, MAIN_MENU_HL)
+        } else {
+            ColorPair::new(MAIN_MENU_ACCENT, MAIN_MENU_BG)
+        };
+        let text = if hovering == idx {
+            format!("{}{}{}", to_char(16), file_name.to_uppercase(), to_char(17))
+        } else {
+            file_name.to_string()
+        };
+        draw_batch.print_color(Point::new(MENU_START_X + 1, (MENU_START_Y - menu_height) + 1 + idx), text, colors);
+    }
+}

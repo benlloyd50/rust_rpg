@@ -1,5 +1,6 @@
 use bracket_lib::terminal::DrawBatch;
-use specs::World;
+use main_menu::draw_load_game_menu;
+use specs::{World, WorldExt};
 
 use crate::{
     config::ConfigMaster,
@@ -7,6 +8,7 @@ use crate::{
     fov::draw_unseen_area,
     frame_animation::print_frame_animations,
     inventory::{check_inventory_selection, SelectionStatus},
+    saveload_menu::GameSaves,
     AppState, CL_EFFECTS, CL_EFFECTS2, CL_TEXT,
 };
 
@@ -33,7 +35,7 @@ pub fn draw_ui(ecs: &World, appstate: &AppState, cfg: &ConfigMaster) {
     draw_batch.target(CL_EFFECTS2).cls();
     draw_batch.target(CL_TEXT).cls();
 
-    match *appstate {
+    match appstate {
         AppState::InGame => {
             draw_message_log(&mut draw_batch, ecs);
             draw_turn_counter(&mut draw_batch, ecs);
@@ -61,6 +63,10 @@ pub fn draw_ui(ecs: &World, appstate: &AppState, cfg: &ConfigMaster) {
         }
         AppState::SettingsMenu { .. } => {
             draw_settings(&mut draw_batch, &cfg.general);
+        }
+        AppState::LoadGameMenu { hovering } => {
+            let save_games = ecs.read_resource::<GameSaves>();
+            draw_load_game_menu(&mut draw_batch, &save_games.saves, *hovering);
         }
         _ => {}
     }

@@ -13,6 +13,7 @@ use std::time::Duration;
 use audio::play_sound_effect;
 use being::{GoalFindEntities, GoalMoveToEntities, HandleMoveActions, RandomMonsterMovementSystem};
 use bracket_lib::geometry::Point;
+use bracket_lib::prelude::VirtualKeyCode;
 use bracket_lib::terminal::{main_loop, render_draw_buffer, BError, BTerm, BTermBuilder, GameState};
 use combat::{AttackActionHandler, HealActionHandler};
 use config::ConfigMaster;
@@ -27,7 +28,8 @@ use game_init::initialize_new_game_world;
 use items::{ConsumeHandler, ItemPickupHandler, ItemSpawnerSystem, ZeroQtyItemCleanup};
 use log::{debug, error, info, warn};
 use mining::{DamageSystem, RemoveDeadTiles, TileDestructionSystem};
-use saveload::{cleanup_game, load_game, save_game, save_game_exists, SaveAction};
+use saveload::{cleanup_game, load_game, save_game, SaveAction};
+use saveload_menu::{get_save_games, p_input_load_game_menu, GameSaves, LoadMenuAction, LoadedWorld};
 use settings::{handle_setting_selected, SettingsAction, SettingsSelection};
 use specs::prelude::*;
 
@@ -48,6 +50,7 @@ mod indexing;
 mod inventory;
 mod logger;
 mod saveload;
+mod saveload_menu;
 mod settings;
 mod storage_utils;
 mod ui;
@@ -207,7 +210,8 @@ pub enum AppState {
     MainMenu { hovering: MenuSelection },
     SettingsMenu { hovering: SettingsSelection },
     NewGameStart,
-    LoadGameStart,
+    LoadGameMenu { hovering: usize },
+    LoadGameStart { file_name: String },
     MapChange { level_name: String, player_world_pos: Position },
     InGame,
     ActivityBound { response_delay: Duration },
@@ -242,6 +246,10 @@ impl AppState {
     pub fn activity_bound() -> Self {
         Self::ActivityBound { response_delay: Duration::ZERO }
     }
+
+    pub fn loadgame_menu() -> Self {
+        Self::LoadGameMenu { hovering: 0 }
+    }
 }
 
 impl GameState for State {
@@ -264,9 +272,9 @@ impl GameState for State {
                 frame_state.change_to(AppState::InGame);
                 info!("Game startup finished. Switching to ingame state");
             }
-            AppState::LoadGameStart => {
-                debug!("Attempting to load save file");
-                load_game(&mut self.ecs);
+            AppState::LoadGameStart { file_name } => {
+                debug!("Attempting to load save file, {}", file_name);
+                load_game(&mut self.ecs, file_name);
                 set_level_font(&self.ecs, ctx);
 
                 frame_state.change_to(AppState::InGame);
@@ -344,6 +352,7 @@ impl GameState for State {
             AppState::MainMenu { hovering } => {
                 let mut timer_update = UpdateAnimationTimers;
                 timer_update.run_now(&mut self.ecs);
+
                 match p_input_main_menu(ctx, &hovering) {
                     MenuAction::Selected(selected) => {
                         frame_state.change_to(match selected {
@@ -352,12 +361,8 @@ impl GameState for State {
                                 AppState::NewGameStart
                             }
                             MenuSelection::LoadGame => {
-                                if save_game_exists() {
-                                    play_sound_effect("confirm");
-                                    AppState::LoadGameStart
-                                } else {
-                                    AppState::MainMenu { hovering: MenuSelection::NewGame }
-                                }
+                                play_sound_effect("confirm");
+                                AppState::PreRun { next_state: Box::new(AppState::loadgame_menu()) }
                             }
                             MenuSelection::Settings => {
                                 play_sound_effect("confirm");
@@ -374,6 +379,27 @@ impl GameState for State {
                     }
                 }
             }
+            AppState::LoadGameMenu { hovering } => {
+                let save_games = self.ecs.read_resource::<GameSaves>();
+                match p_input_load_game_menu(ctx) {
+                    LoadMenuAction::MoveDown => {
+                        let new_pos = if hovering == save_games.saves.len() - 1 { 0 } else { hovering + 1 };
+                        frame_state.change_to(AppState::LoadGameMenu { hovering: new_pos });
+                    }
+                    LoadMenuAction::MoveUp => {
+                        let new_pos = if hovering == 0 { save_games.saves.len() - 1 } else { hovering - 1 };
+                        frame_state.change_to(AppState::LoadGameMenu { hovering: new_pos });
+                    }
+                    LoadMenuAction::Select => {
+                        let file_selected = save_games.saves.get(hovering).unwrap().to_string();
+                        frame_state.change_to(AppState::LoadGameStart { file_name: file_selected });
+                    }
+                    LoadMenuAction::Back => frame_state.change_to(AppState::PreRun {
+                        next_state: Box::new(AppState::MainMenu { hovering: MenuSelection::LoadGame }),
+                    }),
+                    LoadMenuAction::Waiting => {}
+                }
+            }
             AppState::SettingsMenu { hovering } => match p_input_settings(ctx) {
                 SettingsAction::Selected => {
                     handle_setting_selected(&hovering, &mut self.cfg.general, ctx);
@@ -388,11 +414,31 @@ impl GameState for State {
             },
             AppState::SaveGame => match p_input_save_game(ctx) {
                 SaveAction::Save => {
-                    save_game(&mut self.ecs);
-                    cleanup_game(&mut self.ecs);
-                    frame_state.change_to(AppState::PreRun {
-                        next_state: Box::new(AppState::MainMenu { hovering: MenuSelection::NewGame }),
-                    });
+                    let file_name = check_file_name(&self.ecs);
+
+                    if file_name.is_none() {
+                        read_input(ctx, &mut self.ecs);
+                        if ctx.key == Some(VirtualKeyCode::Return) {
+                            let mut lw = self.ecs.write_resource::<LoadedWorld>();
+                            lw.file_name = Some(format!("{}.edo", lw.temp_input.clone()));
+                            info!("Inputted new name for save file: {}", lw.file_name.as_ref().unwrap());
+                        }
+                    } else {
+                        save_game(&mut self.ecs);
+                        {
+                            // Reset loaded world variables
+                            let mut lw = self.ecs.write_resource::<LoadedWorld>();
+                            info!(
+                                "{}, Loaded World is now being deloaded.",
+                                lw.file_name.as_ref().unwrap().to_string()
+                            );
+                            *lw = LoadedWorld::default();
+                        }
+                        cleanup_game(&mut self.ecs);
+                        frame_state.change_to(AppState::PreRun {
+                            next_state: Box::new(AppState::MainMenu { hovering: MenuSelection::NewGame }),
+                        });
+                    }
                 }
                 SaveAction::Cancel => {
                     frame_state.change_to(AppState::InGame);
@@ -436,7 +482,8 @@ impl GameState for State {
             | AppState::SettingsMenu { .. }
             | AppState::ActivityBound { .. }
             | AppState::SaveGame
-            | AppState::LoadGameStart
+            | AppState::LoadGameStart { .. }
+            | AppState::LoadGameMenu { .. }
             | AppState::PreRun { .. } => (),
         }
 
@@ -450,12 +497,66 @@ impl GameState for State {
     }
 }
 
+fn check_file_name(ecs: &World) -> Option<String> {
+    let lw = ecs.read_resource::<LoadedWorld>();
+    lw.file_name.clone()
+}
+
+fn read_input(ctx: &mut BTerm, ecs: &mut World) {
+    let mut lw = ecs.write_resource::<LoadedWorld>();
+
+    if let Some(key) = ctx.key {
+        let letter = get_alpha(key);
+        lw.temp_input.push_str(&letter);
+        debug!("{}", lw.temp_input);
+    }
+}
+
+pub fn get_alpha(key: VirtualKeyCode) -> String {
+    match key {
+        VirtualKeyCode::A => "a",
+        VirtualKeyCode::B => "b",
+        VirtualKeyCode::C => "c",
+        VirtualKeyCode::D => "d",
+        VirtualKeyCode::E => "e",
+        VirtualKeyCode::F => "f",
+        VirtualKeyCode::G => "g",
+        VirtualKeyCode::H => "h",
+        VirtualKeyCode::I => "i",
+        VirtualKeyCode::J => "j",
+        VirtualKeyCode::K => "k",
+        VirtualKeyCode::L => "l",
+        VirtualKeyCode::M => "m",
+        VirtualKeyCode::N => "n",
+        VirtualKeyCode::O => "o",
+        VirtualKeyCode::P => "p",
+        VirtualKeyCode::Q => "q",
+        VirtualKeyCode::R => "r",
+        VirtualKeyCode::S => "s",
+        VirtualKeyCode::T => "t",
+        VirtualKeyCode::U => "u",
+        VirtualKeyCode::V => "v",
+        VirtualKeyCode::W => "w",
+        VirtualKeyCode::X => "x",
+        VirtualKeyCode::Y => "y",
+        VirtualKeyCode::Z => "z",
+        _ => "",
+    }
+    .to_string()
+}
+
 /// These systems are ran every time upon entering a state
 fn run_pre_state_systems(state: &AppState, ecs: &mut World) {
     match state {
         AppState::MainMenu { .. } => {
             ecs.write_resource::<AnimationRenderer>()
                 .request("main_menu_intro", AnimationPlay::lasting(Point::new(DISPLAY_WIDTH / 4, DISPLAY_HEIGHT / 3)));
+        }
+        AppState::LoadGameMenu { .. } => {
+            let mut saves = ecs.write_resource::<GameSaves>();
+            let games = get_save_games();
+            println!("{:#?}", games);
+            *saves = GameSaves { saves: games };
         }
         _ => {}
     }
@@ -614,6 +715,8 @@ fn main() -> BError {
     world.insert(MessageLog::new());
     world.insert(MapRes(Map::empty(0, 0)));
     world.insert(TurnCounter::zero());
+    world.insert(GameSaves::default());
+    world.insert(LoadedWorld::default());
 
     let game_state = State { ecs: world, cfg };
     main_loop(context, game_state)
