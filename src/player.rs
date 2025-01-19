@@ -7,7 +7,7 @@ use crate::{
     game_init::PlayerEntity,
     items::inventory_contains,
     map::{MapRes, TileEntity},
-    saveload::{save_game_exists, SaveAction},
+    saveload::{any_save_game_exists, SaveAction},
     settings::SettingsAction,
     ui::message_log::MessageLog,
     AppState, Position,
@@ -205,7 +205,7 @@ pub fn p_input_main_menu(ctx: &mut BTerm, hovering: &MenuSelection) -> MenuActio
     if let Some(key) = ctx.key {
         match key {
             VKC::Down | VKC::S => MenuAction::Hovering(match hovering {
-                MenuSelection::NewGame if save_game_exists() => MenuSelection::LoadGame,
+                MenuSelection::NewGame if any_save_game_exists() => MenuSelection::LoadGame,
                 MenuSelection::NewGame => MenuSelection::Settings,
                 MenuSelection::LoadGame => MenuSelection::Settings,
                 MenuSelection::Settings => MenuSelection::NewGame,
@@ -213,7 +213,7 @@ pub fn p_input_main_menu(ctx: &mut BTerm, hovering: &MenuSelection) -> MenuActio
             VKC::Up | VKC::W => MenuAction::Hovering(match hovering {
                 MenuSelection::NewGame => MenuSelection::Settings,
                 MenuSelection::LoadGame => MenuSelection::NewGame,
-                MenuSelection::Settings if save_game_exists() => MenuSelection::LoadGame,
+                MenuSelection::Settings if any_save_game_exists() => MenuSelection::LoadGame,
                 MenuSelection::Settings => MenuSelection::NewGame,
             }),
             VKC::Return => MenuAction::Selected(*hovering),
@@ -225,15 +225,16 @@ pub fn p_input_main_menu(ctx: &mut BTerm, hovering: &MenuSelection) -> MenuActio
 }
 
 pub fn p_input_save_game(ctx: &mut BTerm) -> SaveAction {
-    if ctx.key.is_none() {
-        return SaveAction::Waiting;
-    }
-    match ctx.key.unwrap() {
-        VKC::Return | VKC::S => SaveAction::Save,
-        VKC::Escape => SaveAction::Cancel,
-        VKC::Space => SaveAction::QuickSave,
-        VKC::D => SaveAction::QuitWithoutSaving,
-        _ => SaveAction::Waiting,
+    if let Some(key) = ctx.key {
+        match key {
+            VKC::Return | VKC::S => SaveAction::Save,
+            VKC::Escape => SaveAction::Cancel,
+            VKC::Space => SaveAction::QuickSave,
+            VKC::D => SaveAction::QuitWithoutSaving,
+            _ => SaveAction::Waiting,
+        }
+    } else {
+        SaveAction::Waiting
     }
 }
 

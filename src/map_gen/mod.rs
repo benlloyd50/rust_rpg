@@ -3,18 +3,55 @@ use specs::World;
 use crate::{
     components::Position,
     data_read::prelude::build_world_obj,
+    game_init::InputWorldConfig,
     map::{Map, WorldTile},
+    saveload::{save_game_exists, SAVE_EXTENSION},
     FONT_TERRAIN_FOREST,
 };
 
+#[derive(Clone, PartialEq, Eq)]
 pub struct WorldConfig {
+    pub world_name: String,
     pub width: usize,
     pub height: usize,
 }
 
 impl Default for WorldConfig {
     fn default() -> Self {
-        Self { width: 100, height: 100 }
+        Self { world_name: "".to_string(), width: 100, height: 100 }
+    }
+}
+
+impl WorldConfig {
+    pub fn try_from(iwc: &InputWorldConfig) -> Result<Self, Vec<String>> {
+        let mut errors = vec![];
+
+        if iwc.world_name.is_empty() {
+            errors.push("World name cannot be empty".to_string());
+        }
+        if save_game_exists(&format!("{}.{}", iwc.world_name, SAVE_EXTENSION)) {
+            errors.push("World name already exists".to_string());
+        }
+
+        let height = match iwc.height.parse::<usize>() {
+            Ok(h) => h,
+            Err(_) => {
+                errors.push("Invalid height".to_string());
+                0
+            }
+        };
+        let width = match iwc.width.parse::<usize>() {
+            Ok(w) => w,
+            Err(_) => {
+                errors.push("Invalid width".to_string());
+                0
+            }
+        };
+
+        if !errors.is_empty() {
+            return Err(errors);
+        }
+        Ok(Self { world_name: iwc.world_name.clone(), width, height })
     }
 }
 

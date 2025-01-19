@@ -1,10 +1,7 @@
 use std::convert::Infallible;
-use std::fmt::Debug;
 use std::fs::{self, create_dir, File};
 use std::path::Path;
-use std::time::SystemTime;
 
-use chrono::Local;
 use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
 use specs::saveload::{DeserializeComponents, MarkedBuilder, SerializeComponents, SimpleMarker, SimpleMarkerAllocator};
@@ -26,6 +23,7 @@ use crate::data_read::ENTITY_DB;
 use crate::game_init::PlayerEntity;
 use crate::map::{Map, MapRes};
 use crate::player::Player;
+use crate::saveload_menu::LoadedWorld;
 use crate::ui::message_log::MessageLog;
 
 // ripped right from https://bfnightly.bracketproductions.com/chapter_11.html
@@ -79,17 +77,29 @@ pub enum SaveAction {
 }
 
 pub const SAVE_PATH: &str = "./saves/";
+pub const SAVE_EXTENSION: &str = "edo";
 
 pub fn cleanup_game(ecs: &mut World) {
     info!("Cleaning up game world.");
     ecs.delete_all();
     let mut message_log = ecs.write_resource::<MessageLog>();
     message_log.clear();
+    let mut lw = ecs.write_resource::<LoadedWorld>();
+    if let Some(file_name) = lw.file_name.as_ref() {
+        info!("{}, Loaded World is now being deloaded.", file_name);
+    }
+    *lw = LoadedWorld::default();
     info!("Cleaning Successful");
 }
 
-pub fn save_game_exists() -> bool {
-    Path::new(SAVE_PATH).exists()
+pub fn save_game_exists(file_name: &str) -> bool {
+    Path::new(&format!("{}{}", SAVE_PATH, file_name)).exists()
+}
+
+pub fn any_save_game_exists() -> bool {
+    fs::read_dir(SAVE_PATH).is_ok_and(|mut dir| {
+        dir.any(|f| f.is_ok_and(|f| f.path().extension().is_some_and(|ext| ext == SAVE_EXTENSION)))
+    })
 }
 
 pub fn save_game(ecs: &mut World) {
@@ -101,14 +111,16 @@ pub fn save_game(ecs: &mut World) {
         .marked::<SimpleMarker<SerializeMe>>()
         .build();
 
-    //TODO: try to read existing file name from a resource?
-    let file_name = format!("{}{}", SAVE_PATH, generate_save_name(&Local::now().to_string()));
-    let writer = match File::create(&file_name) {
+    let lw = ecs.get_mut::<LoadedWorld>().unwrap();
+    let file_name = lw.file_name.clone().unwrap_or(format!("default.{SAVE_EXTENSION}"));
+    let full_file_path = format!("{}{}", SAVE_PATH, file_name);
+
+    let writer = match File::create(&full_file_path) {
         Ok(w) => w,
-        Err(_e) => {
-            warn!("Failed to create file trying to create directory and try again.");
+        Err(e) => {
+            warn!("Failed to create file trying to create directory and try again. Error: {}", e);
             let _ = create_dir(SAVE_PATH);
-            match File::create(&file_name) {
+            match File::create(&full_file_path) {
                 Ok(w) => w,
                 Err(e) => {
                     error!("Could not save file successfully, {}", e);
@@ -127,21 +139,20 @@ pub fn save_game(ecs: &mut World) {
                                 BeingID, Viewshed,
                                 Player, EquipmentSlots, Water, Grass, Interactor, AttackBonus, SerializationHelper);
     }
-    info!("Game was saved");
+    info!("{} was saved", file_name);
 
     ecs.delete_entity(savehelper).expect("Crash in cleanup, hopefully we still saved.");
 }
-pub fn load_game(ecs: &mut World) {
+pub fn load_game(ecs: &mut World, file_name: String) {
     // make sure everything is wiped out
     cleanup_game(ecs);
 
-    // TODO: find what file is trying to be loaded
-
-    // use that to read to string
-    let save_data = match fs::read_to_string(format!("{}mysavegame.json", SAVE_PATH)) {
+    // TODO: keep track of file_name for saving
+    let save_game_path = format!("{}{}", SAVE_PATH, file_name);
+    let save_data = match fs::read_to_string(&save_game_path) {
         Ok(data) => data,
         Err(e) => {
-            error!("Save game file cannot be loaded from `{}`", SAVE_PATH);
+            error!("Save game file cannot be loaded from `{}`", &save_game_path);
             error!("Load game error: {}", e);
             return;
         }
@@ -230,11 +241,7 @@ pub fn load_game(ecs: &mut World) {
         }
     }
 
+    ecs.insert(LoadedWorld { file_name: Some(file_name), ..Default::default() });
     debug!("Loading game complete");
     ecs.delete_entity(delete_me.unwrap()).expect("Unable to delete helper after loading.");
-}
-
-fn generate_save_name(name: &str) -> String {
-    // get the time as a string
-    format!("{}.edo", name)
 }
