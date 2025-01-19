@@ -15,7 +15,7 @@ use crate::{
 use self::{
     fishing::draw_fishing_bar,
     inventory::draw_inventory,
-    main_menu::{draw_main_menu, draw_settings},
+    main_menu::{draw_main_menu, draw_new_game_menu, draw_settings},
     message_log::{draw_message_log, draw_turn_counter},
     save_menu::draw_save_menu,
     use_menu::draw_use_menu,
@@ -67,6 +67,9 @@ pub fn draw_ui(ecs: &World, appstate: &AppState, cfg: &ConfigMaster) {
         AppState::LoadGameMenu { hovering } => {
             let save_games = ecs.read_resource::<GameSaves>();
             draw_load_game_menu(&mut draw_batch, &save_games.saves, *hovering);
+        }
+        AppState::NewGameInitialize { hovering, world_cfg, form_errors } => {
+            draw_new_game_menu(&mut draw_batch, hovering, world_cfg, form_errors);
         }
         _ => {}
     }

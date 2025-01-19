@@ -1,6 +1,5 @@
 use std::convert::Infallible;
 use std::fs::{self, create_dir, File};
-use std::path::Path;
 
 use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
@@ -77,18 +76,30 @@ pub enum SaveAction {
 }
 
 pub const SAVE_PATH: &str = "./saves/";
+pub const SAVE_EXTENSION: &str = "edo";
 
 pub fn cleanup_game(ecs: &mut World) {
     info!("Cleaning up game world.");
     ecs.delete_all();
     let mut message_log = ecs.write_resource::<MessageLog>();
     message_log.clear();
+    let mut lw = ecs.write_resource::<LoadedWorld>();
+    if let Some(file_name) = lw.file_name.as_ref() {
+        info!("{}, Loaded World is now being deloaded.", file_name);
+    }
+    *lw = LoadedWorld::default();
     info!("Cleaning Successful");
 }
 
-// TODO: save game check like this won't work anymore, should check existence of save game files
-pub fn save_game_exists() -> bool {
-    Path::new(SAVE_PATH).exists()
+// TODO: remove if no longer necessary
+// pub fn save_game_exists(file_name: String) -> bool {
+//     Path::new(SAVE_PATH).exists()
+// }
+
+pub fn any_save_game_exists() -> bool {
+    fs::read_dir(SAVE_PATH).is_ok_and(|mut dir| {
+        dir.any(|f| f.is_ok_and(|f| f.path().extension().is_some_and(|ext| ext == SAVE_EXTENSION)))
+    })
 }
 
 pub fn save_game(ecs: &mut World) {
@@ -101,7 +112,8 @@ pub fn save_game(ecs: &mut World) {
         .build();
 
     let lw = ecs.get_mut::<LoadedWorld>().unwrap();
-    let full_file_path = format!("{}{}", SAVE_PATH, lw.file_name.clone().unwrap_or("default.edo".to_string()));
+    let file_name = lw.file_name.clone().unwrap_or(format!("default.{SAVE_EXTENSION}"));
+    let full_file_path = format!("{}{}", SAVE_PATH, file_name);
 
     let writer = match File::create(&full_file_path) {
         Ok(w) => w,
@@ -127,7 +139,7 @@ pub fn save_game(ecs: &mut World) {
                                 BeingID, Viewshed,
                                 Player, EquipmentSlots, Water, Grass, Interactor, AttackBonus, SerializationHelper);
     }
-    info!("Game was saved");
+    info!("{} was saved", file_name);
 
     ecs.delete_entity(savehelper).expect("Crash in cleanup, hopefully we still saved.");
 }

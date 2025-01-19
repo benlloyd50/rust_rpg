@@ -18,7 +18,6 @@ pub struct GameSaves {
 #[derive(Default)]
 pub struct LoadedWorld {
     pub file_name: Option<String>,
-    pub temp_input: String,
 }
 
 pub enum LoadMenuAction {

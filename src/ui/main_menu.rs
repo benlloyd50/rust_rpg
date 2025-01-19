@@ -1,10 +1,11 @@
 use bracket_lib::color::GREY4;
 use bracket_lib::terminal::{to_char, to_cp437, ColorPair, DrawBatch, Point, Rect, TextAlign, WHITESMOKE};
 
+use crate::game_init::{InputWorldConfig, NewGameMenuSelection};
+use crate::saveload::any_save_game_exists;
 use crate::{
     colors::{Color, DARKBLUE, DARKBLUEPURPLE, MIDDLERED, PL_SETTINGS_HIGHLIGHT, PL_SETTINGS_TEXT, SALMON},
     player::MenuSelection,
-    saveload::save_game_exists,
     settings::{SettingsConfig, SpriteMode},
     CL_EFFECTS, CL_TEXT, DISPLAY_HEIGHT, DISPLAY_WIDTH,
 };
@@ -23,7 +24,7 @@ const MAIN_MENU_HL: Color = DARKBLUE;
 const MAIN_MENU_TEXT_HL: Color = SALMON;
 
 pub fn draw_main_menu(draw_batch: &mut DrawBatch, hovered: &MenuSelection) {
-    // This should target a layer that is low so then layers can be drawn on top of it if needed
+    // Background, on effects as to not interfere with title anim
     draw_batch.target(CL_EFFECTS);
     draw_batch.fill_region(
         Rect::with_size(0, 0, DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2),
@@ -41,7 +42,7 @@ pub fn draw_main_menu(draw_batch: &mut DrawBatch, hovered: &MenuSelection) {
     );
 
     for (idx, opt) in MENU_OPTIONS.iter().enumerate() {
-        let colors = if opt == &"load game" && !save_game_exists() {
+        let colors = if opt == &"load game" && !any_save_game_exists() {
             ColorPair::new(GREY4, MAIN_MENU_BG)
         } else if hovered.to_lowercase() == opt.to_owned() {
             ColorPair::new(MAIN_MENU_TEXT_HL, MAIN_MENU_HL)
@@ -86,8 +87,8 @@ pub fn draw_settings(draw_batch: &mut DrawBatch, cfg: &SettingsConfig) {
 }
 
 pub fn draw_load_game_menu(draw_batch: &mut DrawBatch, save_games: &[String], hovering: usize) {
-    // This should target a layer that is low so then layers can be drawn on top of it if needed
-    draw_batch.target(CL_EFFECTS);
+    // Background
+    draw_batch.target(CL_TEXT);
     draw_batch.fill_region(
         Rect::with_size(0, 0, DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2),
         ColorPair::new(WHITESMOKE, MAIN_MENU_BG),
@@ -118,5 +119,63 @@ pub fn draw_load_game_menu(draw_batch: &mut DrawBatch, save_games: &[String], ho
             file_name.to_string()
         };
         draw_batch.print_color(Point::new(MENU_START_X + 1, (MENU_START_Y - menu_height) + 1 + idx), text, colors);
+    }
+}
+
+pub fn draw_new_game_menu(
+    draw_batch: &mut DrawBatch,
+    hovering: &NewGameMenuSelection,
+    world_cfg: &InputWorldConfig,
+    form_errors: &Vec<String>,
+) {
+    // Background
+    draw_batch.target(CL_TEXT);
+    draw_batch.fill_region(
+        Rect::with_size(0, 0, DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2),
+        ColorPair::new(WHITESMOKE, MAIN_MENU_BG),
+        to_cp437(' '),
+    );
+
+    let menu_start_x = MENU_START_X - 10;
+    let menu_height = 20;
+
+    draw_batch.target(CL_TEXT);
+    let menu_rect = Rect::with_size(menu_start_x, MENU_START_Y - menu_height, 29, menu_height);
+    draw_batch.draw_hollow_double_box(menu_rect, ColorPair::new(MAIN_MENU_ACCENT, MAIN_MENU_BG));
+    draw_batch.fill_region(
+        Rect::with_exact(menu_rect.x1 + 1, menu_rect.y1 + 1, menu_rect.x2, menu_rect.y2),
+        ColorPair::new(WHITESMOKE, MAIN_MENU_BG),
+        to_cp437(' '),
+    );
+
+    let hl = ColorPair::new(MAIN_MENU_TEXT_HL, MAIN_MENU_HL);
+    let no = ColorPair::new(MAIN_MENU_ACCENT, MAIN_MENU_BG);
+    let (name, width, height, finish) = match hovering {
+        NewGameMenuSelection::WorldName => (hl, no, no, no),
+        NewGameMenuSelection::Width => (no, hl, no, no),
+        NewGameMenuSelection::Height => (no, no, hl, no),
+        NewGameMenuSelection::Finalize => (no, no, no, hl),
+    };
+
+    draw_batch.print_color(
+        Point::new(menu_start_x + 1, MENU_START_Y - menu_height + 1),
+        format!("World Name: {}", world_cfg.world_name),
+        name,
+    );
+    draw_batch.print_color(
+        Point::new(menu_start_x + 1, MENU_START_Y - menu_height + 3),
+        format!("Map Width: {}", world_cfg.width),
+        width,
+    );
+    draw_batch.print_color(
+        Point::new(menu_start_x + 1, MENU_START_Y - menu_height + 4),
+        format!("Map Height: {}", world_cfg.height),
+        height,
+    );
+
+    draw_batch.print_color(Point::new(menu_start_x + 29 / 2, MENU_START_Y), format!("Finish"), finish);
+
+    for (idx, err) in form_errors.iter().enumerate() {
+        draw_batch.print_color(Point::new(menu_start_x + 29 / 2, MENU_START_Y - (menu_height + idx + 1)), err, finish);
     }
 }

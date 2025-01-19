@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use bracket_lib::terminal::BTerm;
+use bracket_lib::terminal::{BTerm, VirtualKeyCode};
 use log::debug;
 use specs::{
     saveload::{MarkedBuilder, SimpleMarker},
@@ -14,11 +14,13 @@ use crate::{
         EquipmentSlots, Interactor, InteractorMode, LevelPersistent, Name, Position, Renderable, Transform, Viewshed,
     },
     data_read::prelude::build_being,
+    get_alphanumber,
     items::{ItemID, ItemSpawner, SpawnType},
     map::MapRes,
     map_gen::{gen_world, WorldConfig},
     player::Player,
     saveload::SerializeMe,
+    saveload_menu::LoadedWorld,
     stats::get_random_stats,
     z_order::PLAYER_Z,
     CL_WORLD,
@@ -33,10 +35,7 @@ impl Default for PlayerEntity {
     }
 }
 
-pub fn initialize_new_game_world(ecs: &mut World) {
-    //TODO: get this as an argument to this function
-    let world_config = WorldConfig::default();
-
+pub fn initialize_new_game_world(ecs: &mut World, world_config: &WorldConfig) {
     debug!("startup: map loading");
     let new_chunk = gen_world(ecs, &world_config);
     ecs.insert(MapRes(new_chunk));
@@ -72,6 +71,9 @@ pub fn initialize_new_game_world(ecs: &mut World) {
     let mut transforms = ecs.write_storage::<Transform>();
     let _ = transforms.insert(greg, Transform::new(12.0, 19.0, 0.0, 1.0, 1.0));
     debug!("startup: sample beings loaded");
+
+    let mut lw = ecs.write_resource::<LoadedWorld>();
+    lw.file_name = Some(world_config.world_name.clone());
 }
 
 /// Updates the CL_WORLD layer's font to match the active map's tile atlas
@@ -80,4 +82,48 @@ pub fn set_level_font(ecs: &World, ctx: &mut BTerm) {
     ctx.set_active_console(CL_WORLD);
     ctx.set_active_font(map.0.tile_atlas_index, false);
     debug!("Level font changed to index {}", map.0.tile_atlas_index);
+}
+
+#[derive(PartialEq, Eq, Clone)]
+pub enum NewGameMenuSelection {
+    WorldName,
+    Width,
+    Height,
+    Finalize,
+}
+
+pub enum NewGameMenuAction {
+    Text(char),
+    Select,
+    Down,
+    Up,
+    Waiting,
+    DelChar,
+    Leave,
+}
+
+#[derive(Default, Clone, PartialEq, Eq)]
+pub struct InputWorldConfig {
+    pub world_name: String,
+    pub width: String,
+    pub height: String,
+}
+
+pub fn p_input_new_game_menu(ctx: &mut BTerm) -> NewGameMenuAction {
+    if let Some(key) = ctx.key {
+        if let Some(letter) = get_alphanumber(key) {
+            return NewGameMenuAction::Text(letter);
+        }
+
+        return match key {
+            VirtualKeyCode::Return => NewGameMenuAction::Select,
+            VirtualKeyCode::Down => NewGameMenuAction::Down,
+            VirtualKeyCode::Up => NewGameMenuAction::Up,
+            VirtualKeyCode::Back => NewGameMenuAction::DelChar,
+            VirtualKeyCode::Escape => NewGameMenuAction::Leave,
+            _ => NewGameMenuAction::Waiting,
+        };
+    }
+
+    NewGameMenuAction::Waiting
 }
