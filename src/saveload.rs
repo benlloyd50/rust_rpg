@@ -1,5 +1,6 @@
 use std::convert::Infallible;
 use std::fs::{self, create_dir, File};
+use std::path::Path;
 
 use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
@@ -91,10 +92,9 @@ pub fn cleanup_game(ecs: &mut World) {
     info!("Cleaning Successful");
 }
 
-// TODO: remove if no longer necessary
-// pub fn save_game_exists(file_name: String) -> bool {
-//     Path::new(SAVE_PATH).exists()
-// }
+pub fn save_game_exists(file_name: &str) -> bool {
+    Path::new(&format!("{}{}", SAVE_PATH, file_name)).exists()
+}
 
 pub fn any_save_game_exists() -> bool {
     fs::read_dir(SAVE_PATH).is_ok_and(|mut dir| {

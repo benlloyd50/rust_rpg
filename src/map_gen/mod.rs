@@ -5,6 +5,7 @@ use crate::{
     data_read::prelude::build_world_obj,
     game_init::InputWorldConfig,
     map::{Map, WorldTile},
+    saveload::{save_game_exists, SAVE_EXTENSION},
     FONT_TERRAIN_FOREST,
 };
 
@@ -27,6 +28,9 @@ impl WorldConfig {
 
         if iwc.world_name.is_empty() {
             errors.push("World name cannot be empty".to_string());
+        }
+        if save_game_exists(&format!("{}.{}", iwc.world_name, SAVE_EXTENSION)) {
+            errors.push("World name already exists".to_string());
         }
 
         let height = match iwc.height.parse::<usize>() {
