@@ -19,7 +19,7 @@ use crate::{
     map::MapRes,
     map_gen::{gen_world, WorldConfig},
     player::Player,
-    saveload::SerializeMe,
+    saveload::{SerializeMe, SAVE_EXTENSION},
     saveload_menu::LoadedWorld,
     stats::get_random_stats,
     z_order::PLAYER_Z,
@@ -73,7 +73,7 @@ pub fn initialize_new_game_world(ecs: &mut World, world_config: &WorldConfig) {
     debug!("startup: sample beings loaded");
 
     let mut lw = ecs.write_resource::<LoadedWorld>();
-    lw.file_name = Some(world_config.world_name.clone());
+    lw.file_name = Some(format!("{}.{}", world_config.world_name.clone(), SAVE_EXTENSION));
 }
 
 /// Updates the CL_WORLD layer's font to match the active map's tile atlas
