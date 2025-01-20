@@ -395,70 +395,66 @@ impl GameState for State {
             }
             AppState::NewGameInitialize { hovering, world_cfg: mut cfg_input, form_errors } => {
                 match p_input_new_game_menu(ctx) {
-                    NewGameMenuAction::Text(ch) => match hovering {
-                        NewGameMenuSelection::WorldName => {
-                            cfg_input.world_name.push(ch);
+                    NewGameMenuAction::Text(ch) => {
+                        match hovering {
+                            NewGameMenuSelection::WorldName => {
+                                cfg_input.world_name.push(ch);
+                            }
+                            NewGameMenuSelection::Width => {
+                                if let Some(_) = ch.to_digit(10) {
+                                    cfg_input.width.push(ch);
+                                }
+                            }
+                            NewGameMenuSelection::Height => {
+                                if let Some(_) = ch.to_digit(10) {
+                                    cfg_input.height.push(ch);
+                                }
+                            }
+                            NewGameMenuSelection::Seed => {
+                                cfg_input.seed.push(ch);
+                            }
+                            NewGameMenuSelection::Finalize => {}
+                        }
+                        if !matches!(hovering, NewGameMenuSelection::Finalize) {
                             frame_state.change_to(AppState::NewGameInitialize {
                                 hovering,
                                 world_cfg: cfg_input,
                                 form_errors,
-                            })
+                            });
                         }
-                        NewGameMenuSelection::Width => {
-                            if let Some(_) = ch.to_digit(10) {
-                                cfg_input.width.push(ch);
-                                frame_state.change_to(AppState::NewGameInitialize {
-                                    hovering,
-                                    world_cfg: cfg_input,
-                                    form_errors,
-                                })
+                    }
+                    NewGameMenuAction::DelChar => {
+                        match hovering {
+                            NewGameMenuSelection::WorldName => {
+                                if cfg_input.world_name.len() > 0 {
+                                    cfg_input.world_name.remove(cfg_input.world_name.len() - 1);
+                                }
                             }
+                            NewGameMenuSelection::Width => {
+                                if cfg_input.width.len() > 0 {
+                                    cfg_input.width.remove(cfg_input.width.len() - 1);
+                                }
+                            }
+                            NewGameMenuSelection::Height => {
+                                if cfg_input.height.len() > 0 {
+                                    cfg_input.height.remove(cfg_input.height.len() - 1);
+                                }
+                            }
+                            NewGameMenuSelection::Seed => {
+                                if cfg_input.seed.len() > 0 {
+                                    cfg_input.seed.remove(cfg_input.seed.len() - 1);
+                                }
+                            }
+                            NewGameMenuSelection::Finalize => {}
                         }
-                        NewGameMenuSelection::Height => {
-                            if let Some(_) = ch.to_digit(10) {
-                                cfg_input.height.push(ch);
-                                frame_state.change_to(AppState::NewGameInitialize {
-                                    hovering,
-                                    world_cfg: cfg_input,
-                                    form_errors,
-                                })
-                            }
-                        }
-                        NewGameMenuSelection::Finalize => {}
-                    },
-                    NewGameMenuAction::DelChar => match hovering {
-                        NewGameMenuSelection::WorldName => {
-                            if cfg_input.world_name.len() > 0 {
-                                cfg_input.world_name.remove(cfg_input.world_name.len() - 1);
-                            }
+                        if !matches!(hovering, NewGameMenuSelection::Finalize) {
                             frame_state.change_to(AppState::NewGameInitialize {
                                 hovering,
                                 world_cfg: cfg_input,
                                 form_errors,
-                            })
+                            });
                         }
-                        NewGameMenuSelection::Width => {
-                            if cfg_input.width.len() > 0 {
-                                cfg_input.width.remove(cfg_input.width.len() - 1);
-                            }
-                            frame_state.change_to(AppState::NewGameInitialize {
-                                hovering,
-                                world_cfg: cfg_input,
-                                form_errors,
-                            })
-                        }
-                        NewGameMenuSelection::Height => {
-                            if cfg_input.height.len() > 0 {
-                                cfg_input.height.remove(cfg_input.height.len() - 1);
-                            }
-                            frame_state.change_to(AppState::NewGameInitialize {
-                                hovering,
-                                world_cfg: cfg_input,
-                                form_errors,
-                            })
-                        }
-                        NewGameMenuSelection::Finalize => {}
-                    },
+                    }
                     NewGameMenuAction::Select => match hovering {
                         NewGameMenuSelection::Finalize => match WorldConfig::try_from(&cfg_input) {
                             Ok(world_cfg) => frame_state.change_to(AppState::NewGameStart { world_cfg }),
@@ -472,32 +468,16 @@ impl GameState for State {
                         },
                         _ => {}
                     },
-                    NewGameMenuAction::Up => {
-                        let new_select = match hovering {
-                            NewGameMenuSelection::WorldName => NewGameMenuSelection::Finalize,
-                            NewGameMenuSelection::Width => NewGameMenuSelection::WorldName,
-                            NewGameMenuSelection::Height => NewGameMenuSelection::Width,
-                            NewGameMenuSelection::Finalize => NewGameMenuSelection::Height,
-                        };
-                        frame_state.change_to(AppState::NewGameInitialize {
-                            hovering: new_select,
-                            world_cfg: cfg_input,
-                            form_errors,
-                        })
-                    }
-                    NewGameMenuAction::Down => {
-                        let new_select = match hovering {
-                            NewGameMenuSelection::WorldName => NewGameMenuSelection::Width,
-                            NewGameMenuSelection::Width => NewGameMenuSelection::Height,
-                            NewGameMenuSelection::Height => NewGameMenuSelection::Finalize,
-                            NewGameMenuSelection::Finalize => NewGameMenuSelection::WorldName,
-                        };
-                        frame_state.change_to(AppState::NewGameInitialize {
-                            hovering: new_select,
-                            world_cfg: cfg_input,
-                            form_errors,
-                        })
-                    }
+                    NewGameMenuAction::Up => frame_state.change_to(AppState::NewGameInitialize {
+                        hovering: hovering.prev(),
+                        world_cfg: cfg_input,
+                        form_errors,
+                    }),
+                    NewGameMenuAction::Down => frame_state.change_to(AppState::NewGameInitialize {
+                        hovering: hovering.next(),
+                        world_cfg: cfg_input,
+                        form_errors,
+                    }),
                     NewGameMenuAction::Leave => frame_state.change_to(AppState::PreRun {
                         next_state: Box::new(AppState::MainMenu { hovering: MenuSelection::NewGame }),
                     }),

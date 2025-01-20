@@ -1,5 +1,5 @@
 use lazy_static::lazy_static;
-use log::error;
+use log::{error, info};
 use serde::Deserialize;
 use std::fs;
 use std::sync::Mutex;
@@ -76,6 +76,13 @@ impl NoiseDatabase {
         }
 
         *self = noise_db;
+    }
+
+    pub fn reseed(&mut self, seed: u64) {
+        info!("seed for world set to {}", seed);
+        for noise in &mut self.noises {
+            noise.noise.set_seed(seed);
+        }
     }
 
     pub fn get_by_name(&self, name: &str) -> Option<&Noise> {

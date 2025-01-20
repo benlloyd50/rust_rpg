@@ -153,11 +153,12 @@ pub fn draw_new_game_menu(
 
     let hl = ColorPair::new(MAIN_MENU_TEXT_HL, MAIN_MENU_HL);
     let no = ColorPair::new(MAIN_MENU_ACCENT, MAIN_MENU_BG);
-    let (name, width, height, finish) = match hovering {
-        NewGameMenuSelection::WorldName => (hl, no, no, no),
-        NewGameMenuSelection::Width => (no, hl, no, no),
-        NewGameMenuSelection::Height => (no, no, hl, no),
-        NewGameMenuSelection::Finalize => (no, no, no, hl),
+    let (name, width, height, seed, finish) = match hovering {
+        NewGameMenuSelection::WorldName => (hl, no, no, no, no),
+        NewGameMenuSelection::Width => (no, hl, no, no, no),
+        NewGameMenuSelection::Height => (no, no, hl, no, no),
+        NewGameMenuSelection::Seed => (no, no, no, hl, no),
+        NewGameMenuSelection::Finalize => (no, no, no, no, hl),
     };
 
     draw_batch.print_color(
@@ -165,20 +166,27 @@ pub fn draw_new_game_menu(
         format!("World Name: {}", world_cfg.world_name),
         name,
     );
+
+    draw_batch.print_color(Point::new(menu_start_x + 1, MENU_START_Y - menu_height + 3), "==Map==", no);
     draw_batch.print_color(
-        Point::new(menu_start_x + 1, MENU_START_Y - menu_height + 3),
-        format!("Map Width: {}", world_cfg.width),
+        Point::new(menu_start_x + 1, MENU_START_Y - menu_height + 4),
+        format!("Width: {}", world_cfg.width),
         width,
     );
     draw_batch.print_color(
-        Point::new(menu_start_x + 1, MENU_START_Y - menu_height + 4),
-        format!("Map Height: {}", world_cfg.height),
+        Point::new(menu_start_x + 1, MENU_START_Y - menu_height + 5),
+        format!("Height: {}", world_cfg.height),
         height,
+    );
+    draw_batch.print_color(
+        Point::new(menu_start_x + 1, MENU_START_Y - menu_height + 6),
+        format!("Seed: {}", world_cfg.seed),
+        seed,
     );
 
     draw_batch.print_color(Point::new(menu_start_x + 29 / 2, MENU_START_Y), format!("Finish"), finish);
 
     for (idx, err) in form_errors.iter().enumerate() {
-        draw_batch.print_color(Point::new(menu_start_x + 29 / 2, MENU_START_Y - (menu_height + idx + 1)), err, finish);
+        draw_batch.print_color(Point::new(menu_start_x + 29 / 2, MENU_START_Y - (menu_height + idx + 1)), err, hl);
     }
 }
