@@ -530,7 +530,7 @@ impl SizeFlexor {
 #[storage(VecStorage)]
 #[allow(unused)]
 pub struct GlyphFlash {
-    pub time_left: Duration,
+    pub _time_left: Duration,
     pub sprite: Renderable,
 }
 

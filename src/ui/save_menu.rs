@@ -18,31 +18,31 @@ pub fn draw_save_menu(draw_batch: &mut DrawBatch) {
         .draw_accent_box(Rect::with_size(MENU_X, MENU_Y, MENU_WIDTH, MENU_HEIGHT), ColorPair::new(MIDDLERED, SALMON));
     draw_batch.printer(
         Point::new(MENU_X + 1, MENU_Y),
-        format!("#[white]{}{} Quitting{}#[]", to_char(180), to_char(2), to_char(195)),
+        format!("#[white]{}{} Paused{}#[]", to_char(180), to_char(2), to_char(195)),
         TextAlign::Left,
         Some(MIDDLERED.into()),
     );
     draw_batch.printer(
         Point::new(MENU_X + 2, MENU_Y + 1),
-        format!("#[white]Quicksave#[{}]<SPACE>", PL_KEYBIND),
+        format!("#[white]Quicksave #[{}]<SPACE>", PL_KEYBIND),
         TextAlign::Left,
         Some(SALMON.into()),
     );
     draw_batch.printer(
         Point::new(MENU_X + 2, MENU_Y + 2),
-        format!("#[{}]S#[white]ave", PL_KEYBIND),
+        format!("#[white]Save+Quit #[{}]<S>", PL_KEYBIND),
         TextAlign::Left,
         Some(SALMON.into()),
     );
     draw_batch.printer(
         Point::new(MENU_X + 2, MENU_Y + 3),
-        format!("#[{}]D#[white]ont Save", PL_KEYBIND),
+        format!("#[white]Quit #[{}]<D>", PL_KEYBIND),
         TextAlign::Left,
         Some(SALMON.into()),
     );
     draw_batch.printer(
         Point::new(MENU_X + 2, MENU_Y + 4),
-        format!("#[white]Return#[{}]<ESC>", PL_KEYBIND),
+        format!("#[white]Return #[{}]<ESC>", PL_KEYBIND),
         TextAlign::Left,
         Some(SALMON.into()),
     );

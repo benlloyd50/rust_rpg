@@ -2,6 +2,8 @@ mod animations;
 mod audio;
 mod beings;
 mod items;
+mod noise;
+mod prefab;
 mod recipes;
 mod world_objs;
 
@@ -13,6 +15,7 @@ pub mod prelude {
     pub use crate::data_read::animations::ANIMATION_DB;
     pub use crate::data_read::audio::{AUDIOMAN, AUDIO_DB};
     pub use crate::data_read::beings::build_being;
+    pub use crate::data_read::noise::NOISE_DB;
     pub use crate::data_read::recipes::RECIPE_DB;
     pub use crate::data_read::world_objs::build_world_obj;
     pub use crate::data_read::ENTITY_DB;
@@ -21,6 +24,7 @@ pub mod prelude {
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use log::{debug, error, warn};
+use noise::NOISE_DB;
 use prelude::{ANIMATION_DB, AUDIO_DB};
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
@@ -73,6 +77,7 @@ pub fn initialize_game_databases() {
     game_db.beings = BeingDatabase::load(&game_db);
 
     ENTITY_DB.lock().unwrap().load(game_db);
+    NOISE_DB.lock().unwrap().load();
     RECIPE_DB.lock().unwrap().load();
     ANIMATION_DB.lock().unwrap().load();
     AUDIO_DB.lock().unwrap().load();

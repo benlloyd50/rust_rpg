@@ -12,7 +12,7 @@ use crate::{
     z_order::EFFECT_Z,
 };
 use bracket_lib::color::WHITE;
-use log::{error, info};
+use log::{debug, error, info};
 use specs::{Entities, Entity, Join, Read, ReadStorage, System, Write, WriteStorage};
 
 const CH_STRIKE: u8 = 2;
@@ -128,7 +128,7 @@ impl<'a> System<'a> for DamageSystem {
             let new_hp = stats.hp as i32 + damage_dealt;
             stats.hp = if new_hp >= 0 { new_hp as usize } else { 0 };
 
-            println!("Old HP: {} | Damage Dealt: {} | New HP: {}", old_hp, damage_dealt, stats.hp);
+            debug!("Old HP: {} | Damage Dealt: {} | New HP: {}", old_hp, damage_dealt, stats.hp);
         }
 
         damage.clear();
