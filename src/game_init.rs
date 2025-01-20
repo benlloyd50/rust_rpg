@@ -14,7 +14,7 @@ use crate::{
         EquipmentSlots, Interactor, InteractorMode, LevelPersistent, Name, Position, Renderable, Transform, Viewshed,
     },
     data_read::prelude::build_being,
-    get_alphanumber,
+    get_text,
     items::{ItemID, ItemSpawner, SpawnType},
     map::MapRes,
     map_gen::{gen_world, WorldConfig},
@@ -135,7 +135,10 @@ pub struct InputWorldConfig {
 
 pub fn p_input_new_game_menu(ctx: &mut BTerm) -> NewGameMenuAction {
     if let Some(key) = ctx.key {
-        if let Some(letter) = get_alphanumber(key) {
+        if let Some(letter) = get_text(key) {
+            if ctx.shift {
+                return NewGameMenuAction::Text(letter.to_ascii_uppercase());
+            }
             return NewGameMenuAction::Text(letter);
         }
 

@@ -579,8 +579,10 @@ impl GameState for State {
     }
 }
 
-pub fn get_alphanumber(key: VirtualKeyCode) -> Option<char> {
+// Helper to get keycodes that are valid in text
+pub fn get_text(key: VirtualKeyCode) -> Option<char> {
     let letter = match key {
+        VirtualKeyCode::Space => ' ',
         VirtualKeyCode::A => 'a',
         VirtualKeyCode::B => 'b',
         VirtualKeyCode::C => 'c',
