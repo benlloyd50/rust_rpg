@@ -4,6 +4,7 @@
  * */
 
 use bracket_lib::terminal::Point;
+use log::warn;
 use specs::{Entities, Join, ReadStorage, System, WriteExpect};
 
 use crate::{
@@ -36,7 +37,7 @@ impl<'a> System<'a> for IndexBlockedTiles {
                 Some(entities) => {
                     entities.push(TileEntity::Blocking(e));
                 }
-                None => eprintln!("Idx: {} was out of bounds, Position: {:#?}", idx, pos),
+                None => warn!("Idx: {} was out of bounds, {:?}", idx, pos),
             }
         }
     }
@@ -50,7 +51,12 @@ impl<'a> System<'a> for IndexBreakableTiles {
     fn run(&mut self, (mut map, pos, breakable, entities): Self::SystemData) {
         for (id, pos, _) in (&entities, &pos, &breakable).join() {
             let idx = map.0.xy_to_idx(pos.x, pos.y);
-            map.0.tile_entities[idx].push(TileEntity::Breakable(id));
+            match map.0.tile_entities.get_mut(idx) {
+                Some(entities) => {
+                    entities.push(TileEntity::Breakable(id));
+                }
+                None => warn!("Idx: {} was out of bounds, {:?}", idx, pos),
+            }
         }
     }
 }
@@ -63,7 +69,12 @@ impl<'a> System<'a> for IndexFishableTiles {
     fn run(&mut self, (mut map, pos, fishable, entities): Self::SystemData) {
         for (entity, pos, _) in (&entities, &pos, &fishable).join() {
             let idx = map.0.xy_to_idx(pos.x, pos.y);
-            map.0.tile_entities[idx].push(TileEntity::Fishable(entity));
+            match map.0.tile_entities.get_mut(idx) {
+                Some(entities) => {
+                    entities.push(TileEntity::Fishable(entity));
+                }
+                None => warn!("Idx: {} was out of bounds, {:?}", idx, pos),
+            }
         }
     }
 }
@@ -76,7 +87,12 @@ impl<'a> System<'a> for IndexItemTiles {
     fn run(&mut self, (mut map, pos, items, entities): Self::SystemData) {
         for (entity, pos, _) in (&entities, &pos, &items).join() {
             let idx = map.0.xy_to_idx(pos.x, pos.y);
-            map.0.tile_entities[idx].push(TileEntity::Item(entity));
+            match map.0.tile_entities.get_mut(idx) {
+                Some(entities) => {
+                    entities.push(TileEntity::Item(entity));
+                }
+                None => warn!("Idx: {} was out of bounds, {:?}", idx, pos),
+            }
         }
     }
 }

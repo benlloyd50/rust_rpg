@@ -14,6 +14,7 @@ use std::time::Duration;
 use audio::play_sound_effect;
 use being::{GoalFindEntities, GoalMoveToEntities, HandleMoveActions, RandomMonsterMovementSystem};
 use bracket_lib::geometry::Point;
+use bracket_lib::prelude::VirtualKeyCode;
 use bracket_lib::terminal::{main_loop, render_draw_buffer, BError, BTerm, BTermBuilder, GameState};
 use combat::{AttackActionHandler, HealActionHandler};
 use config::ConfigMaster;
@@ -24,11 +25,15 @@ use droptables::DeathLootDrop;
 use equipment::EquipActionHandler;
 use fov::UpdateViewsheds;
 use frame_animation::{AnimationPlay, UpdateAnimationTimers};
-use game_init::initialize_new_game_world;
+use game_init::{
+    initialize_new_game_world, p_input_new_game_menu, InputWorldConfig, NewGameMenuAction, NewGameMenuSelection,
+};
 use items::{ConsumeHandler, ItemPickupHandler, ItemSpawnerSystem, ZeroQtyItemCleanup};
 use log::{debug, error, info, warn};
+use map_gen::WorldConfig;
 use mining::{DamageSystem, RemoveDeadTiles, TileDestructionSystem};
-use saveload::{cleanup_game, load_game, save_game, save_game_exists, SaveAction};
+use saveload::{cleanup_game, load_game, save_game, SaveAction};
+use saveload_menu::{get_save_games, p_input_load_game_menu, GameSaves, LoadMenuAction, LoadedWorld};
 use settings::{handle_setting_selected, SettingsAction, SettingsSelection};
 use specs::prelude::*;
 
@@ -49,6 +54,7 @@ mod indexing;
 mod inventory;
 mod logger;
 mod saveload;
+mod saveload_menu;
 mod settings;
 mod storage_utils;
 mod ui;
@@ -208,8 +214,10 @@ impl State {
 pub enum AppState {
     MainMenu { hovering: MenuSelection },
     SettingsMenu { hovering: SettingsSelection },
-    NewGameStart,
-    LoadGameStart,
+    NewGameInitialize { hovering: NewGameMenuSelection, world_cfg: InputWorldConfig, form_errors: Vec<String> },
+    NewGameStart { world_cfg: WorldConfig },
+    LoadGameMenu { hovering: usize },
+    LoadGameStart { file_name: String },
     MapChange { level_name: String, player_world_pos: Position },
     InGame,
     ActivityBound { response_delay: Duration },
@@ -244,6 +252,18 @@ impl AppState {
     pub fn activity_bound() -> Self {
         Self::ActivityBound { response_delay: Duration::ZERO }
     }
+
+    pub fn loadgame_menu() -> Self {
+        Self::LoadGameMenu { hovering: 0 }
+    }
+
+    fn new_game_init() -> AppState {
+        Self::NewGameInitialize {
+            hovering: NewGameMenuSelection::WorldName,
+            world_cfg: InputWorldConfig::default(),
+            form_errors: vec![],
+        }
+    }
 }
 
 impl GameState for State {
@@ -256,9 +276,9 @@ impl GameState for State {
         }
 
         match frame_state.current.clone() {
-            AppState::NewGameStart => {
+            AppState::NewGameStart { world_cfg } => {
                 info!("Game startup occured");
-                initialize_new_game_world(&mut self.ecs);
+                initialize_new_game_world(&mut self.ecs, &world_cfg);
                 set_level_font(&self.ecs, ctx);
 
                 let mut item_spawner = ItemSpawnerSystem;
@@ -266,9 +286,9 @@ impl GameState for State {
                 frame_state.change_to(AppState::InGame);
                 info!("Game startup finished. Switching to ingame state");
             }
-            AppState::LoadGameStart => {
-                debug!("Attempting to load save file");
-                load_game(&mut self.ecs);
+            AppState::LoadGameStart { file_name } => {
+                debug!("Attempting to load save file, {}", file_name);
+                load_game(&mut self.ecs, file_name);
                 set_level_font(&self.ecs, ctx);
 
                 frame_state.change_to(AppState::InGame);
@@ -346,23 +366,15 @@ impl GameState for State {
             AppState::MainMenu { hovering } => {
                 let mut timer_update = UpdateAnimationTimers;
                 timer_update.run_now(&mut self.ecs);
+
                 match p_input_main_menu(ctx, &hovering) {
                     MenuAction::Selected(selected) => {
                         frame_state.change_to(match selected {
-                            MenuSelection::NewGame => {
-                                play_sound_effect("confirm");
-                                AppState::NewGameStart
-                            }
+                            MenuSelection::NewGame => AppState::new_game_init(),
                             MenuSelection::LoadGame => {
-                                if save_game_exists() {
-                                    play_sound_effect("confirm");
-                                    AppState::LoadGameStart
-                                } else {
-                                    AppState::MainMenu { hovering: MenuSelection::NewGame }
-                                }
+                                AppState::PreRun { next_state: Box::new(AppState::loadgame_menu()) }
                             }
                             MenuSelection::Settings => {
-                                play_sound_effect("confirm");
                                 AppState::SettingsMenu { hovering: SettingsSelection::SpriteMode }
                             }
                             MenuSelection::QuitGame => {
@@ -370,6 +382,7 @@ impl GameState for State {
                                 exit(1);
                             }
                         });
+                        play_sound_effect("confirm");
                     }
                     MenuAction::Hovering(new_selection) if new_selection != hovering => {
                         frame_state.change_to(AppState::MainMenu { hovering: new_selection });
@@ -378,6 +391,138 @@ impl GameState for State {
                     MenuAction::Waiting | MenuAction::Hovering(..) => {
                         // do nothing..
                     }
+                }
+            }
+            AppState::NewGameInitialize { hovering, world_cfg: mut cfg_input, form_errors } => {
+                match p_input_new_game_menu(ctx) {
+                    NewGameMenuAction::Text(ch) => match hovering {
+                        NewGameMenuSelection::WorldName => {
+                            cfg_input.world_name.push(ch);
+                            frame_state.change_to(AppState::NewGameInitialize {
+                                hovering,
+                                world_cfg: cfg_input,
+                                form_errors,
+                            })
+                        }
+                        NewGameMenuSelection::Width => {
+                            if let Some(_) = ch.to_digit(10) {
+                                cfg_input.width.push(ch);
+                                frame_state.change_to(AppState::NewGameInitialize {
+                                    hovering,
+                                    world_cfg: cfg_input,
+                                    form_errors,
+                                })
+                            }
+                        }
+                        NewGameMenuSelection::Height => {
+                            if let Some(_) = ch.to_digit(10) {
+                                cfg_input.height.push(ch);
+                                frame_state.change_to(AppState::NewGameInitialize {
+                                    hovering,
+                                    world_cfg: cfg_input,
+                                    form_errors,
+                                })
+                            }
+                        }
+                        NewGameMenuSelection::Finalize => {}
+                    },
+                    NewGameMenuAction::DelChar => match hovering {
+                        NewGameMenuSelection::WorldName => {
+                            if cfg_input.world_name.len() > 0 {
+                                cfg_input.world_name.remove(cfg_input.world_name.len() - 1);
+                            }
+                            frame_state.change_to(AppState::NewGameInitialize {
+                                hovering,
+                                world_cfg: cfg_input,
+                                form_errors,
+                            })
+                        }
+                        NewGameMenuSelection::Width => {
+                            if cfg_input.width.len() > 0 {
+                                cfg_input.width.remove(cfg_input.width.len() - 1);
+                            }
+                            frame_state.change_to(AppState::NewGameInitialize {
+                                hovering,
+                                world_cfg: cfg_input,
+                                form_errors,
+                            })
+                        }
+                        NewGameMenuSelection::Height => {
+                            if cfg_input.height.len() > 0 {
+                                cfg_input.height.remove(cfg_input.height.len() - 1);
+                            }
+                            frame_state.change_to(AppState::NewGameInitialize {
+                                hovering,
+                                world_cfg: cfg_input,
+                                form_errors,
+                            })
+                        }
+                        NewGameMenuSelection::Finalize => {}
+                    },
+                    NewGameMenuAction::Select => match hovering {
+                        NewGameMenuSelection::Finalize => match WorldConfig::try_from(&cfg_input) {
+                            Ok(world_cfg) => frame_state.change_to(AppState::NewGameStart { world_cfg }),
+                            Err(errs) => {
+                                frame_state.change_to(AppState::NewGameInitialize {
+                                    hovering,
+                                    world_cfg: cfg_input,
+                                    form_errors: errs,
+                                });
+                            }
+                        },
+                        _ => {}
+                    },
+                    NewGameMenuAction::Up => {
+                        let new_select = match hovering {
+                            NewGameMenuSelection::WorldName => NewGameMenuSelection::Finalize,
+                            NewGameMenuSelection::Width => NewGameMenuSelection::WorldName,
+                            NewGameMenuSelection::Height => NewGameMenuSelection::Width,
+                            NewGameMenuSelection::Finalize => NewGameMenuSelection::Height,
+                        };
+                        frame_state.change_to(AppState::NewGameInitialize {
+                            hovering: new_select,
+                            world_cfg: cfg_input,
+                            form_errors,
+                        })
+                    }
+                    NewGameMenuAction::Down => {
+                        let new_select = match hovering {
+                            NewGameMenuSelection::WorldName => NewGameMenuSelection::Width,
+                            NewGameMenuSelection::Width => NewGameMenuSelection::Height,
+                            NewGameMenuSelection::Height => NewGameMenuSelection::Finalize,
+                            NewGameMenuSelection::Finalize => NewGameMenuSelection::WorldName,
+                        };
+                        frame_state.change_to(AppState::NewGameInitialize {
+                            hovering: new_select,
+                            world_cfg: cfg_input,
+                            form_errors,
+                        })
+                    }
+                    NewGameMenuAction::Leave => frame_state.change_to(AppState::PreRun {
+                        next_state: Box::new(AppState::MainMenu { hovering: MenuSelection::NewGame }),
+                    }),
+                    NewGameMenuAction::Waiting => {}
+                }
+            }
+            AppState::LoadGameMenu { hovering } => {
+                let save_games = self.ecs.read_resource::<GameSaves>();
+                match p_input_load_game_menu(ctx) {
+                    LoadMenuAction::MoveDown => {
+                        let new_pos = if hovering == save_games.saves.len() - 1 { 0 } else { hovering + 1 };
+                        frame_state.change_to(AppState::LoadGameMenu { hovering: new_pos });
+                    }
+                    LoadMenuAction::MoveUp => {
+                        let new_pos = if hovering == 0 { save_games.saves.len() - 1 } else { hovering - 1 };
+                        frame_state.change_to(AppState::LoadGameMenu { hovering: new_pos });
+                    }
+                    LoadMenuAction::Select => {
+                        let file_selected = save_games.saves.get(hovering).unwrap().to_string();
+                        frame_state.change_to(AppState::LoadGameStart { file_name: file_selected });
+                    }
+                    LoadMenuAction::Back => frame_state.change_to(AppState::PreRun {
+                        next_state: Box::new(AppState::MainMenu { hovering: MenuSelection::LoadGame }),
+                    }),
+                    LoadMenuAction::Waiting => {}
                 }
             }
             AppState::SettingsMenu { hovering } => match p_input_settings(ctx) {
@@ -433,17 +578,15 @@ impl GameState for State {
         render_draw_buffer(ctx).expect("Render error??");
 
         match frame_state.current {
-            AppState::InGame | AppState::PlayerInInventory | AppState::NewGameStart | AppState::MapChange { .. } => {
+            AppState::InGame
+            | AppState::PlayerInInventory
+            | AppState::NewGameStart { .. }
+            | AppState::MapChange { .. } => {
                 draw_sprite_layers(&self.ecs);
                 debug_info(ctx, &self.ecs, &self.cfg.inventory);
                 debug_input(ctx, &self.ecs);
             }
-            AppState::MainMenu { .. }
-            | AppState::SettingsMenu { .. }
-            | AppState::ActivityBound { .. }
-            | AppState::SaveGame
-            | AppState::LoadGameStart
-            | AppState::PreRun { .. } => (),
+            _ => {}
         }
 
         if frame_state.will_change() {
@@ -456,12 +599,61 @@ impl GameState for State {
     }
 }
 
+pub fn get_alphanumber(key: VirtualKeyCode) -> Option<char> {
+    let letter = match key {
+        VirtualKeyCode::A => 'a',
+        VirtualKeyCode::B => 'b',
+        VirtualKeyCode::C => 'c',
+        VirtualKeyCode::D => 'd',
+        VirtualKeyCode::E => 'e',
+        VirtualKeyCode::F => 'f',
+        VirtualKeyCode::G => 'g',
+        VirtualKeyCode::H => 'h',
+        VirtualKeyCode::I => 'i',
+        VirtualKeyCode::J => 'j',
+        VirtualKeyCode::K => 'k',
+        VirtualKeyCode::L => 'l',
+        VirtualKeyCode::M => 'm',
+        VirtualKeyCode::N => 'n',
+        VirtualKeyCode::O => 'o',
+        VirtualKeyCode::P => 'p',
+        VirtualKeyCode::Q => 'q',
+        VirtualKeyCode::R => 'r',
+        VirtualKeyCode::S => 's',
+        VirtualKeyCode::T => 't',
+        VirtualKeyCode::U => 'u',
+        VirtualKeyCode::V => 'v',
+        VirtualKeyCode::W => 'w',
+        VirtualKeyCode::X => 'x',
+        VirtualKeyCode::Y => 'y',
+        VirtualKeyCode::Z => 'z',
+        VirtualKeyCode::Key1 => '1',
+        VirtualKeyCode::Key2 => '2',
+        VirtualKeyCode::Key3 => '3',
+        VirtualKeyCode::Key4 => '4',
+        VirtualKeyCode::Key5 => '5',
+        VirtualKeyCode::Key6 => '6',
+        VirtualKeyCode::Key7 => '7',
+        VirtualKeyCode::Key8 => '8',
+        VirtualKeyCode::Key9 => '9',
+        VirtualKeyCode::Key0 => '0',
+        _ => return None,
+    };
+    Some(letter)
+}
+
 /// These systems are ran every time upon entering a state
 fn run_pre_state_systems(state: &AppState, ecs: &mut World) {
     match state {
         AppState::MainMenu { .. } => {
             ecs.write_resource::<AnimationRenderer>()
                 .request("main_menu_intro", AnimationPlay::lasting(Point::new(DISPLAY_WIDTH / 4, DISPLAY_HEIGHT / 3)));
+        }
+        AppState::LoadGameMenu { .. } => {
+            let mut saves = ecs.write_resource::<GameSaves>();
+            let games = get_save_games();
+            println!("{:#?}", games);
+            *saves = GameSaves { saves: games };
         }
         _ => {}
     }
@@ -620,6 +812,8 @@ fn main() -> BError {
     world.insert(MessageLog::new());
     world.insert(MapRes(Map::empty(0, 0)));
     world.insert(TurnCounter::zero());
+    world.insert(GameSaves::default());
+    world.insert(LoadedWorld::default());
 
     let game_state = State { ecs: world, cfg };
     main_loop(context, game_state)
