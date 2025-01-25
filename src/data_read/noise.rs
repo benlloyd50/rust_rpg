@@ -6,7 +6,7 @@ use std::sync::Mutex;
 
 use bracket_lib::noise::{FastNoise, NoiseType};
 
-use crate::noise::{Noise, TileMapping};
+use crate::noise::{Noise, RawWorldTile};
 
 lazy_static! {
     pub static ref NOISE_DB: Mutex<NoiseDatabase> = Mutex::new(NoiseDatabase::empty());
@@ -26,7 +26,7 @@ struct RawNoise {
     pub frequency: Option<f32>,
     pub lacunarity: Option<f32>,
     pub gain: Option<f32>,
-    pub tile_mapping: Option<Vec<TileMapping>>,
+    pub tile_mapping: Option<Vec<RawWorldTile>>,
 }
 
 impl NoiseDatabase {

@@ -42,16 +42,22 @@ impl From<(usize, usize)> for WorldCoords {
 pub struct WorldTile {
     pub atlas_idx: usize,
     pub transparent: bool,
+    pub is_blocked: bool,
+    pub height: u8,
+}
+impl WorldTile {
+    pub fn water(height: u8) -> WorldTile {
+        Self { atlas_idx: 5 * 16, transparent: true, height, is_blocked: false }
+    }
 }
 
 impl Default for WorldTile {
     fn default() -> Self {
-        Self { atlas_idx: 4, transparent: true }
+        Self { atlas_idx: 4, transparent: true, height: 0, is_blocked: false }
     }
 }
 
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct ObjectID(pub usize);
 
 #[allow(unused)]

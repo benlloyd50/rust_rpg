@@ -2,21 +2,16 @@ use bracket_lib::terminal::{to_char, ColorPair, DrawBatch, Point, WHITE};
 use specs::{World, WorldExt};
 
 use crate::{
-    components::FishingMinigame, debug::CLEAR, fishing::GoalBar, game_init::PlayerEntity, CL_EFFECTS, CL_EFFECTS2,
-    DISPLAY_WIDTH,
+    char_c::{
+        CH_BAR_LEFT, CH_BAR_MID, CH_BAR_RIGHT, CH_CURSOR, CH_GOAL_LEFT, CH_GOAL_MID, CH_GOAL_RIGHT, CH_GOAL_SINGLE,
+        CH_LILFISH, CH_REELBAR_LEFT, CH_REELBAR_MID, CH_REELBAR_RIGHT, CH_REELLINE,
+    },
+    components::FishingMinigame,
+    debug::CLEAR,
+    fishing::GoalBar,
+    game_init::PlayerEntity,
+    CL_EFFECTS, CL_EFFECTS2, DISPLAY_WIDTH,
 };
-
-const CH_LILFISH: u8 = 29;
-const CH_REELLINE: u8 = 28;
-const CH_CURSOR: u8 = 16;
-
-const CH_REELBAR_MID: u8 = 26;
-const CH_REELBAR_LEFT: u8 = 25;
-const CH_REELBAR_RIGHT: u8 = 27;
-
-const CH_BAR_MID: u8 = 20;
-const CH_BAR_LEFT: u8 = 19;
-const CH_BAR_RIGHT: u8 = 21;
 
 pub const MINIGAME_HEIGHT: usize = 10;
 pub fn draw_fishing_bar(draw_batch: &mut DrawBatch, ecs: &World) {
@@ -68,11 +63,6 @@ pub fn draw_fishing_bar(draw_batch: &mut DrawBatch, ecs: &World) {
         );
     }
 }
-
-const CH_GOAL_SINGLE: u8 = 18;
-const CH_GOAL_MID: u8 = 23;
-const CH_GOAL_LEFT: u8 = 22;
-const CH_GOAL_RIGHT: u8 = 24;
 
 fn draw_goal_bar(goal_bar: &GoalBar, left_bar_x: usize, draw_batch: &mut DrawBatch) {
     let left_goal_x = left_bar_x + goal_bar.goal;

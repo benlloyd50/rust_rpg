@@ -39,6 +39,7 @@ use specs::prelude::*;
 
 mod audio;
 mod camera;
+mod char_c;
 mod colors;
 mod combat;
 mod config;

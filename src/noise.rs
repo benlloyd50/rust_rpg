@@ -9,23 +9,14 @@ use crate::map::WorldTile;
 pub struct Noise {
     pub name: String,
     pub noise: FastNoise,
-    pub mapping: Vec<TileMapping>,
+    pub mapping: Vec<RawWorldTile>,
 }
 
-#[derive(Deserialize, Clone, Copy, PartialEq, Debug)]
-pub struct TileMapping {
+#[derive(Deserialize, Clone, PartialEq, Debug, Default)]
+pub struct RawWorldTile {
     pub chance: f32,
     pub atlas_idx: usize,
-}
-
-pub struct Seed {
-    pub seed: u64,
-}
-
-impl From<&str> for Seed {
-    fn from(seed: &str) -> Self {
-        Self { seed: seed.parse().unwrap_or(0) }
-    }
+    pub is_blocked: Option<String>,
 }
 
 impl Noise {
@@ -33,7 +24,12 @@ impl Noise {
     pub fn gen_tile(&self, x: usize, y: usize) -> WorldTile {
         let value = self.get_normal_2d(x as f32, y as f32);
         if let Some(tile) = self.find_tile_map(value) {
-            let world_tile = WorldTile { atlas_idx: tile.atlas_idx, ..Default::default() };
+            let world_tile = WorldTile {
+                atlas_idx: tile.atlas_idx,
+                height: (value * 255.0).round() as u8,
+                is_blocked: tile.is_blocked.is_some(),
+                ..Default::default()
+            };
             return world_tile;
         }
 
@@ -46,7 +42,7 @@ impl Noise {
     }
 
     // TODO: make unit tests for this
-    pub fn find_tile_map(&self, value: f32) -> Option<TileMapping> {
+    pub fn find_tile_map(&self, value: f32) -> Option<RawWorldTile> {
         // need to find the id that the value > chance at the highest is true
         // value - chance ie value = 0.8, chance = 0.9, 0.75, 0.5, 0.25
         // -0.1, *0.05*, 0.3, 0.65
@@ -58,7 +54,7 @@ impl Noise {
             .filter(|(_, diff)| diff.is_positive())
             .min_by(|(_, chance), (_, chance2)| chance.total_cmp(chance2))
         {
-            return Some(*tm.0);
+            return Some(tm.0.clone());
         }
         None
     }
@@ -73,9 +69,9 @@ mod tests {
             name: "test".to_string(),
             noise: FastNoise::new(),
             mapping: vec![
-                TileMapping { chance: 0.5, atlas_idx: 0 },
-                TileMapping { chance: 0.75, atlas_idx: 1 },
-                TileMapping { chance: 1.0, atlas_idx: 2 },
+                RawWorldTile { chance: 0.5, atlas_idx: 0, ..Default::default() },
+                RawWorldTile { chance: 0.75, atlas_idx: 1, ..Default::default() },
+                RawWorldTile { chance: 1.0, atlas_idx: 2, ..Default::default() },
             ],
         };
         assert_eq!(noise.find_tile_map(0.5).unwrap().atlas_idx, 0);
@@ -87,9 +83,9 @@ mod tests {
             name: "test".to_string(),
             noise: FastNoise::new(),
             mapping: vec![
-                TileMapping { chance: 0.5, atlas_idx: 0 },
-                TileMapping { chance: 0.75, atlas_idx: 1 },
-                TileMapping { chance: 1.0, atlas_idx: 2 },
+                RawWorldTile { chance: 0.5, atlas_idx: 0, ..Default::default() },
+                RawWorldTile { chance: 0.75, atlas_idx: 1, ..Default::default() },
+                RawWorldTile { chance: 1.0, atlas_idx: 2, ..Default::default() },
             ],
         };
 

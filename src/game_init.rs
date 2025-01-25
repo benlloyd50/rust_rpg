@@ -125,12 +125,18 @@ pub enum NewGameMenuAction {
     Leave,
 }
 
-#[derive(Default, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct InputWorldConfig {
     pub world_name: String,
     pub width: String,
     pub height: String,
     pub seed: String,
+}
+
+impl Default for InputWorldConfig {
+    fn default() -> Self {
+        Self { world_name: String::new(), width: "100".to_string(), height: "100".to_string(), seed: String::new() }
+    }
 }
 
 pub fn p_input_new_game_menu(ctx: &mut BTerm) -> NewGameMenuAction {
@@ -148,6 +154,7 @@ pub fn p_input_new_game_menu(ctx: &mut BTerm) -> NewGameMenuAction {
             VirtualKeyCode::Up => NewGameMenuAction::Up,
             VirtualKeyCode::Back => NewGameMenuAction::DelChar,
             VirtualKeyCode::Escape => NewGameMenuAction::Leave,
+            VirtualKeyCode::Tab => NewGameMenuAction::Down,
             _ => NewGameMenuAction::Waiting,
         };
     }

@@ -1,10 +1,10 @@
 use std::hash::{DefaultHasher, Hash, Hasher};
 
-use specs::World;
+use specs::{Builder, World, WorldExt};
 
 use crate::{
-    components::Position,
-    data_read::prelude::{build_world_obj, NOISE_DB},
+    components::{Blocking, Position, Water},
+    data_read::prelude::NOISE_DB,
     game_init::InputWorldConfig,
     map::{Map, WorldTile},
     saveload::{save_game_exists, SAVE_EXTENSION},
@@ -82,16 +82,31 @@ pub fn gen_world(ecs: &mut World, wc: &WorldConfig) -> Map {
     }
 
     // just a random boulder
-    let _ = build_world_obj("Boulder".to_string(), Position::new(15, 20), ecs);
+    // let _ = build_world_obj("Boulder".to_string(), Position::new(15, 20), ecs);
 
-    generate_forest_terrain(&mut new_map);
+    generate_heights(&mut new_map);
+    fill_water_to_level(&mut new_map, (0.23_f64 * 255.0).floor() as u8, ecs);
+    // generate_forest_terrain(&mut new_map);
 
     new_map
 }
 
-fn generate_forest_terrain(map: &mut Map) {
+fn fill_water_to_level(map: &mut Map, level: u8, ecs: &mut World) {
+    for x in 0..map.width {
+        for y in 0..map.height {
+            if let Some(tile) = map.tiles.get(map.xy_to_idx(x, y)) {
+                if tile.height < level {
+                    map.set_tile(&WorldTile::water(tile.height), x, y);
+                    ecs.create_entity().with(Water {}).with(Position::new(x, y)).with(Blocking {}).build();
+                }
+            }
+        }
+    }
+}
+
+fn generate_heights(map: &mut Map) {
     let noise_db = NOISE_DB.lock().unwrap();
-    let noise = noise_db.get_by_name("forest").unwrap();
+    let noise = noise_db.get_by_name("height").unwrap();
 
     for x in 0..map.width {
         for y in 0..map.height {

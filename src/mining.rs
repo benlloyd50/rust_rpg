@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use crate::{
     audio::play_sound_effect,
+    char_c::CH_STRIKE,
     components::{
         BreakAction, Breakable, EntityStats, HealthStats, Name, Renderable, SizeFlexor, SufferDamage, ToolType,
     },
@@ -14,8 +15,6 @@ use crate::{
 use bracket_lib::color::WHITE;
 use log::{debug, error, info};
 use specs::{Entities, Entity, Join, Read, ReadStorage, System, Write, WriteStorage};
-
-const CH_STRIKE: u8 = 2;
 
 /// Allows tile to be breakable. The tile must contain a breakable and health stats component.
 /// The attacker must contain a strength and have breakactions queued up in their system.

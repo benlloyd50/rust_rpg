@@ -26,7 +26,7 @@ impl AudioPlayer {
     fn new() -> Self {
         Self {
             player: match AudioManager::<DefaultBackend>::new(AudioManagerSettings::default()) {
-                Ok(am) => Some(am),
+                Ok(_am) => None,
                 Err(e) => {
                     error!("Error setting up audio manager, music will NOT be played for this session of the game.");
                     error!("Internal audio loading error: {}", e);
