@@ -15,6 +15,7 @@ pub struct Noise {
 #[derive(Deserialize, Clone, PartialEq, Debug, Default)]
 pub struct RawWorldTile {
     pub chance: f32,
+    pub name: String,
     pub atlas_idx: usize,
     pub is_blocked: Option<String>,
 }
@@ -25,6 +26,7 @@ impl Noise {
         let value = self.get_normal_2d(x as f32, y as f32);
         if let Some(tile) = self.find_tile_map(value) {
             let world_tile = WorldTile {
+                name: tile.name,
                 atlas_idx: tile.atlas_idx,
                 height: (value * 255.0).round() as u8,
                 is_blocked: tile.is_blocked.is_some(),

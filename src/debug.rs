@@ -164,7 +164,7 @@ fn print_tile_contents(ctx: &mut BTerm, ecs: &World) {
         }
     };
 
-    print!("Tileidx {} | ", tile_idx);
+    print!("Tileidx {} | Name: {} ", map.0.tiles[tile_idx].name, tile_idx);
     let ents = &map.0.tile_entities[tile_idx];
     if !ents.is_empty() {
         println!("Contents: {:?} | BLOCKED: {}", ents, map.0.is_blocked(&cursor_map_pos.unwrap()),);

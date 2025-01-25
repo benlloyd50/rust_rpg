@@ -85,7 +85,7 @@ pub fn gen_world(ecs: &mut World, wc: &WorldConfig) -> Map {
     // let _ = build_world_obj("Boulder".to_string(), Position::new(15, 20), ecs);
 
     generate_heights(&mut new_map);
-    fill_water_to_level(&mut new_map, (0.23_f64 * 255.0).floor() as u8, ecs);
+    fill_water_to_level(&mut new_map, (0.13_f64 * 255.0).floor() as u8, ecs);
     // generate_forest_terrain(&mut new_map);
 
     new_map

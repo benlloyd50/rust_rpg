@@ -3,19 +3,23 @@
         "name": "height",
         "noise_type": "simplex",
         "octaves": 3,
-        "frequency": 0.07,
-        "lacunarity": 2.0,
+        "frequency": 0.04,
+        "lacunarity": 1.7,
+        "gain": 0.9,
         "tile_mapping": [
             {
+                "name": "Gravel",
                 "chance": 0.7,
                 "atlas_idx": 16,
             },
             {
+                "name": "Mountain",
                 "chance": 0.85,
                 "atlas_idx": 17,
                 "is_blocking": ""
             },
             {
+                "name": "Grass",
                 "chance": 0.0,
                 "atlas_idx": 0,
             }

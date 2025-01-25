@@ -40,6 +40,7 @@ impl From<(usize, usize)> for WorldCoords {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct WorldTile {
+    pub name: String,
     pub atlas_idx: usize,
     pub transparent: bool,
     pub is_blocked: bool,
@@ -47,13 +48,13 @@ pub struct WorldTile {
 }
 impl WorldTile {
     pub fn water(height: u8) -> WorldTile {
-        Self { atlas_idx: 5 * 16, transparent: true, height, is_blocked: false }
+        Self { name: "Water".to_string(), atlas_idx: 5 * 16, transparent: true, height, is_blocked: false }
     }
 }
 
 impl Default for WorldTile {
     fn default() -> Self {
-        Self { atlas_idx: 4, transparent: true, height: 0, is_blocked: false }
+        Self { name: "Grass".to_string(), atlas_idx: 4, transparent: true, height: 0, is_blocked: false }
     }
 }
 
