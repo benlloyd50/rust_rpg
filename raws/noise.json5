@@ -2,8 +2,9 @@
     {
         "name": "height",
         "noise_type": "simplex",
-        "octaves": 3,
-        "frequency": 0.04,
+        "octaves": 4,
+        "scale": [1.8, 1.7],
+        "frequency": 0.02,
         "lacunarity": 1.7,
         "gain": 0.9,
         "tile_mapping": [
@@ -15,15 +16,14 @@
     {
         "name": "resources",
         "noise_type": "simplex",
-        "scale": [1., 1.],
+        "scale": [0.8, 0.7],
         "octaves": 3,
-        "frequency": 0.04,
-        "lacunarity": 1.7,
+        "frequency": 0.09,
+        "lacunarity": 1.2,
         "gain": 0.9,
         "tile_mapping": [
-            { "name": "Sapling", "height": 0.40, "weight": 0.18, },
-            { "name": "Sapling", "height": 0.60, "weight": 0.80, },
-            { "name": "Boulder", "height": 0.75, "weight": 0.12, },
+            { "name": "Sapling", "height": 0.60, "weight": 0.30, },
+            { "name": "Boulder", "height": 0.75, "weight": 0.15, },
         ]
     }
 ]
