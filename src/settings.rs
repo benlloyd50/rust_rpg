@@ -11,7 +11,7 @@ const GENERAL_CONFIG_PATH: &str = "./config.json";
 // everything else unchanged
 
 /// The config for how the in game settings menu are configured
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Default)]
 pub struct SettingsConfig {
     pub sprite_mode: SpriteMode,
     pub text_font: TextFonts,
@@ -41,12 +41,6 @@ impl SettingsConfig {
                 SettingsConfig::default()
             }
         }
-    }
-}
-
-impl Default for SettingsConfig {
-    fn default() -> Self {
-        Self { sprite_mode: SpriteMode::default(), text_font: TextFonts::default() }
     }
 }
 

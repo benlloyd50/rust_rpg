@@ -24,12 +24,12 @@ pub fn draw_use_menu(draw_batch: &mut DrawBatch, ecs: &World) {
     let selected_inv = selected_items.get(player_entity.0).unwrap();
 
     let consumables = ecs.read_storage::<Consumable>();
-    if let Some(_) = consumables.get(selected_inv.first_item) {
+    if consumables.get(selected_inv.first_item).is_some() {
         use_menu_actions.insert(3, CONSUME_ACTION);
     }
 
     let equipables = ecs.read_storage::<Equipable>();
-    if let Some(_) = equipables.get(selected_inv.first_item) {
+    if equipables.get(selected_inv.first_item).is_some() {
         use_menu_actions.insert(3, EQUIP_ACTION);
     }
 

@@ -37,7 +37,7 @@ impl Noise {
             return world_tile;
         }
 
-        return WorldTile::default();
+        WorldTile::default()
     }
 
     pub fn get_name_of(&self, x: usize, y: usize) -> Option<(String, f32)> {

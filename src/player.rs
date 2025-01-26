@@ -186,7 +186,7 @@ pub enum MenuSelection {
 
 impl MenuSelection {
     /// Constructs a new string of the variant in lowercase with spaces
-    pub fn to_lowercase(&self) -> String {
+    pub fn as_lowercase(&self) -> String {
         match self {
             MenuSelection::NewGame => "new game",
             MenuSelection::LoadGame => "load game",

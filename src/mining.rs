@@ -76,10 +76,8 @@ impl<'a> System<'a> for TileDestructionSystem {
                     play_sound_effect(sound_name);
                 }
 
-                let size_flex = AnimationRequest::StretchShrink(
-                    tile_entity,
-                    SizeFlexor::new(&vec![(0.75, 1.25), (1.0, 1.0)], 25.0),
-                );
+                let size_flex =
+                    AnimationRequest::StretchShrink(tile_entity, SizeFlexor::new(&[(0.75, 1.25), (1.0, 1.0)], 25.0));
                 let flash_white = AnimationRequest::GlyphFlash(
                     tile_entity,
                     Duration::from_secs_f32(0.15),

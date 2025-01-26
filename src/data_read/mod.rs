@@ -118,7 +118,7 @@ impl Drops {
                     id: game_db
                         .items
                         .get_by_name(&raw_loot.item)
-                        .expect(&format!("{} has no definition in items", raw_loot.item))
+                        .unwrap_or_else(|| panic!("{} has no definition in items", raw_loot.item))
                         .identifier,
                     qty: DropQty::from_str(&raw_loot.item_qty),
                     weight: raw_loot.weight,

@@ -48,7 +48,7 @@ impl<'a> System<'a> for AttackActionHandler {
                     damage = if bonus.0 >= 0 {
                         damage + bonus.0 as usize
                     } else {
-                        damage.saturating_sub(bonus.0.abs() as usize)
+                        damage.saturating_sub(bonus.0.unsigned_abs() as usize)
                     };
                 }
 

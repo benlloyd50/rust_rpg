@@ -37,7 +37,7 @@ impl Default for PlayerEntity {
 
 pub fn initialize_new_game_world(ecs: &mut World, world_config: &WorldConfig) {
     debug!("startup: map loading");
-    let new_chunk = gen_world(ecs, &world_config);
+    let new_chunk = gen_world(ecs, world_config);
     ecs.insert(MapRes(new_chunk));
     debug!("startup: map loaded");
 

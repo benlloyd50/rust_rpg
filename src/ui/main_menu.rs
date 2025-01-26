@@ -45,13 +45,13 @@ pub fn draw_main_menu(draw_batch: &mut DrawBatch, hovered: &MenuSelection) {
     for (idx, opt) in MENU_OPTIONS.iter().enumerate() {
         let colors = if opt == &"load game" && !any_save_game_exists() {
             ColorPair::new(GREY4, MAIN_MENU_BG)
-        } else if hovered.to_lowercase() == opt.to_owned() {
+        } else if hovered.as_lowercase() == *opt {
             ColorPair::new(MAIN_MENU_TEXT_HL, MAIN_MENU_HL)
         } else {
             ColorPair::new(MAIN_MENU_ACCENT, MAIN_MENU_BG)
         };
 
-        let text = if hovered.to_lowercase() == opt.to_owned() {
+        let text = if hovered.as_lowercase() == *opt {
             format!("{}{}{}", to_char(16), opt.to_uppercase(), to_char(17))
         } else {
             opt.to_string()
@@ -129,7 +129,7 @@ pub fn draw_new_game_menu(
     draw_batch: &mut DrawBatch,
     hovering: &NewGameMenuSelection,
     world_cfg: &InputWorldConfig,
-    form_errors: &Vec<String>,
+    form_errors: &[String],
 ) {
     // Background
     draw_batch.target(CL_TEXT);
@@ -189,7 +189,7 @@ pub fn draw_new_game_menu(
         seed,
     );
 
-    draw_batch.print_color(Point::new(menu_start_x + 29 / 2, MENU_START_Y), format!("Finish"), finish);
+    draw_batch.print_color(Point::new(menu_start_x + 29 / 2, MENU_START_Y), "Finish".to_string(), finish);
 
     for (idx, err) in form_errors.iter().enumerate() {
         draw_batch.print_color(Point::new(menu_start_x + 29 / 2, MENU_START_Y - (menu_height + idx + 1)), err, hl);

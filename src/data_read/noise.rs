@@ -40,9 +40,10 @@ impl NoiseDatabase {
 
     pub fn load(&mut self) {
         let mut noise_db = Self::empty();
-        let raw_noises = fs::read_to_string(NOISE_PATH).expect(&format!("Failed to read noise file: {}", NOISE_PATH));
+        let raw_noises =
+            fs::read_to_string(NOISE_PATH).unwrap_or_else(|_| panic!("Failed to read noise file: {}", NOISE_PATH));
         let raw_noises: Vec<RawNoise> =
-            json5::from_str(&raw_noises).expect(&format!("Failed to parse noise file: {}", NOISE_PATH));
+            json5::from_str(&raw_noises).unwrap_or_else(|_| panic!("Failed to parse noise file: {}", NOISE_PATH));
 
         for noise in raw_noises {
             let mut parsed = Noise { name: noise.name, scale: PointF::one(), noise: FastNoise::new(), mapping: vec![] };

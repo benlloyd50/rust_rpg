@@ -1,15 +1,14 @@
+//! this file describes how the audio can be used and gives pub fn that enable this by leveraging
+//! what is already loaded
+//! data_read/audio.rs describes how the audio data is loaded and setup
 use bracket_lib::random::RandomNumberGenerator;
 use kira::sound::static_sound::StaticSoundData;
 use log::warn;
 
 use crate::data_read::prelude::{AUDIOMAN, AUDIO_DB};
 
-/// this file describes how the audio can be used and gives pub fn that enable this by leveraging
-/// what is already loaded
-/// data_read/audio.rs describes how the audio data is loaded and setup
-
 pub enum SoundFiles {
-    Single(StaticSoundData),
+    Single(Box<StaticSoundData>),
     // The order of the sample should be random because that is how it will be accessed.
     Sample(Vec<StaticSoundData>),
 }
@@ -21,7 +20,7 @@ pub fn play_sound_effect(sfx: &str) {
     }
 
     let adb = AUDIO_DB.lock().unwrap();
-    let sfx_file = match adb.sounds.get(&format!("{}", sfx)) {
+    let sfx_file = match adb.sounds.get(sfx) {
         Some(s) => s,
         None => {
             warn!("{} does not exist as a sound file.", sfx);
@@ -29,8 +28,8 @@ pub fn play_sound_effect(sfx: &str) {
         }
     };
 
-    let sfx = match sfx_file {
-        SoundFiles::Single(single) => single.clone(),
+    let sfx: StaticSoundData = match sfx_file {
+        SoundFiles::Single(single) => *single.clone(),
         SoundFiles::Sample(sample) => {
             let mut rng = RandomNumberGenerator::new();
             let idx = rng.range(0, sample.len());

@@ -7,7 +7,7 @@ pub trait MaybeInsert<T: Component> {
     fn maybe_insert(&mut self, _onto: Entity, _component: Option<T>) {}
 }
 
-impl<'e, T, D> MaybeInsert<T> for Storage<'e, T, D>
+impl<T, D> MaybeInsert<T> for Storage<'_, T, D>
 where
     T: Component,
     D: DerefMut<Target = MaskedStorage<T>>,

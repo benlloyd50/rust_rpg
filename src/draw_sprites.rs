@@ -1,5 +1,4 @@
 use bracket_lib::terminal::*;
-use log::debug;
 use specs::{Join, World, WorldExt};
 
 use crate::{
@@ -101,8 +100,8 @@ fn draw_fancy_sprites(ecs: &World, draw_batch: &mut DrawBatch) {
 }
 
 pub fn lerp_point(curr: &PointF, x: f32, y: f32, scalar: f32) -> PointF {
-    let fx = curr.x + (x as f32 - curr.x) * scalar;
-    let fy = curr.y + (y as f32 - curr.y) * scalar;
+    let fx = curr.x + (x - curr.x) * scalar;
+    let fy = curr.y + (y - curr.y) * scalar;
     PointF { x: fx, y: fy }
 }
 

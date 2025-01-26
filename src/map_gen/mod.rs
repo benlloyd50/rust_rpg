@@ -1,7 +1,4 @@
-use std::{
-    hash::{DefaultHasher, Hash, Hasher},
-    u64,
-};
+use std::hash::{DefaultHasher, Hash, Hasher};
 
 use bracket_lib::random::RandomNumberGenerator;
 use log::{error, info};

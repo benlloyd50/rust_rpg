@@ -57,7 +57,7 @@ pub fn draw_ui(ecs: &World, appstate: &AppState, cfg: &ConfigMaster) {
             draw_fishing_bar(&mut draw_batch, ecs);
         }
         AppState::MainMenu { hovering } => {
-            draw_main_menu(&mut draw_batch, &hovering);
+            draw_main_menu(&mut draw_batch, hovering);
             print_frame_animations(&mut draw_batch, ecs);
         }
         AppState::SaveGame => {

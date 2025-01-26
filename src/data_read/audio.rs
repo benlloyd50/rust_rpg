@@ -85,13 +85,13 @@ impl AudioDatabase {
                 samples.push(sound);
             }
 
-            if samples.len() == 0 {
+            if samples.is_empty() {
                 warn!("{} had no audio files successfully added so it will be skipped in the database.", def.name);
                 continue;
             }
             if def.file_names.len() == 1 {
                 let single = samples[0].clone();
-                self.sounds.insert(def.name.clone(), SoundFiles::Single(single));
+                self.sounds.insert(def.name.clone(), SoundFiles::Single(Box::new(single)));
                 debug!("inserted {} with sound ", def.name);
                 continue;
             }

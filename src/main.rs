@@ -366,7 +366,7 @@ impl GameState for State {
             }
             AppState::MainMenu { hovering } => {
                 let mut timer_update = UpdateAnimationTimers;
-                timer_update.run_now(&mut self.ecs);
+                timer_update.run_now(&self.ecs);
 
                 match p_input_main_menu(ctx, &hovering) {
                     MenuAction::Selected(selected) => {
@@ -402,12 +402,12 @@ impl GameState for State {
                                 cfg_input.world_name.push(ch);
                             }
                             NewGameMenuSelection::Width => {
-                                if let Some(_) = ch.to_digit(10) {
+                                if ch.is_ascii_digit() {
                                     cfg_input.width.push(ch);
                                 }
                             }
                             NewGameMenuSelection::Height => {
-                                if let Some(_) = ch.to_digit(10) {
+                                if ch.is_ascii_digit() {
                                     cfg_input.height.push(ch);
                                 }
                             }
@@ -427,22 +427,22 @@ impl GameState for State {
                     NewGameMenuAction::DelChar => {
                         match hovering {
                             NewGameMenuSelection::WorldName => {
-                                if cfg_input.world_name.len() > 0 {
+                                if !cfg_input.world_name.is_empty() {
                                     cfg_input.world_name.remove(cfg_input.world_name.len() - 1);
                                 }
                             }
                             NewGameMenuSelection::Width => {
-                                if cfg_input.width.len() > 0 {
+                                if !cfg_input.width.is_empty() {
                                     cfg_input.width.remove(cfg_input.width.len() - 1);
                                 }
                             }
                             NewGameMenuSelection::Height => {
-                                if cfg_input.height.len() > 0 {
+                                if !cfg_input.height.is_empty() {
                                     cfg_input.height.remove(cfg_input.height.len() - 1);
                                 }
                             }
                             NewGameMenuSelection::Seed => {
-                                if cfg_input.seed.len() > 0 {
+                                if !cfg_input.seed.is_empty() {
                                     cfg_input.seed.remove(cfg_input.seed.len() - 1);
                                 }
                             }
@@ -787,7 +787,9 @@ fn main() -> BError {
     world.insert(SimpleMarkerAllocator::<SerializeMe>::new());
 
     // Resource Initialization, the ECS needs a basic definition of every resource that will be in the game
-    world.insert(AppState::PreRun { next_state: Box::new(AppState::MainMenu { hovering: MenuSelection::NewGame }) });
+    world.insert(AppState::PreRun {
+        next_state: Box::new(AppState::NewGameStart { world_cfg: WorldConfig::default() }),
+    });
     world.insert(DeltaTime(Duration::ZERO));
     world.insert(TileAnimationBuilder::new());
     world.insert(AnimationRenderer::new());
