@@ -73,7 +73,6 @@ impl Default for WorldTile {
 #[derive(Debug)]
 pub struct ObjectID(pub usize);
 
-#[allow(unused)]
 pub struct WorldObject {
     /// Unique id to find the world object's static data
     pub id: ObjectID,

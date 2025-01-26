@@ -74,7 +74,6 @@ pub fn draw_flashes(ecs: &World, draw_batch: &mut DrawBatch) {
 
     for (pos, flash) in (&positions, &flashes).join().filter(|(pos, _)| bounding_box.point_in_rect(pos.to_point())) {
         let point = Point::new(pos.x as i32 - bounding_box.x1, pos.y as i32 - bounding_box.y1);
-        debug!("Drawing at {:?}", point);
         draw_batch.set(point, flash.sprite.color_pair, flash.sprite.atlas_index);
     }
 }

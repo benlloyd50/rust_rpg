@@ -114,22 +114,32 @@ pub fn gen_world(ecs: &mut World, wc: &WorldConfig) -> Map {
 fn generate_resources(map: &mut Map, ecs: &mut World, rng: &mut RandomNumberGenerator) {
     let noise_db = NOISE_DB.lock().unwrap();
     let r_noise = noise_db.get_by_name("resources").unwrap();
-    // generate some noise to get the where to put them
-    // - random variance for spotty placement
+
     for x in 0..map.width {
         for y in 0..map.height {
-            // avoid certain tiles
-            if ["Mountain", "Water"].contains(&map.tiles[map.xy_to_idx(x, y)].name.as_str()) {
+            let map_tile = &map.tiles[map.xy_to_idx(x, y)];
+            if ["Mountain", "Water"].contains(&map_tile.name.as_str()) {
                 continue;
             }
 
-            // place the resources depending on current tile?
             if let Some((name, weight)) = r_noise.get_name_of(x, y) {
                 let check = rng.rand::<u64>() as f32 / u64::MAX as f32;
                 info!("{}", check);
                 if check > weight {
                     info!("skipping tile");
                     continue;
+                }
+
+                match map_tile.name.as_str() {
+                    "Grass" => {
+                        if name == "Boulder" {
+                            let check = rng.rand::<u64>() as f32 / u64::MAX as f32;
+                            if check > 0.5 {
+                                continue;
+                            }
+                        }
+                    }
+                    _ => {}
                 }
 
                 if let Err(e) = build_world_obj(name, Position::new(x, y), ecs) {

@@ -3,7 +3,6 @@ mod audio;
 mod beings;
 mod items;
 mod noise;
-mod prefab;
 mod recipes;
 mod world_objs;
 
