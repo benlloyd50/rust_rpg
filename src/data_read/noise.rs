@@ -1,10 +1,13 @@
 use lazy_static::lazy_static;
-use log::{error, info};
+use log::{error, info, warn};
 use serde::Deserialize;
 use std::fs;
 use std::sync::Mutex;
 
-use bracket_lib::noise::{FastNoise, NoiseType};
+use bracket_lib::{
+    noise::{FastNoise, NoiseType},
+    prelude::PointF,
+};
 
 use crate::noise::{Noise, RawWorldTile};
 
@@ -26,6 +29,7 @@ struct RawNoise {
     pub frequency: Option<f32>,
     pub lacunarity: Option<f32>,
     pub gain: Option<f32>,
+    pub scale: Option<Vec<f32>>,
     pub tile_mapping: Option<Vec<RawWorldTile>>,
 }
 
@@ -41,7 +45,7 @@ impl NoiseDatabase {
             json5::from_str(&raw_noises).expect(&format!("Failed to parse noise file: {}", NOISE_PATH));
 
         for noise in raw_noises {
-            let mut parsed = Noise { name: noise.name, noise: FastNoise::new(), mapping: vec![] };
+            let mut parsed = Noise { name: noise.name, scale: PointF::one(), noise: FastNoise::new(), mapping: vec![] };
 
             if let Some(noise_type) = noise.noise_type {
                 match noise_type.as_str() {
@@ -66,6 +70,14 @@ impl NoiseDatabase {
 
             if let Some(gain) = noise.gain {
                 parsed.noise.set_fractal_gain(gain);
+            }
+
+            if let Some(scale) = noise.scale {
+                if scale.len() != 2 {
+                    warn!("Noise Parse: {} Scale does not have exactly 2 values resorting to default", parsed.name);
+                } else {
+                    parsed.scale = PointF::new(scale[0], scale[1]);
+                }
             }
 
             if let Some(tilemap) = noise.tile_mapping {

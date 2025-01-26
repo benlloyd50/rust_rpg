@@ -7,22 +7,23 @@
         "lacunarity": 1.7,
         "gain": 0.9,
         "tile_mapping": [
-            {
-                "name": "Gravel",
-                "chance": 0.7,
-                "atlas_idx": 16,
-            },
-            {
-                "name": "Mountain",
-                "chance": 0.85,
-                "atlas_idx": 17,
-                "is_blocking": ""
-            },
-            {
-                "name": "Grass",
-                "chance": 0.0,
-                "atlas_idx": 0,
-            }
+            { "name": "Gravel", "height": 0.7, "atlas_idx": 16, },
+            { "name": "Mountain", "height": 0.85, "atlas_idx": 17, "is_blocking": "" },
+            { "name": "Grass", "height": 0.0, "atlas_idx": 0, } 
         ]
     },
+    {
+        "name": "resources",
+        "noise_type": "simplex",
+        "scale": [1., 1.],
+        "octaves": 3,
+        "frequency": 0.04,
+        "lacunarity": 1.7,
+        "gain": 0.9,
+        "tile_mapping": [
+            { "name": "Sapling", "height": 0.40, "weight": 0.18, },
+            { "name": "Sapling", "height": 0.60, "weight": 0.80, },
+            { "name": "Boulder", "height": 0.75, "weight": 0.12, },
+        ]
+    }
 ]

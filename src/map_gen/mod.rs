@@ -1,10 +1,15 @@
-use std::hash::{DefaultHasher, Hash, Hasher};
+use std::{
+    hash::{DefaultHasher, Hash, Hasher},
+    u64,
+};
 
+use bracket_lib::random::RandomNumberGenerator;
+use log::{error, info};
 use specs::{Builder, World, WorldExt};
 
 use crate::{
     components::{Blocking, Position, Water},
-    data_read::prelude::NOISE_DB,
+    data_read::prelude::{build_world_obj, NOISE_DB},
     game_init::InputWorldConfig,
     map::{Map, WorldTile},
     saveload::{save_game_exists, SAVE_EXTENSION},
@@ -16,12 +21,19 @@ pub struct WorldConfig {
     pub world_name: String,
     pub width: usize,
     pub height: usize,
+    pub sea_level: u8,
     pub seed: u64,
 }
 
 impl Default for WorldConfig {
     fn default() -> Self {
-        Self { world_name: "".to_string(), width: 100, height: 100, seed: 0 }
+        Self {
+            world_name: "".to_string(),
+            width: 100,
+            height: 100,
+            sea_level: (0.13f32 * 255.0).round() as u8,
+            seed: 0,
+        }
     }
 }
 
@@ -36,6 +48,13 @@ impl WorldConfig {
             errors.push("World name already exists".to_string());
         }
 
+        let sea_level = match iwc.sea_level.parse::<u8>() {
+            Ok(h) => h,
+            Err(_) => {
+                errors.push("Invalid sea_level must be 0 - 255".to_string());
+                0
+            }
+        };
         let height = match iwc.height.parse::<usize>() {
             Ok(h) => h,
             Err(_) => {
@@ -61,7 +80,7 @@ impl WorldConfig {
         if !errors.is_empty() {
             return Err(errors);
         }
-        Ok(Self { world_name: iwc.world_name.clone(), width, height, seed })
+        Ok(Self { world_name: iwc.world_name.clone(), width, height, seed, sea_level })
     }
 }
 
@@ -71,13 +90,14 @@ pub fn gen_world(ecs: &mut World, wc: &WorldConfig) -> Map {
         let mut noise_db = NOISE_DB.lock().unwrap();
         noise_db.reseed(wc.seed);
     }
+    let mut rng = RandomNumberGenerator::seeded(wc.seed);
 
     let mut new_map = Map::new(wc.width, wc.height, (0, 0));
 
     new_map.tile_atlas_index = FONT_TERRAIN_FOREST;
     for x in 0..wc.width {
         for y in 0..wc.height {
-            new_map.set_tile(&WorldTile::default(), x, y);
+            new_map.set_tile(&WorldTile::grass(), x, y);
         }
     }
 
@@ -85,10 +105,39 @@ pub fn gen_world(ecs: &mut World, wc: &WorldConfig) -> Map {
     // let _ = build_world_obj("Boulder".to_string(), Position::new(15, 20), ecs);
 
     generate_heights(&mut new_map);
-    fill_water_to_level(&mut new_map, (0.13_f64 * 255.0).floor() as u8, ecs);
-    // generate_forest_terrain(&mut new_map);
+    fill_water_to_level(&mut new_map, wc.sea_level, ecs);
+    generate_resources(&mut new_map, ecs, &mut rng);
 
     new_map
+}
+
+fn generate_resources(map: &mut Map, ecs: &mut World, rng: &mut RandomNumberGenerator) {
+    let noise_db = NOISE_DB.lock().unwrap();
+    let r_noise = noise_db.get_by_name("resources").unwrap();
+    // generate some noise to get the where to put them
+    // - random variance for spotty placement
+    for x in 0..map.width {
+        for y in 0..map.height {
+            // avoid certain tiles
+            if ["Mountain", "Water"].contains(&map.tiles[map.xy_to_idx(x, y)].name.as_str()) {
+                continue;
+            }
+
+            // place the resources depending on current tile?
+            if let Some((name, weight)) = r_noise.get_name_of(x, y) {
+                let check = rng.rand::<u64>() as f32 / u64::MAX as f32;
+                info!("{}", check);
+                if check > weight {
+                    info!("skipping tile");
+                    continue;
+                }
+
+                if let Err(e) = build_world_obj(name, Position::new(x, y), ecs) {
+                    error!("Resources failed to build: {:?}", e);
+                }
+            }
+        }
+    }
 }
 
 fn fill_water_to_level(map: &mut Map, level: u8, ecs: &mut World) {

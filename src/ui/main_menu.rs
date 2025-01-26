@@ -180,6 +180,11 @@ pub fn draw_new_game_menu(
     );
     draw_batch.print_color(
         Point::new(menu_start_x + 1, MENU_START_Y - menu_height + 6),
+        format!("Sea Level (0-255): {}", world_cfg.height),
+        height,
+    );
+    draw_batch.print_color(
+        Point::new(menu_start_x + 1, MENU_START_Y - menu_height + 7),
         format!("Seed: {}", world_cfg.seed),
         seed,
     );

@@ -1,5 +1,6 @@
 use crate::{
     camera::get_camera_bounds,
+    char_c::{CH_SOLID, CH_WATER},
     components::{HealthStats, Position},
     droptables::Drops,
 };
@@ -46,15 +47,26 @@ pub struct WorldTile {
     pub is_blocked: bool,
     pub height: u8,
 }
+
 impl WorldTile {
     pub fn water(height: u8) -> WorldTile {
-        Self { name: "Water".to_string(), atlas_idx: 5 * 16, transparent: true, height, is_blocked: false }
+        Self { name: "Water".to_string(), atlas_idx: CH_WATER as usize, transparent: true, height, is_blocked: false }
+    }
+
+    pub fn grass() -> Self {
+        Self {
+            name: "Grass".to_string(),
+            atlas_idx: CH_SOLID as usize,
+            transparent: true,
+            height: 0,
+            is_blocked: false,
+        }
     }
 }
 
 impl Default for WorldTile {
     fn default() -> Self {
-        Self { name: "Grass".to_string(), atlas_idx: 4, transparent: true, height: 0, is_blocked: false }
+        Self::grass()
     }
 }
 
@@ -110,7 +122,7 @@ impl Map {
     // Makes empty map of a size
     pub fn new(width: usize, height: usize, world_coords: (usize, usize)) -> Self {
         Map {
-            tiles: vec![WorldTile::default(); width * height],
+            tiles: vec![WorldTile::grass(); width * height],
             tile_entities: vec![vec![]; width * height],
             width,
             height,

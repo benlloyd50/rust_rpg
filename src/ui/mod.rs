@@ -52,6 +52,8 @@ pub fn draw_ui(ecs: &World, appstate: &AppState, cfg: &ConfigMaster) {
             draw_turn_counter(&mut draw_batch, ecs);
         }
         AppState::ActivityBound { .. } => {
+            draw_turn_counter(&mut draw_batch, ecs);
+            draw_unseen_area(&mut draw_batch, ecs);
             draw_fishing_bar(&mut draw_batch, ecs);
         }
         AppState::MainMenu { hovering } => {

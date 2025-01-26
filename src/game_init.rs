@@ -130,12 +130,19 @@ pub struct InputWorldConfig {
     pub world_name: String,
     pub width: String,
     pub height: String,
+    pub sea_level: String,
     pub seed: String,
 }
 
 impl Default for InputWorldConfig {
     fn default() -> Self {
-        Self { world_name: String::new(), width: "100".to_string(), height: "100".to_string(), seed: String::new() }
+        Self {
+            world_name: String::new(),
+            width: "100".to_string(),
+            height: "100".to_string(),
+            sea_level: "33".to_string(),
+            seed: String::new(),
+        }
     }
 }
 

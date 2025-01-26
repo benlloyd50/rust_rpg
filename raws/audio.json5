@@ -28,7 +28,7 @@
     },
     {
         name: "confirm",
-        file_names: [ "confirm1.wav",],
+        file_names: [ "confirm1.ogg",],
         volume: 1.0,
     },
     {
