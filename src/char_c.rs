@@ -16,4 +16,5 @@ pub const CH_GOAL_RIGHT: u8 = 24;
 // Mining
 pub const CH_STRIKE: u8 = 2;
 
+pub const CH_SOLID: u8 = 4;
 pub const CH_WATER: u8 = 5 * 16;
