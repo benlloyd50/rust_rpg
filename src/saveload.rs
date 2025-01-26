@@ -241,7 +241,7 @@ pub fn load_game(ecs: &mut World, file_name: String) {
         }
     }
 
-    ecs.insert(LoadedWorld { file_name: Some(file_name), ..Default::default() });
+    ecs.insert(LoadedWorld { file_name: Some(file_name) });
     debug!("Loading game complete");
     ecs.delete_entity(delete_me.unwrap()).expect("Unable to delete helper after loading.");
 }

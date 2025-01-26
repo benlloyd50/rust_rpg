@@ -168,18 +168,15 @@ pub fn print_frame_animations(draw_batch: &mut DrawBatch, ecs: &World) {
             None => continue,
         };
 
-        let mut i = 0;
         // TODO: this should be part of anim defined in the json?
         draw_batch.target(CL_EFFECTS);
-        for cell in &curr_frame.cells {
+        for (i, cell) in curr_frame.cells.iter().enumerate() {
             let Point { x, y } = idx_to_point(i, anim.width);
             draw_batch.set(
                 Point::new(play.top_left.x + x, play.top_left.y + y),
                 ColorPair { fg: cell.fg.into(), bg: cell.bg },
                 cell.glyph,
             );
-
-            i += 1;
         }
     }
 }

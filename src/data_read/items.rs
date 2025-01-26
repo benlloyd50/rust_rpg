@@ -26,7 +26,7 @@ impl ItemDatabase {
         let contents: String =
             fs::read_to_string("raws/items.json").expect("Unable to find items.json at `raws/items.json`");
         let raw_info_db: RawItemDatabase = from_str(&contents).expect("Bad JSON in items.json fix it");
-        ItemDatabase { data: raw_info_db.data.iter().map(|info| ItemInfo::from_raw(info)).collect() }
+        ItemDatabase { data: raw_info_db.data.iter().map(ItemInfo::from_raw).collect() }
     }
 
     pub fn get_by_name(&self, name: &str) -> Option<&ItemInfo> {
@@ -73,12 +73,9 @@ impl ItemInfo {
             atlas_index: value.atlas_index,
             fg: value.fg,
             pickup_text: value.pickup_text.clone(),
-            equipable: value.equipable.clone().map_or(None, |e| Some(Equipable::from_str(&e))),
-            attack_bonus: value.attack_bonus.map_or(None, |bonus| Some(AttackBonus(bonus as i32))),
-            consumable: value
-                .consumable
-                .clone()
-                .map_or(None, |rc| Some(Consumable::from_str(&rc.effect, rc.amount.unwrap()))),
+            equipable: value.equipable.clone().map(|e| Equipable::from_str(&e)),
+            attack_bonus: value.attack_bonus.map(|bonus| AttackBonus(bonus as i32)),
+            consumable: value.consumable.clone().map(|rc| Consumable::from_str(&rc.effect, rc.amount.unwrap())),
         }
     }
 }

@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use crate::{
     audio::play_sound_effect,
+    char_c::CH_STRIKE,
     components::{
         BreakAction, Breakable, EntityStats, HealthStats, Name, Renderable, SizeFlexor, SufferDamage, ToolType,
     },
@@ -12,10 +13,8 @@ use crate::{
     z_order::EFFECT_Z,
 };
 use bracket_lib::color::WHITE;
-use log::{error, info};
+use log::{debug, error, info};
 use specs::{Entities, Entity, Join, Read, ReadStorage, System, Write, WriteStorage};
-
-const CH_STRIKE: u8 = 2;
 
 /// Allows tile to be breakable. The tile must contain a breakable and health stats component.
 /// The attacker must contain a strength and have breakactions queued up in their system.
@@ -77,10 +76,8 @@ impl<'a> System<'a> for TileDestructionSystem {
                     play_sound_effect(sound_name);
                 }
 
-                let size_flex = AnimationRequest::StretchShrink(
-                    tile_entity,
-                    SizeFlexor::new(&vec![(0.75, 1.25), (1.0, 1.0)], 25.0),
-                );
+                let size_flex =
+                    AnimationRequest::StretchShrink(tile_entity, SizeFlexor::new(&[(0.75, 1.25), (1.0, 1.0)], 25.0));
                 let flash_white = AnimationRequest::GlyphFlash(
                     tile_entity,
                     Duration::from_secs_f32(0.15),
@@ -128,7 +125,7 @@ impl<'a> System<'a> for DamageSystem {
             let new_hp = stats.hp as i32 + damage_dealt;
             stats.hp = if new_hp >= 0 { new_hp as usize } else { 0 };
 
-            println!("Old HP: {} | Damage Dealt: {} | New HP: {}", old_hp, damage_dealt, stats.hp);
+            debug!("Old HP: {} | Damage Dealt: {} | New HP: {}", old_hp, damage_dealt, stats.hp);
         }
 
         damage.clear();

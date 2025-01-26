@@ -14,7 +14,7 @@ use crate::{
         EquipmentSlots, Interactor, InteractorMode, LevelPersistent, Name, Position, Renderable, Transform, Viewshed,
     },
     data_read::prelude::build_being,
-    get_alphanumber,
+    get_text,
     items::{ItemID, ItemSpawner, SpawnType},
     map::MapRes,
     map_gen::{gen_world, WorldConfig},
@@ -37,7 +37,7 @@ impl Default for PlayerEntity {
 
 pub fn initialize_new_game_world(ecs: &mut World, world_config: &WorldConfig) {
     debug!("startup: map loading");
-    let new_chunk = gen_world(ecs, &world_config);
+    let new_chunk = gen_world(ecs, world_config);
     ecs.insert(MapRes(new_chunk));
     debug!("startup: map loaded");
 
@@ -89,7 +89,30 @@ pub enum NewGameMenuSelection {
     WorldName,
     Width,
     Height,
+    Seed,
     Finalize,
+}
+
+impl NewGameMenuSelection {
+    pub fn next(&self) -> Self {
+        match self {
+            NewGameMenuSelection::WorldName => NewGameMenuSelection::Width,
+            NewGameMenuSelection::Width => NewGameMenuSelection::Height,
+            NewGameMenuSelection::Height => NewGameMenuSelection::Seed,
+            NewGameMenuSelection::Seed => NewGameMenuSelection::Finalize,
+            NewGameMenuSelection::Finalize => NewGameMenuSelection::WorldName,
+        }
+    }
+
+    pub fn prev(&self) -> Self {
+        match self {
+            NewGameMenuSelection::WorldName => NewGameMenuSelection::Finalize,
+            NewGameMenuSelection::Width => NewGameMenuSelection::WorldName,
+            NewGameMenuSelection::Height => NewGameMenuSelection::Width,
+            NewGameMenuSelection::Seed => NewGameMenuSelection::Height,
+            NewGameMenuSelection::Finalize => NewGameMenuSelection::Seed,
+        }
+    }
 }
 
 pub enum NewGameMenuAction {
@@ -102,16 +125,33 @@ pub enum NewGameMenuAction {
     Leave,
 }
 
-#[derive(Default, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct InputWorldConfig {
     pub world_name: String,
     pub width: String,
     pub height: String,
+    pub sea_level: String,
+    pub seed: String,
+}
+
+impl Default for InputWorldConfig {
+    fn default() -> Self {
+        Self {
+            world_name: String::new(),
+            width: "100".to_string(),
+            height: "100".to_string(),
+            sea_level: "33".to_string(),
+            seed: String::new(),
+        }
+    }
 }
 
 pub fn p_input_new_game_menu(ctx: &mut BTerm) -> NewGameMenuAction {
     if let Some(key) = ctx.key {
-        if let Some(letter) = get_alphanumber(key) {
+        if let Some(letter) = get_text(key) {
+            if ctx.shift {
+                return NewGameMenuAction::Text(letter.to_ascii_uppercase());
+            }
             return NewGameMenuAction::Text(letter);
         }
 
@@ -121,6 +161,7 @@ pub fn p_input_new_game_menu(ctx: &mut BTerm) -> NewGameMenuAction {
             VirtualKeyCode::Up => NewGameMenuAction::Up,
             VirtualKeyCode::Back => NewGameMenuAction::DelChar,
             VirtualKeyCode::Escape => NewGameMenuAction::Leave,
+            VirtualKeyCode::Tab => NewGameMenuAction::Down,
             _ => NewGameMenuAction::Waiting,
         };
     }

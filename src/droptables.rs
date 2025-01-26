@@ -88,7 +88,7 @@ impl<'a> System<'a> for DeathLootDrop {
                 },
             };
             debug!("{} generating drops", name);
-            let drops = generate_drops(&drop_table);
+            let drops = generate_drops(drop_table);
             debug!("{:?}", drops);
             for drop in drops {
                 item_spawner.request_amt(drop.0, SpawnType::OnGround(*pos), drop.1);

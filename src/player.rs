@@ -181,15 +181,17 @@ pub enum MenuSelection {
     NewGame,
     LoadGame,
     Settings,
+    QuitGame,
 }
 
 impl MenuSelection {
     /// Constructs a new string of the variant in lowercase with spaces
-    pub fn to_lowercase(&self) -> String {
+    pub fn as_lowercase(&self) -> String {
         match self {
             MenuSelection::NewGame => "new game",
             MenuSelection::LoadGame => "load game",
             MenuSelection::Settings => "settings",
+            MenuSelection::QuitGame => "quit game",
         }
         .to_string()
     }
@@ -208,13 +210,15 @@ pub fn p_input_main_menu(ctx: &mut BTerm, hovering: &MenuSelection) -> MenuActio
                 MenuSelection::NewGame if any_save_game_exists() => MenuSelection::LoadGame,
                 MenuSelection::NewGame => MenuSelection::Settings,
                 MenuSelection::LoadGame => MenuSelection::Settings,
-                MenuSelection::Settings => MenuSelection::NewGame,
+                MenuSelection::Settings => MenuSelection::QuitGame,
+                MenuSelection::QuitGame => MenuSelection::NewGame,
             }),
             VKC::Up | VKC::W => MenuAction::Hovering(match hovering {
-                MenuSelection::NewGame => MenuSelection::Settings,
+                MenuSelection::NewGame => MenuSelection::QuitGame,
                 MenuSelection::LoadGame => MenuSelection::NewGame,
                 MenuSelection::Settings if any_save_game_exists() => MenuSelection::LoadGame,
                 MenuSelection::Settings => MenuSelection::NewGame,
+                MenuSelection::QuitGame => MenuSelection::Settings,
             }),
             VKC::Return => MenuAction::Selected(*hovering),
             _ => MenuAction::Waiting,

@@ -1,5 +1,4 @@
 use bracket_lib::terminal::*;
-use log::debug;
 use specs::{Join, World, WorldExt};
 
 use crate::{
@@ -74,7 +73,6 @@ pub fn draw_flashes(ecs: &World, draw_batch: &mut DrawBatch) {
 
     for (pos, flash) in (&positions, &flashes).join().filter(|(pos, _)| bounding_box.point_in_rect(pos.to_point())) {
         let point = Point::new(pos.x as i32 - bounding_box.x1, pos.y as i32 - bounding_box.y1);
-        debug!("Drawing at {:?}", point);
         draw_batch.set(point, flash.sprite.color_pair, flash.sprite.atlas_index);
     }
 }
@@ -102,8 +100,8 @@ fn draw_fancy_sprites(ecs: &World, draw_batch: &mut DrawBatch) {
 }
 
 pub fn lerp_point(curr: &PointF, x: f32, y: f32, scalar: f32) -> PointF {
-    let fx = curr.x + (x as f32 - curr.x) * scalar;
-    let fy = curr.y + (y as f32 - curr.y) * scalar;
+    let fx = curr.x + (x - curr.x) * scalar;
+    let fy = curr.y + (y - curr.y) * scalar;
     PointF { x: fx, y: fy }
 }
 

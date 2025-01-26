@@ -1,5 +1,6 @@
 use crate::{
     camera::get_camera_bounds,
+    char_c::{CH_SOLID, CH_WATER},
     components::{HealthStats, Position},
     droptables::Drops,
 };
@@ -40,23 +41,41 @@ impl From<(usize, usize)> for WorldCoords {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct WorldTile {
-    pub atlas_index: usize,
+    pub name: String,
+    pub atlas_idx: usize,
     pub transparent: bool,
+    pub is_blocked: bool,
+    pub height: u8,
 }
 
 impl WorldTile {
-    pub fn default() -> Self {
-        Self { atlas_index: 4, transparent: true }
+    pub fn water(height: u8) -> WorldTile {
+        Self { name: "Water".to_string(), atlas_idx: CH_WATER as usize, transparent: true, height, is_blocked: false }
+    }
+
+    pub fn grass() -> Self {
+        Self {
+            name: "Grass".to_string(),
+            atlas_idx: CH_SOLID as usize,
+            transparent: true,
+            height: 0,
+            is_blocked: false,
+        }
+    }
+}
+
+impl Default for WorldTile {
+    fn default() -> Self {
+        Self::grass()
     }
 }
 
 #[derive(Debug)]
 pub struct ObjectID(pub usize);
 
-#[allow(unused)]
 pub struct WorldObject {
     /// Unique id to find the world object's static data
-    pub identifier: ObjectID,
+    pub id: ObjectID,
     pub name: String,
     pub atlas_index: u8,
     pub is_blocking: bool,
@@ -102,7 +121,7 @@ impl Map {
     // Makes empty map of a size
     pub fn new(width: usize, height: usize, world_coords: (usize, usize)) -> Self {
         Map {
-            tiles: vec![WorldTile::default(); width * height],
+            tiles: vec![WorldTile::grass(); width * height],
             tile_entities: vec![vec![]; width * height],
             width,
             height,
@@ -151,9 +170,9 @@ impl Map {
         pos.x >= 0 && pos.x < self.width as i32 && pos.y >= 0 && pos.y < self.height as i32
     }
 
-    pub fn set_tile(&mut self, tile: WorldTile, x: usize, y: usize) {
+    pub fn set_tile(&mut self, tile: &WorldTile, x: usize, y: usize) {
         let idx = self.xy_to_idx(x, y);
-        self.tiles[idx] = tile;
+        self.tiles[idx] = tile.clone();
     }
 }
 
@@ -196,7 +215,7 @@ pub fn render_map(ecs: &World, batch: &mut DrawBatch) {
     for x in bounding_box.x1..bounding_box.x2 {
         for y in bounding_box.y1..bounding_box.y2 {
             let atlas_index = if x < map.0.width as i32 && y < map.0.height as i32 && x >= 0 && y >= 0 {
-                map.0.tiles[map.0.xy_to_idx(x as usize, y as usize)].atlas_index
+                map.0.tiles[map.0.xy_to_idx(x as usize, y as usize)].atlas_idx
             } else {
                 xy_to_idx_given_width(0, 2, 16)
             };

@@ -70,8 +70,8 @@ impl BeingDatabase {
                     atlas_index: raw.atlas_index,
                     fg: raw.fg,
                     quips: raw.quips.to_owned(),
-                    stats: raw.stats.as_ref().map_or_else(Stats::zero, |stats| Stats::from_optional(&stats)),
-                    loot: raw.loot.as_ref().and_then(|raw| Some(Drops::from_raw(raw, game_db))),
+                    stats: raw.stats.as_ref().map_or_else(Stats::zero, Stats::from_optional),
+                    loot: raw.loot.as_ref().map(|raw| Drops::from_raw(raw, game_db)),
                 })
                 .collect(),
         }

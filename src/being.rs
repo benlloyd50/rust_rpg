@@ -84,7 +84,7 @@ impl<'a> System<'a> for RandomMonsterMovementSystem {
                     continue;
                 }
                 98..=99 => {
-                    say_random_quip(&name, &mut log);
+                    say_random_quip(name, &mut log);
                     continue;
                 }
                 _ => unreachable!("rng.range(0, 100) should have range of "),
@@ -146,7 +146,7 @@ impl<'a> System<'a> for GoalFindEntities {
                 .join()
                 .filter(|(e, n, _)| goal_mover.desires.contains(n) && e.ne(&goal_entity))
                 .collect();
-            if data.len() == 0 {
+            if data.is_empty() {
                 info!("No goals remain for {}, switching to randomwalk", mover_name);
                 let _ = randwalkers.insert(goal_entity, RandomWalkerAI {});
                 remove_mes.push(goal_entity);

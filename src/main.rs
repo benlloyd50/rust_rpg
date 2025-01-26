@@ -8,6 +8,7 @@ use crate::saveload::{SerializationHelper, SerializeMe};
 use crate::ui::draw_ui;
 use crate::ui::message_log::MessageLog;
 use std::mem::discriminant;
+use std::process::exit;
 use std::time::Duration;
 
 use audio::play_sound_effect;
@@ -38,6 +39,7 @@ use specs::prelude::*;
 
 mod audio;
 mod camera;
+mod char_c;
 mod colors;
 mod combat;
 mod config;
@@ -62,6 +64,7 @@ mod being;
 mod items;
 mod map_gen;
 mod mining;
+mod noise;
 mod player;
 mod stats;
 mod tile_animation;
@@ -363,7 +366,7 @@ impl GameState for State {
             }
             AppState::MainMenu { hovering } => {
                 let mut timer_update = UpdateAnimationTimers;
-                timer_update.run_now(&mut self.ecs);
+                timer_update.run_now(&self.ecs);
 
                 match p_input_main_menu(ctx, &hovering) {
                     MenuAction::Selected(selected) => {
@@ -374,6 +377,10 @@ impl GameState for State {
                             }
                             MenuSelection::Settings => {
                                 AppState::SettingsMenu { hovering: SettingsSelection::SpriteMode }
+                            }
+                            MenuSelection::QuitGame => {
+                                info!("Quitting the game from the main menu.");
+                                exit(1);
                             }
                         });
                         play_sound_effect("confirm");
@@ -389,70 +396,66 @@ impl GameState for State {
             }
             AppState::NewGameInitialize { hovering, world_cfg: mut cfg_input, form_errors } => {
                 match p_input_new_game_menu(ctx) {
-                    NewGameMenuAction::Text(ch) => match hovering {
-                        NewGameMenuSelection::WorldName => {
-                            cfg_input.world_name.push(ch);
+                    NewGameMenuAction::Text(ch) => {
+                        match hovering {
+                            NewGameMenuSelection::WorldName => {
+                                cfg_input.world_name.push(ch);
+                            }
+                            NewGameMenuSelection::Width => {
+                                if ch.is_ascii_digit() {
+                                    cfg_input.width.push(ch);
+                                }
+                            }
+                            NewGameMenuSelection::Height => {
+                                if ch.is_ascii_digit() {
+                                    cfg_input.height.push(ch);
+                                }
+                            }
+                            NewGameMenuSelection::Seed => {
+                                cfg_input.seed.push(ch);
+                            }
+                            NewGameMenuSelection::Finalize => {}
+                        }
+                        if !matches!(hovering, NewGameMenuSelection::Finalize) {
                             frame_state.change_to(AppState::NewGameInitialize {
                                 hovering,
                                 world_cfg: cfg_input,
                                 form_errors,
-                            })
+                            });
                         }
-                        NewGameMenuSelection::Width => {
-                            if let Some(_) = ch.to_digit(10) {
-                                cfg_input.width.push(ch);
-                                frame_state.change_to(AppState::NewGameInitialize {
-                                    hovering,
-                                    world_cfg: cfg_input,
-                                    form_errors,
-                                })
+                    }
+                    NewGameMenuAction::DelChar => {
+                        match hovering {
+                            NewGameMenuSelection::WorldName => {
+                                if !cfg_input.world_name.is_empty() {
+                                    cfg_input.world_name.remove(cfg_input.world_name.len() - 1);
+                                }
                             }
+                            NewGameMenuSelection::Width => {
+                                if !cfg_input.width.is_empty() {
+                                    cfg_input.width.remove(cfg_input.width.len() - 1);
+                                }
+                            }
+                            NewGameMenuSelection::Height => {
+                                if !cfg_input.height.is_empty() {
+                                    cfg_input.height.remove(cfg_input.height.len() - 1);
+                                }
+                            }
+                            NewGameMenuSelection::Seed => {
+                                if !cfg_input.seed.is_empty() {
+                                    cfg_input.seed.remove(cfg_input.seed.len() - 1);
+                                }
+                            }
+                            NewGameMenuSelection::Finalize => {}
                         }
-                        NewGameMenuSelection::Height => {
-                            if let Some(_) = ch.to_digit(10) {
-                                cfg_input.height.push(ch);
-                                frame_state.change_to(AppState::NewGameInitialize {
-                                    hovering,
-                                    world_cfg: cfg_input,
-                                    form_errors,
-                                })
-                            }
-                        }
-                        NewGameMenuSelection::Finalize => {}
-                    },
-                    NewGameMenuAction::DelChar => match hovering {
-                        NewGameMenuSelection::WorldName => {
-                            if cfg_input.world_name.len() > 0 {
-                                cfg_input.world_name.remove(cfg_input.world_name.len() - 1);
-                            }
+                        if !matches!(hovering, NewGameMenuSelection::Finalize) {
                             frame_state.change_to(AppState::NewGameInitialize {
                                 hovering,
                                 world_cfg: cfg_input,
                                 form_errors,
-                            })
+                            });
                         }
-                        NewGameMenuSelection::Width => {
-                            if cfg_input.width.len() > 0 {
-                                cfg_input.width.remove(cfg_input.width.len() - 1);
-                            }
-                            frame_state.change_to(AppState::NewGameInitialize {
-                                hovering,
-                                world_cfg: cfg_input,
-                                form_errors,
-                            })
-                        }
-                        NewGameMenuSelection::Height => {
-                            if cfg_input.height.len() > 0 {
-                                cfg_input.height.remove(cfg_input.height.len() - 1);
-                            }
-                            frame_state.change_to(AppState::NewGameInitialize {
-                                hovering,
-                                world_cfg: cfg_input,
-                                form_errors,
-                            })
-                        }
-                        NewGameMenuSelection::Finalize => {}
-                    },
+                    }
                     NewGameMenuAction::Select => match hovering {
                         NewGameMenuSelection::Finalize => match WorldConfig::try_from(&cfg_input) {
                             Ok(world_cfg) => frame_state.change_to(AppState::NewGameStart { world_cfg }),
@@ -466,32 +469,16 @@ impl GameState for State {
                         },
                         _ => {}
                     },
-                    NewGameMenuAction::Up => {
-                        let new_select = match hovering {
-                            NewGameMenuSelection::WorldName => NewGameMenuSelection::Finalize,
-                            NewGameMenuSelection::Width => NewGameMenuSelection::WorldName,
-                            NewGameMenuSelection::Height => NewGameMenuSelection::Width,
-                            NewGameMenuSelection::Finalize => NewGameMenuSelection::Height,
-                        };
-                        frame_state.change_to(AppState::NewGameInitialize {
-                            hovering: new_select,
-                            world_cfg: cfg_input,
-                            form_errors,
-                        })
-                    }
-                    NewGameMenuAction::Down => {
-                        let new_select = match hovering {
-                            NewGameMenuSelection::WorldName => NewGameMenuSelection::Width,
-                            NewGameMenuSelection::Width => NewGameMenuSelection::Height,
-                            NewGameMenuSelection::Height => NewGameMenuSelection::Finalize,
-                            NewGameMenuSelection::Finalize => NewGameMenuSelection::WorldName,
-                        };
-                        frame_state.change_to(AppState::NewGameInitialize {
-                            hovering: new_select,
-                            world_cfg: cfg_input,
-                            form_errors,
-                        })
-                    }
+                    NewGameMenuAction::Up => frame_state.change_to(AppState::NewGameInitialize {
+                        hovering: hovering.prev(),
+                        world_cfg: cfg_input,
+                        form_errors,
+                    }),
+                    NewGameMenuAction::Down => frame_state.change_to(AppState::NewGameInitialize {
+                        hovering: hovering.next(),
+                        world_cfg: cfg_input,
+                        form_errors,
+                    }),
                     NewGameMenuAction::Leave => frame_state.change_to(AppState::PreRun {
                         next_state: Box::new(AppState::MainMenu { hovering: MenuSelection::NewGame }),
                     }),
@@ -593,8 +580,10 @@ impl GameState for State {
     }
 }
 
-pub fn get_alphanumber(key: VirtualKeyCode) -> Option<char> {
+// Helper to get keycodes that are valid in text
+pub fn get_text(key: VirtualKeyCode) -> Option<char> {
     let letter = match key {
+        VirtualKeyCode::Space => ' ',
         VirtualKeyCode::A => 'a',
         VirtualKeyCode::B => 'b',
         VirtualKeyCode::C => 'c',
@@ -798,7 +787,9 @@ fn main() -> BError {
     world.insert(SimpleMarkerAllocator::<SerializeMe>::new());
 
     // Resource Initialization, the ECS needs a basic definition of every resource that will be in the game
-    world.insert(AppState::PreRun { next_state: Box::new(AppState::MainMenu { hovering: MenuSelection::NewGame }) });
+    world.insert(AppState::PreRun {
+        next_state: Box::new(AppState::NewGameStart { world_cfg: WorldConfig::default() }),
+    });
     world.insert(DeltaTime(Duration::ZERO));
     world.insert(TileAnimationBuilder::new());
     world.insert(AnimationRenderer::new());

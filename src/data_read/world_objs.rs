@@ -52,7 +52,7 @@ impl WorldObjectDatabase {
         let data = world_objs
             .iter()
             .map(|raw| WorldObject {
-                identifier: ObjectID(raw.identifier),
+                id: ObjectID(raw.identifier),
                 name: raw.name.clone(),
                 atlas_index: raw.atlas_index,
                 is_blocking: raw.is_blocking,
@@ -71,9 +71,9 @@ impl WorldObjectDatabase {
         self.data.iter().find(|i| i.name.eq(name))
     }
 
-    #[allow(dead_code)]
+    #[allow(unused)]
     pub fn get_by_id(&self, id: usize) -> Option<&WorldObject> {
-        self.data.iter().find(|i| i.identifier.0 == id)
+        self.data.iter().find(|i| i.id.0 == id)
     }
 }
 
