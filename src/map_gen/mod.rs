@@ -4,14 +4,20 @@ use bracket_lib::random::RandomNumberGenerator;
 use log::{error, info};
 use specs::{Builder, World, WorldExt};
 
+mod gameworld;
+
 use crate::{
     components::{Blocking, Position, Water},
     data_read::prelude::{build_world_obj, NOISE_DB},
     game_init::InputWorldConfig,
-    map::{Map, WorldTile},
+    map::{sqrt_distance, Map, WorldTile},
     saveload::{save_game_exists, SAVE_EXTENSION},
     FONT_TERRAIN_FOREST,
 };
+
+pub mod prelude {
+    pub use crate::map_gen::gameworld::GameWorld;
+}
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct WorldConfig {
@@ -82,7 +88,7 @@ impl WorldConfig {
 }
 
 // Generates a map and populates ecs with relavent objects and world things
-pub fn gen_world(ecs: &mut World, wc: &WorldConfig) -> Map {
+pub fn generate_map(ecs: &mut World, wc: &WorldConfig) -> Map {
     {
         let mut noise_db = NOISE_DB.lock().unwrap();
         noise_db.reseed(wc.seed);
@@ -102,10 +108,27 @@ pub fn gen_world(ecs: &mut World, wc: &WorldConfig) -> Map {
     // let _ = build_world_obj("Boulder".to_string(), Position::new(15, 20), ecs);
 
     generate_heights(&mut new_map);
+    remove_land_outside_circle(&mut new_map);
     fill_water_to_level(&mut new_map, wc.sea_level, ecs);
     generate_resources(&mut new_map, ecs, &mut rng);
 
     new_map
+}
+
+fn remove_land_outside_circle(new_map: &mut Map) {
+    // a circle with a radius of 30 centered in the center of the map
+    let center = Position::new(new_map.width / 2, new_map.height / 2);
+    let radius: f32 = 30.;
+    for x in 0..new_map.width {
+        for y in 0..new_map.height {
+            // if point is outside circle set it to water
+            let dist_from_center = sqrt_distance(&center, &Position::new(x, y));
+            if dist_from_center > radius {
+                let prev_height = new_map.tiles.get(new_map.xy_to_idx(x, y)).unwrap().height;
+                new_map.set_tile(&WorldTile::water(prev_height), x, y);
+            }
+        }
+    }
 }
 
 fn generate_resources(map: &mut Map, ecs: &mut World, rng: &mut RandomNumberGenerator) {
@@ -120,7 +143,7 @@ fn generate_resources(map: &mut Map, ecs: &mut World, rng: &mut RandomNumberGene
             }
 
             if let Some((name, weight)) = r_noise.get_name_of(x, y) {
-                let check = rng.rand::<u64>() as f32 / u64::MAX as f32;
+                let check = rng.range(0.0, 1.0);
                 info!("{}", check);
                 if check > weight {
                     info!("skipping tile");

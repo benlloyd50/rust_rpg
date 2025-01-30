@@ -197,6 +197,11 @@ pub fn successors(map: &Map, curr: &Position) -> Vec<(Position, u32)> {
 
     successors
 }
+pub fn sqrt_distance(lhs: &Position, rhs: &Position) -> f32 {
+    let dx = lhs.x as i32 - rhs.x as i32;
+    let dy = lhs.y as i32 - rhs.y as i32;
+    ((dx * dx + dy * dy) as f32).sqrt()
+}
 
 pub fn distance(lhs: &Position, rhs: &Position) -> u32 {
     lhs.x.abs_diff(rhs.x) as u32 + lhs.y.abs_diff(rhs.y) as u32

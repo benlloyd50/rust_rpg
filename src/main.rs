@@ -30,6 +30,7 @@ use game_init::{
 };
 use items::{ConsumeHandler, ItemPickupHandler, ItemSpawnerSystem, ZeroQtyItemCleanup};
 use log::{debug, error, info, warn};
+use map_gen::prelude::GameWorld;
 use map_gen::WorldConfig;
 use mining::{DamageSystem, RemoveDeadTiles, TileDestructionSystem};
 use saveload::{cleanup_game, load_game, save_game, SaveAction};
@@ -799,6 +800,7 @@ fn main() -> BError {
     world.insert(TurnCounter::zero());
     world.insert(GameSaves::default());
     world.insert(LoadedWorld::default());
+    world.insert(GameWorld::default());
 
     let game_state = State { ecs: world, cfg };
     main_loop(context, game_state)
