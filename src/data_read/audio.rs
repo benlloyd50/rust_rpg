@@ -1,11 +1,7 @@
 use crate::audio::SoundFiles;
 use std::{collections::HashMap, fs, sync::Mutex};
 
-use kira::{
-    manager::{backend::DefaultBackend, AudioManager, AudioManagerSettings},
-    sound::static_sound::{StaticSoundData, StaticSoundSettings},
-    Volume,
-};
+use kira::{sound::static_sound::StaticSoundData, AudioManager, AudioManagerSettings, DefaultBackend};
 use lazy_static::lazy_static;
 use log::{debug, error, info, warn};
 use serde::Deserialize;
@@ -67,14 +63,13 @@ impl AudioDatabase {
         };
 
         for def in audio_defs {
-            let settings = StaticSoundSettings::new().volume(Volume::Decibels(def.volume.into()));
             let mut samples = vec![];
             let path = match def.directory {
                 Some(dir) => format!("{}/{}/", AUDIO_DIRECTORY, dir),
                 None => format!("{}/", AUDIO_DIRECTORY),
             };
             for file_name in def.file_names.iter() {
-                let sound = match StaticSoundData::from_file(format!("{}/{}", path, file_name), settings) {
+                let sound = match StaticSoundData::from_file(format!("{}/{}", path, file_name)) {
                     Ok(ssd) => ssd,
                     Err(e) => {
                         warn!("Error trying to read in {:?}. Skipping file.", path);
@@ -82,7 +77,7 @@ impl AudioDatabase {
                         continue;
                     }
                 };
-                samples.push(sound);
+                samples.push(sound.volume(def.volume));
             }
 
             if samples.is_empty() {
