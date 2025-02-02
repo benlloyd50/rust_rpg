@@ -1,4 +1,5 @@
 use bracket_lib::random::RandomNumberGenerator;
+use specs::World;
 
 use crate::map::xy_to_idx_given_width;
 
@@ -26,7 +27,7 @@ pub struct WorldChunk {
     pub chunk_type: ChunkType,
 }
 
-#[derive(Default, Clone, Copy, Debug)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub enum ChunkType {
     Land,
     #[default]
@@ -52,4 +53,20 @@ pub fn generate_world(wc: &WorldConfig) -> GameWorld {
     }
 
     game_world
+}
+
+pub fn get_random_chunk(ecs: &mut World, rng: &mut RandomNumberGenerator, chunk_type: ChunkType) -> usize {
+    let mut chunk: Option<usize> = None;
+    if let Some(gw) = ecs.get_mut::<GameWorldRes>() {
+        while chunk.is_none() {
+            let x = rng.range(0, gw.0.width);
+            let y = rng.range(0, gw.0.height);
+            let idx = xy_to_idx_given_width(x, y, gw.0.width);
+            let tile = gw.0.grid[idx].chunk_type;
+            if tile == chunk_type {
+                chunk = Some(idx);
+            }
+        }
+    }
+    chunk.unwrap_or(0)
 }

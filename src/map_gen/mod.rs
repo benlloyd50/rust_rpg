@@ -4,8 +4,9 @@ use std::{
 };
 
 use bracket_lib::random::RandomNumberGenerator;
+use gameworld::get_random_chunk;
 use log::error;
-use prelude::GameWorldRes;
+use prelude::ChunkType;
 use specs::{Builder, World, WorldExt};
 
 mod gameworld;
@@ -14,7 +15,8 @@ use crate::{
     components::{Blocking, Position, Water},
     data_read::prelude::{build_world_obj, NOISE_DB},
     game_init::InputWorldConfig,
-    map::{sqrt_distance, xy_to_idx_given_width, Map, WorldTile},
+    indexing::idx_to_point,
+    map::{sqrt_distance, Map, WorldCoords, WorldTile},
     saveload::{save_game_exists, SAVE_EXTENSION},
     FONT_TERRAIN_FOREST,
 };
@@ -92,7 +94,7 @@ impl WorldConfig {
 }
 
 // Generates a map and populates ecs with relavent objects and world things
-pub fn generate_map(ecs: &mut World, wc: &WorldConfig) -> (usize, Map) {
+pub fn generate_map(ecs: &mut World, wc: &WorldConfig) -> Map {
     {
         let mut noise_db = NOISE_DB.lock().unwrap();
         noise_db.reseed(wc.seed);
@@ -101,7 +103,7 @@ pub fn generate_map(ecs: &mut World, wc: &WorldConfig) -> (usize, Map) {
 
     let mut world_maps = HashMap::<usize, Map>::new();
 
-    let starting_island = get_starting_island(ecs, &mut rng);
+    let starting_island = get_random_chunk(ecs, &mut rng, ChunkType::Land);
 
     let mut new_map = Map::new(wc.width, wc.height, (0, 0));
     new_map.tile_atlas_index = FONT_TERRAIN_FOREST;
@@ -119,37 +121,25 @@ pub fn generate_map(ecs: &mut World, wc: &WorldConfig) -> (usize, Map) {
     fill_water_to_level(&mut new_map, wc.sea_level, ecs);
     generate_resources(&mut new_map, ecs, &mut rng);
 
+    let pt = idx_to_point(starting_island, new_map.width);
+    new_map.chunk_coords =
+        WorldCoords { x: if pt.x >= 0 { pt.x as usize } else { 0 }, y: if pt.y >= 0 { pt.y as usize } else { 0 } };
+
     world_maps.insert(starting_island, new_map.clone());
-    (starting_island, new_map)
+    new_map
 }
 
-fn get_starting_island(ecs: &mut World, rng: &mut RandomNumberGenerator) -> usize {
-    let mut starting_island: Option<usize> = None;
-    if let Some(gw) = ecs.get_mut::<GameWorldRes>() {
-        while starting_island.is_none() {
-            let x = rng.range(0, gw.0.width);
-            let y = rng.range(0, gw.0.height);
-            let idx = xy_to_idx_given_width(x, y, gw.0.width);
-            let tile = gw.0.grid[idx].chunk_type;
-            if matches!(tile, prelude::ChunkType::Land) {
-                starting_island = Some(idx);
-            }
-        }
-    }
-    starting_island.unwrap_or(0)
-}
-
-fn remove_land_outside_circle(new_map: &mut Map) {
+fn remove_land_outside_circle(map: &mut Map) {
     // a circle with a radius of 30 centered in the center of the map
-    let center = Position::new(new_map.width / 2, new_map.height / 2);
+    let center = Position::new(map.width / 2, map.height / 2);
     let radius: f32 = 30.;
-    for x in 0..new_map.width {
-        for y in 0..new_map.height {
+    for x in 0..map.width {
+        for y in 0..map.height {
             // if point is outside circle set it to water
             let dist_from_center = sqrt_distance(&center, &Position::new(x, y));
             if dist_from_center > radius {
-                let prev_height = new_map.tiles.get(new_map.xy_to_idx(x, y)).unwrap().height;
-                new_map.set_tile(&WorldTile::water(prev_height), x, y);
+                let prev_height = map.tiles.get(map.xy_to_idx(x, y)).unwrap().height;
+                map.set_tile(&WorldTile::water(prev_height), x, y);
             }
         }
     }

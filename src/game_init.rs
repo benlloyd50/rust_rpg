@@ -44,7 +44,7 @@ pub fn initialize_new_game_world(ecs: &mut World, world_config: &WorldConfig) {
     let new_world = generate_world(world_config);
     ecs.insert(GameWorldRes(new_world));
 
-    let (idx, map) = generate_map(ecs, world_config);
+    let map = generate_map(ecs, world_config);
     ecs.insert(MapRes::new(map));
     debug!("startup: map loaded");
 
