@@ -25,6 +25,12 @@ pub struct Map {
 #[derive(Default, Clone)]
 pub struct MapRes(pub Map);
 
+impl MapRes {
+    pub fn new(map: Map) -> Self {
+        Self(map)
+    }
+}
+
 /// This is used over position when (de)serialization is needed.
 /// Position cannot impl Deserialize because it needs to impl ConvertSaveload
 #[derive(Deserialize, Serialize, Clone, Default)]

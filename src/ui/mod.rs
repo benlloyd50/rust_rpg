@@ -9,7 +9,7 @@ use crate::{
     frame_animation::print_frame_animations,
     inventory::{check_inventory_selection, SelectionStatus},
     saveload_menu::GameSaves,
-    AppState, CL_EFFECTS, CL_EFFECTS2, CL_TEXT,
+    AppState, CL_EFFECTS, CL_EFFECTS2, CL_MINIMAP, CL_TEXT,
 };
 
 use self::{
@@ -34,6 +34,7 @@ pub fn draw_ui(ecs: &World, appstate: &AppState, cfg: &ConfigMaster) {
     draw_batch.target(CL_EFFECTS).cls();
     draw_batch.target(CL_EFFECTS2).cls();
     draw_batch.target(CL_TEXT).cls();
+    draw_batch.target(CL_MINIMAP).cls();
 
     match appstate {
         AppState::InGame => {

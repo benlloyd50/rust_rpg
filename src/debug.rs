@@ -1,4 +1,8 @@
-use bracket_lib::terminal::{to_char, BTerm, TextAlign, VirtualKeyCode, RGB, RGBA, WHITESMOKE};
+use bracket_lib::{
+    color::{ColorPair, BLACK, BLUE, GREEN},
+    prelude::{DrawBatch, Point, Rect},
+    terminal::{to_char, BTerm, TextAlign, VirtualKeyCode, RGB, RGBA, WHITESMOKE},
+};
 use itertools::Itertools;
 use specs::{Join, ReadStorage, World, WorldExt};
 
@@ -9,8 +13,9 @@ use crate::{
     config::{InventoryConfig, SortMode},
     game_init::PlayerEntity,
     inventory::UseMenuResult,
-    map::MapRes,
-    CL_INTERACTABLES, CL_TEXT, CL_WORLD,
+    map::{xy_to_idx_given_width, MapRes},
+    map_gen::prelude::{ChunkType, GameWorldRes},
+    CL_INTERACTABLES, CL_MINIMAP, CL_TEXT, CL_WORLD,
 };
 
 pub const CLEAR: RGBA = RGBA { r: 0.0, g: 0.0, b: 0.0, a: 0.0 };
@@ -20,6 +25,30 @@ pub fn debug_info(ctx: &mut BTerm, ecs: &World, cfg: &InventoryConfig) {
     draw_inventory_state(ctx, ecs, cfg);
     draw_health(ctx, ecs);
     draw_position(ctx, ecs);
+    draw_world(ecs);
+}
+
+fn draw_world(ecs: &World) {
+    let mut db = DrawBatch::new();
+    let world = &ecs.read_resource::<GameWorldRes>().0;
+    db.target(CL_MINIMAP);
+    db.cls();
+
+    let x_offset = 2;
+    let y_offset = 2;
+
+    db.draw_hollow_box(Rect::with_size(1, 1, world.width + 1, world.height + 1), ColorPair::new(BLACK, BLACK));
+    for x in 0..world.width {
+        for y in 0..world.height {
+            let idx = xy_to_idx_given_width(x, y, world.width);
+            let color = match world.grid[idx].chunk_type {
+                ChunkType::Land => GREEN,
+                ChunkType::Water => BLUE,
+            };
+            db.print_color(Point::new(x + x_offset, y + y_offset), ' ', ColorPair::new(color, color));
+        }
+    }
+    let _ = db.submit(CL_MINIMAP);
 }
 
 fn draw_health(ctx: &mut BTerm, ecs: &World) {

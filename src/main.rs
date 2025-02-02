@@ -35,7 +35,7 @@ use map_gen::WorldConfig;
 use mining::{DamageSystem, RemoveDeadTiles, TileDestructionSystem};
 use saveload::{cleanup_game, load_game, save_game, SaveAction};
 use saveload_menu::{get_save_games, p_input_load_game_menu, GameSaves, LoadMenuAction, LoadedWorld};
-use settings::{handle_setting_selected, SettingsAction, SettingsSelection};
+use settings::{handle_setting_selected, SettingsAction, SettingsSelection, SpriteMode};
 use specs::prelude::*;
 
 mod audio;
@@ -669,6 +669,7 @@ fn turn_counter_incr(ecs: &mut World) {
 pub const CL_EFFECTS2: usize = 3; // Used for special effect tiles on top of other effects
 pub const CL_EFFECTS: usize = 2; // Used for special effect tiles
 pub const CL_TEXT: usize = 4; // Used for UI
+pub const CL_MINIMAP: usize = 5; // Used for Minimap UI
 pub const CL_WORLD: usize = 0; // Used for terrain tiles
 pub const CL_INTERACTABLES: usize = 1; // Used for the few or so moving items/entities on screen
 
@@ -707,8 +708,8 @@ fn main() -> BError {
 
     let cfg = ConfigMaster::load();
     let interactable_font = match cfg.general.sprite_mode {
-        settings::SpriteMode::Outline => "interactable_tiles_outline.png",
-        settings::SpriteMode::Blocked => "interactable_tiles.png",
+        SpriteMode::Outline => "interactable_tiles_outline.png",
+        SpriteMode::Blocked => "interactable_tiles.png",
     };
     let text_font = "zaratustra.png";
 
@@ -728,6 +729,7 @@ fn main() -> BError {
         .with_fancy_console(DISPLAY_WIDTH, DISPLAY_HEIGHT, "effects_tiles.png")
         .with_fancy_console(DISPLAY_WIDTH, DISPLAY_HEIGHT, "effects_tiles.png")
         .with_fancy_console(DISPLAY_WIDTH * 2, DISPLAY_HEIGHT * 2, text_font)
+        .with_fancy_console(DISPLAY_WIDTH * 4, DISPLAY_HEIGHT * 4, "effects_tiles.png")
         .build()?;
     context.cls();
 
@@ -796,7 +798,7 @@ fn main() -> BError {
     world.insert(AnimationRenderer::new());
     world.insert(ItemSpawner::new());
     world.insert(MessageLog::new());
-    world.insert(MapRes(Map::empty(0, 0)));
+    world.insert(MapRes::new(Map::empty(0, 0)));
     world.insert(TurnCounter::zero());
     world.insert(GameSaves::default());
     world.insert(LoadedWorld::default());

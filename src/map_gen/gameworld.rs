@@ -1,5 +1,4 @@
 use bracket_lib::random::RandomNumberGenerator;
-use specs::World;
 
 use crate::map::xy_to_idx_given_width;
 
@@ -9,11 +8,11 @@ use super::WorldConfig;
  *
  */
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct GameWorld {
-    width: usize,
-    height: usize,
-    grid: Vec<WorldChunk>,
+    pub width: usize,
+    pub height: usize,
+    pub grid: Vec<WorldChunk>,
 }
 
 impl GameWorld {
@@ -22,12 +21,12 @@ impl GameWorld {
     }
 }
 
-#[derive(Default, Clone, Copy)]
+#[derive(Default, Clone, Copy, Debug)]
 pub struct WorldChunk {
-    chunk_type: ChunkType,
+    pub chunk_type: ChunkType,
 }
 
-#[derive(Default, Clone, Copy)]
+#[derive(Default, Clone, Copy, Debug)]
 pub enum ChunkType {
     Land,
     #[default]
@@ -37,7 +36,7 @@ pub enum ChunkType {
 #[derive(Default, Clone)]
 pub struct GameWorldRes(pub GameWorld);
 
-pub fn generate_world(ecs: &mut World, wc: &WorldConfig) {
+pub fn generate_world(wc: &WorldConfig) -> GameWorld {
     let mut game_world = GameWorld::new(wc.width, wc.height);
     let mut rng = RandomNumberGenerator::seeded(wc.seed);
 
@@ -52,5 +51,5 @@ pub fn generate_world(ecs: &mut World, wc: &WorldConfig) {
         }
     }
 
-    ecs.insert(GameWorldRes(game_world));
+    game_world
 }

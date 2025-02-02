@@ -17,7 +17,11 @@ use crate::{
     get_text,
     items::{ItemID, ItemSpawner, SpawnType},
     map::MapRes,
-    map_gen::{generate_map, WorldConfig},
+    map_gen::{
+        generate_map,
+        prelude::{generate_world, GameWorldRes},
+        WorldConfig,
+    },
     player::Player,
     saveload::{SerializeMe, SAVE_EXTENSION},
     saveload_menu::LoadedWorld,
@@ -37,8 +41,11 @@ impl Default for PlayerEntity {
 
 pub fn initialize_new_game_world(ecs: &mut World, world_config: &WorldConfig) {
     debug!("startup: map loading");
-    let new_chunk = generate_map(ecs, world_config);
-    ecs.insert(MapRes(new_chunk));
+    let new_world = generate_world(world_config);
+    ecs.insert(GameWorldRes(new_world));
+
+    let (idx, map) = generate_map(ecs, world_config);
+    ecs.insert(MapRes::new(map));
     debug!("startup: map loaded");
 
     let mut player_stats = get_random_stats();

@@ -3,13 +3,13 @@
         name: "hit_wood",
         directory: "hit",
         file_names: [ "wood4.wav","wood5.wav"],
-        volume: 0.5,
+        volume: -10.,
     },
     { 
         name: "hit_stone",
         directory: "hit",
         file_names: [ "stone1.wav",],
-        volume: -25.0,
+        volume: -30.0,
     },
     {
         name: "cancel",

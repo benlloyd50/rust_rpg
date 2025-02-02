@@ -1,7 +1,11 @@
-use std::hash::{DefaultHasher, Hash, Hasher};
+use std::{
+    collections::HashMap,
+    hash::{DefaultHasher, Hash, Hasher},
+};
 
 use bracket_lib::random::RandomNumberGenerator;
-use log::{error, info};
+use log::error;
+use prelude::GameWorldRes;
 use specs::{Builder, World, WorldExt};
 
 mod gameworld;
@@ -10,13 +14,13 @@ use crate::{
     components::{Blocking, Position, Water},
     data_read::prelude::{build_world_obj, NOISE_DB},
     game_init::InputWorldConfig,
-    map::{sqrt_distance, Map, WorldTile},
+    map::{sqrt_distance, xy_to_idx_given_width, Map, WorldTile},
     saveload::{save_game_exists, SAVE_EXTENSION},
     FONT_TERRAIN_FOREST,
 };
 
 pub mod prelude {
-    pub use crate::map_gen::gameworld::GameWorld;
+    pub use crate::map_gen::gameworld::{generate_world, ChunkType, GameWorld, GameWorldRes};
 }
 
 #[derive(Clone, PartialEq, Eq)]
@@ -88,15 +92,18 @@ impl WorldConfig {
 }
 
 // Generates a map and populates ecs with relavent objects and world things
-pub fn generate_map(ecs: &mut World, wc: &WorldConfig) -> Map {
+pub fn generate_map(ecs: &mut World, wc: &WorldConfig) -> (usize, Map) {
     {
         let mut noise_db = NOISE_DB.lock().unwrap();
         noise_db.reseed(wc.seed);
     }
     let mut rng = RandomNumberGenerator::seeded(wc.seed);
 
-    let mut new_map = Map::new(wc.width, wc.height, (0, 0));
+    let mut world_maps = HashMap::<usize, Map>::new();
 
+    let starting_island = get_starting_island(ecs, &mut rng);
+
+    let mut new_map = Map::new(wc.width, wc.height, (0, 0));
     new_map.tile_atlas_index = FONT_TERRAIN_FOREST;
     for x in 0..wc.width {
         for y in 0..wc.height {
@@ -112,7 +119,24 @@ pub fn generate_map(ecs: &mut World, wc: &WorldConfig) -> Map {
     fill_water_to_level(&mut new_map, wc.sea_level, ecs);
     generate_resources(&mut new_map, ecs, &mut rng);
 
-    new_map
+    world_maps.insert(starting_island, new_map.clone());
+    (starting_island, new_map)
+}
+
+fn get_starting_island(ecs: &mut World, rng: &mut RandomNumberGenerator) -> usize {
+    let mut starting_island: Option<usize> = None;
+    if let Some(gw) = ecs.get_mut::<GameWorldRes>() {
+        while starting_island.is_none() {
+            let x = rng.range(0, gw.0.width);
+            let y = rng.range(0, gw.0.height);
+            let idx = xy_to_idx_given_width(x, y, gw.0.width);
+            let tile = gw.0.grid[idx].chunk_type;
+            if matches!(tile, prelude::ChunkType::Land) {
+                starting_island = Some(idx);
+            }
+        }
+    }
+    starting_island.unwrap_or(0)
 }
 
 fn remove_land_outside_circle(new_map: &mut Map) {
@@ -144,9 +168,7 @@ fn generate_resources(map: &mut Map, ecs: &mut World, rng: &mut RandomNumberGene
 
             if let Some((name, weight)) = r_noise.get_name_of(x, y) {
                 let check = rng.range(0.0, 1.0);
-                info!("{}", check);
                 if check > weight {
-                    info!("skipping tile");
                     continue;
                 }
 
