@@ -1,5 +1,5 @@
 use bracket_lib::{
-    color::{ColorPair, BLACK, BLUE, GREEN},
+    color::{ColorPair, BLACK, BLUE, GREEN, PURPLE},
     prelude::{DrawBatch, Point, Rect},
     terminal::{to_char, BTerm, TextAlign, VirtualKeyCode, RGB, RGBA, WHITESMOKE},
 };
@@ -25,12 +25,16 @@ pub fn debug_info(ctx: &mut BTerm, ecs: &World, cfg: &InventoryConfig) {
     draw_inventory_state(ctx, ecs, cfg);
     draw_health(ctx, ecs);
     draw_position(ctx, ecs);
-    draw_world(ecs);
+    draw_world(ctx, ecs);
 }
 
-fn draw_world(ecs: &World) {
+fn draw_world(ctx: &mut BTerm, ecs: &World) {
+    if !(ctx.control && ctx.alt) {
+        return;
+    }
     let mut db = DrawBatch::new();
     let world = &ecs.read_resource::<GameWorldRes>().0;
+    let map = &ecs.read_resource::<MapRes>().0;
     db.target(CL_MINIMAP);
     db.cls();
 
@@ -38,13 +42,17 @@ fn draw_world(ecs: &World) {
     let y_offset = 2;
 
     db.draw_hollow_box(Rect::with_size(1, 1, world.width + 1, world.height + 1), ColorPair::new(BLACK, BLACK));
+
     for x in 0..world.width {
         for y in 0..world.height {
             let idx = xy_to_idx_given_width(x, y, world.width);
-            let color = match world.grid[idx].chunk_type {
+            let mut color = match world.grid[idx].chunk_type {
                 ChunkType::Land => GREEN,
                 ChunkType::Water => BLUE,
             };
+            if map.chunk_x() == x && map.chunk_y() == y {
+                color = PURPLE;
+            }
             db.print_color(Point::new(x + x_offset, y + y_offset), ' ', ColorPair::new(color, color));
         }
     }

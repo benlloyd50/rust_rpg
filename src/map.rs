@@ -3,14 +3,16 @@ use crate::{
     char_c::{CH_SOLID, CH_WATER},
     components::{HealthStats, Position},
     droptables::Drops,
+    map_gen::{generate_map, prelude::GameWorldRes, WorldConfig},
 };
 use bracket_lib::terminal::{ColorPair, DrawBatch, Point, BLACK};
+use log::info;
 use serde::{Deserialize, Serialize};
-use specs::{Entity, World};
+use specs::{Entity, World, WorldExt};
 
 pub const WHITE: (u8, u8, u8) = (255, 255, 255);
 
-#[derive(Clone, Serialize, Deserialize, Default)]
+#[derive(Clone, Serialize, Deserialize, Default, Debug)]
 pub struct Map {
     pub tiles: Vec<WorldTile>,
     pub width: usize,
@@ -33,7 +35,7 @@ impl MapRes {
 
 /// This is used over position when (de)serialization is needed.
 /// Position cannot impl Deserialize because it needs to impl ConvertSaveload
-#[derive(Deserialize, Serialize, Clone, Default)]
+#[derive(Deserialize, Serialize, Clone, Default, Debug)]
 pub struct WorldCoords {
     pub x: usize,
     pub y: usize,
@@ -45,7 +47,7 @@ impl From<(usize, usize)> for WorldCoords {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct WorldTile {
     pub name: String,
     pub atlas_idx: usize,
@@ -140,14 +142,16 @@ impl Map {
         xy_to_idx_given_width(x, y, self.width)
     }
 
-    #[allow(unused)]
     pub fn chunk_x(&self) -> usize {
         self.chunk_coords.x
     }
 
-    #[allow(unused)]
     pub fn chunk_y(&self) -> usize {
         self.chunk_coords.y
+    }
+
+    pub fn chunk_idx(&self, width: usize) -> usize {
+        xy_to_idx_given_width(self.chunk_x(), self.chunk_y(), width)
     }
 
     /// Gets all the entities in the tile that are an item.
@@ -241,4 +245,27 @@ pub fn render_map(ecs: &World, batch: &mut DrawBatch) {
 
 pub fn xy_to_idx_given_width(x: usize, y: usize, width: usize) -> usize {
     x + y * width
+}
+
+pub fn save_current_map(ecs: &mut World) {
+    let old_map = ecs.write_resource::<MapRes>();
+    let mut gw = ecs.write_resource::<GameWorldRes>();
+    let width = gw.0.width;
+    gw.0.generated.insert(old_map.0.chunk_idx(width), old_map.0.clone());
+}
+
+pub fn get_or_generate_map(ecs: &mut World, idx: usize) -> Map {
+    #[allow(unused_assignments)]
+    let mut world_config = WorldConfig::default();
+    {
+        let gw = ecs.read_resource::<GameWorldRes>();
+        world_config = gw.0.world_config.clone();
+        if let Some(map) = gw.0.generated.get(&idx) {
+            info!("loaded already generated map");
+            return map.clone();
+        }
+    }
+
+    info!("generating new map");
+    generate_map(ecs, &world_config, idx)
 }

@@ -15,13 +15,14 @@ use specs::{Builder, Component, ConvertSaveload, Join, NullStorage, VecStorage, 
 
 use crate::being::BeingID;
 use crate::components::{
-    AttackBonus, Blocking, Breakable, Consumable, DeleteCondition, EntityStats, Equipable, EquipmentSlots, Equipped,
-    Fishable, GoalMoverAI, Grass, HealthStats, InBag, Interactor, Item, LevelPersistent, Name, Position,
-    RandomWalkerAI, Renderable, Viewshed, Water,
+    AttackBonus, Blocking, Breakable, Consumable, DeleteCondition, EntityStats, Equipable,
+    EquipmentSlots, Equipped, Fishable, GoalMoverAI, Grass, HealthStats, InBag, Interactor, Item, GamePersistent, Name,
+    Position, RandomWalkerAI, Renderable, Viewshed, Water,
 };
 use crate::data_read::ENTITY_DB;
 use crate::game_init::PlayerEntity;
 use crate::map::{Map, MapRes};
+use crate::map_gen::prelude::GameWorldRes;
 use crate::player::Player;
 use crate::saveload_menu::LoadedWorld;
 use crate::ui::message_log::MessageLog;
@@ -64,7 +65,8 @@ pub struct SerializeMe {}
 #[derive(Component, Clone, ConvertSaveload)]
 #[storage(VecStorage)]
 pub struct SerializationHelper {
-    map: Map,
+    last_map: usize,
+    generated_maps: Vec<Map>,
     message_log: MessageLog,
 }
 
@@ -104,10 +106,16 @@ pub fn any_save_game_exists() -> bool {
 
 pub fn save_game(ecs: &mut World) {
     let MapRes(map) = ecs.get_mut::<MapRes>().unwrap().clone();
+    let GameWorldRes(gw) = ecs.get_mut::<GameWorldRes>().unwrap().clone();
     let message_log = ecs.get_mut::<MessageLog>().unwrap().clone();
+
     let savehelper = ecs
         .create_entity()
-        .with(SerializationHelper { map, message_log })
+        .with(SerializationHelper {
+            generated_maps: gw.generated.into_values().collect(),
+            message_log,
+            last_map: map.chunk_idx(gw.width),
+        })
         .marked::<SimpleMarker<SerializeMe>>()
         .build();
 
@@ -134,9 +142,9 @@ pub fn save_game(ecs: &mut World) {
 
         let mut serializer = serde_json::Serializer::new(writer);
         #[rustfmt::skip]
-        serialize_individually!(ecs, serializer, data, Position, Renderable, LevelPersistent, EntityStats, Blocking, Fishable,
+        serialize_individually!(ecs, serializer, data, Position, Renderable, GamePersistent, EntityStats, Blocking, Fishable,
                                 Name, HealthStats, Breakable, DeleteCondition, Item, InBag, Consumable, Equipped, Equipable,
-                                BeingID, Viewshed,
+                                BeingID, Viewshed, 
                                 Player, EquipmentSlots, Water, Grass, Interactor, AttackBonus, SerializationHelper);
     }
     info!("{} was saved", file_name);
@@ -167,9 +175,9 @@ pub fn load_game(ecs: &mut World, file_name: String) {
             &mut ecs.write_resource::<SimpleMarkerAllocator<SerializeMe>>(),
         );
         #[rustfmt::skip]
-        deserialize_individually!(ecs, deserializer, d, Position, Renderable, LevelPersistent, EntityStats, Blocking, Fishable,
+        deserialize_individually!(ecs, deserializer, d, Position, Renderable, GamePersistent, EntityStats, Blocking, Fishable,
                                 Name, HealthStats, Breakable, DeleteCondition, Item, InBag, Consumable, Equipped, Equipable,
-                                BeingID, Viewshed,
+                                BeingID, Viewshed, 
                                 Player, EquipmentSlots, Water, Grass, Interactor, AttackBonus, SerializationHelper);
     }
 
@@ -185,8 +193,16 @@ pub fn load_game(ecs: &mut World, file_name: String) {
         let player = ecs.read_storage::<Player>();
 
         if let Some((helper_e, helper_data)) = (&entities, &helper).join().next() {
+            let mut gw = ecs.write_resource::<GameWorldRes>();
+            let world_width = gw.0.width;
+            for map in helper_data.generated_maps.iter() {
+                gw.0.generated.insert(map.chunk_idx(world_width), map.clone());
+            }
+
+            let last_map =
+                helper_data.generated_maps.iter().find(|gm| gm.chunk_idx(world_width) == helper_data.last_map).unwrap();
             let mut map = ecs.write_resource::<MapRes>();
-            *map = MapRes(helper_data.map.clone());
+            *map = MapRes(last_map.clone());
             map.0.tile_entities = vec![Vec::new(); map.0.width * map.0.height];
 
             let mut msg_log = ecs.write_resource::<MessageLog>();

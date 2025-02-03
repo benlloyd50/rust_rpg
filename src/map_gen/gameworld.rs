@@ -1,7 +1,8 @@
-use bracket_lib::random::RandomNumberGenerator;
-use specs::World;
+use std::collections::HashMap;
 
-use crate::map::xy_to_idx_given_width;
+use bracket_lib::random::RandomNumberGenerator;
+
+use crate::map::{xy_to_idx_given_width, Map};
 
 use super::WorldConfig;
 
@@ -14,11 +15,21 @@ pub struct GameWorld {
     pub width: usize,
     pub height: usize,
     pub grid: Vec<WorldChunk>,
+
+    pub generated: HashMap<usize, Map>,
+
+    pub world_config: WorldConfig,
 }
 
 impl GameWorld {
-    pub fn new(width: usize, height: usize) -> Self {
-        Self { width, height, grid: vec![WorldChunk::default(); width * height] }
+    pub fn new(wc: WorldConfig) -> Self {
+        Self {
+            width: wc.width,
+            height: wc.height,
+            grid: vec![WorldChunk::default(); wc.width * wc.height],
+            generated: HashMap::new(),
+            world_config: wc,
+        }
     }
 }
 
@@ -38,7 +49,7 @@ pub enum ChunkType {
 pub struct GameWorldRes(pub GameWorld);
 
 pub fn generate_world(wc: &WorldConfig) -> GameWorld {
-    let mut game_world = GameWorld::new(wc.width, wc.height);
+    let mut game_world = GameWorld::new(wc.clone());
     let mut rng = RandomNumberGenerator::seeded(wc.seed);
 
     for x in 0..wc.width {
@@ -55,17 +66,16 @@ pub fn generate_world(wc: &WorldConfig) -> GameWorld {
     game_world
 }
 
-pub fn get_random_chunk(ecs: &mut World, rng: &mut RandomNumberGenerator, chunk_type: ChunkType) -> usize {
+pub fn get_random_chunk(gw: &GameWorld, seed: u64, chunk_type: ChunkType) -> usize {
+    let mut rng = RandomNumberGenerator::seeded(seed);
     let mut chunk: Option<usize> = None;
-    if let Some(gw) = ecs.get_mut::<GameWorldRes>() {
-        while chunk.is_none() {
-            let x = rng.range(0, gw.0.width);
-            let y = rng.range(0, gw.0.height);
-            let idx = xy_to_idx_given_width(x, y, gw.0.width);
-            let tile = gw.0.grid[idx].chunk_type;
-            if tile == chunk_type {
-                chunk = Some(idx);
-            }
+    while chunk.is_none() {
+        let x = rng.range(0, gw.width);
+        let y = rng.range(0, gw.height);
+        let idx = xy_to_idx_given_width(x, y, gw.width);
+        let tile = gw.grid[idx].chunk_type;
+        if tile == chunk_type {
+            chunk = Some(idx);
         }
     }
     chunk.unwrap_or(0)

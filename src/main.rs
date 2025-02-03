@@ -27,6 +27,7 @@ use fov::UpdateViewsheds;
 use frame_animation::{AnimationPlay, UpdateAnimationTimers};
 use game_init::{
     initialize_new_game_world, p_input_new_game_menu, InputWorldConfig, NewGameMenuAction, NewGameMenuSelection,
+    PlayerEntity,
 };
 use items::{ConsumeHandler, ItemPickupHandler, ItemSpawnerSystem, ZeroQtyItemCleanup};
 use log::{debug, error, info, warn};
@@ -78,9 +79,8 @@ use player::{
     MenuAction, MenuSelection, PlayerResponse,
 };
 mod map;
-use map::Map;
+use map::{get_or_generate_map, save_current_map, Map};
 mod components;
-use components::Position;
 mod crafting;
 mod fishing;
 use fishing::{
@@ -93,13 +93,13 @@ use time::delta_time_update;
 
 use crate::components::{
     AttackBonus, Consumable, ConsumeAction, CraftAction, EntityStats, EquipAction, Equipable, EquipmentSlots, Equipped,
-    FishingMinigame, GameAction, GlyphFlash, HealAction, InBag, LevelPersistent, SizeFlexor, Viewshed,
+    FishingMinigame, GameAction, GamePersistent, GlyphFlash, HealAction, InBag, SizeFlexor, Viewshed,
 };
 use crate::{
     components::{
         AttackAction, Blocking, BreakAction, Breakable, DeleteCondition, FinishedActivity, FishAction, FishOnTheLine,
-        Fishable, GoalMoverAI, Grass, HealthStats, Interactor, Item, MoveAction, Name, PickupAction, RandomWalkerAI,
-        Renderable, SelectedInventoryItem, SufferDamage, Transform, WaitingForFish, Water,
+        Fishable, GoalMoverAI, Grass, HealthStats, Interactor, Item, MoveAction, Name, PickupAction, Position,
+        RandomWalkerAI, Renderable, SelectedInventoryItem, SufferDamage, Transform, WaitingForFish, Water,
     },
     data_read::initialize_game_databases,
     items::ItemSpawner,
@@ -220,7 +220,7 @@ pub enum AppState {
     NewGameStart { world_cfg: WorldConfig },
     LoadGameMenu { hovering: usize },
     LoadGameStart { file_name: String },
-    MapChange { level_name: String, player_world_pos: Position },
+    MapChange { level_idx: usize, player_pos: Position },
     InGame,
     ActivityBound { response_delay: Duration },
     PlayerInInventory,
@@ -354,16 +354,21 @@ impl GameState for State {
                     AppState::ActivityBound { response_delay }
                 });
             }
-            AppState::MapChange { level_name, player_world_pos: _ } => {
-                debug!("going to {}", level_name);
-                unreachable!("TODO: donot switch to mapchange state");
-                // cleanup_old_map(&mut self.ecs);
-                // let new_level = create_map(&mut self.ecs, &level_name);
-                // self.ecs.insert(MapRes(new_level));
+            AppState::MapChange { level_idx, player_pos } => {
+                debug!("going to {}", level_idx);
+                save_current_map(&mut self.ecs);
+                cleanup_current_map(&mut self.ecs);
 
-                // set_level_font(&self.ecs, ctx);
-                // move_player_to(&player_world_pos, &mut self.ecs);
-                // frame_state.change_to(AppState::InGame);
+                let new_map = get_or_generate_map(&mut self.ecs, level_idx);
+                self.ecs.insert(MapRes(new_map));
+
+                set_level_font(&self.ecs, ctx);
+
+                let pe = self.ecs.write_resource::<PlayerEntity>();
+                let mut positions = self.ecs.write_component::<Position>();
+                let _ = positions.insert(pe.0, player_pos);
+
+                frame_state.change_to(AppState::InGame);
             }
             AppState::MainMenu { hovering } => {
                 let mut timer_update = UpdateAnimationTimers;
@@ -581,6 +586,23 @@ impl GameState for State {
     }
 }
 
+fn cleanup_current_map(ecs: &mut World) {
+    let mut delete_me = vec![];
+    {
+        let persistent = &ecs.read_storage::<GamePersistent>();
+        for e in (&ecs.entities()).join() {
+            if persistent.contains(e) {
+                continue;
+            }
+            delete_me.push(e);
+        }
+    }
+
+    for e in delete_me.iter() {
+        let _ = ecs.delete_entity(*e);
+    }
+}
+
 // Helper to get keycodes that are valid in text
 pub fn get_text(key: VirtualKeyCode) -> Option<char> {
     let letter = match key {
@@ -779,7 +801,7 @@ fn main() -> BError {
     world.register::<HealAction>();
     world.register::<GameAction>();
     world.register::<FishingMinigame>();
-    world.register::<LevelPersistent>();
+    world.register::<GamePersistent>();
     world.register::<SizeFlexor>();
     world.register::<GlyphFlash>();
     world.register::<Viewshed>();

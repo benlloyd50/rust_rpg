@@ -6,7 +6,8 @@ use crate::{
     },
     game_init::PlayerEntity,
     items::inventory_contains,
-    map::{MapRes, TileEntity},
+    map::{xy_to_idx_given_width, MapRes, TileEntity},
+    map_gen::prelude::GameWorldRes,
     saveload::{any_save_game_exists, SaveAction},
     settings::SettingsAction,
     ui::message_log::MessageLog,
@@ -58,6 +59,7 @@ pub fn p_input_game(ecs: &mut World, ctx: &BTerm) -> PlayerResponse {
 }
 
 fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) -> PlayerResponse {
+    let gw = ecs.read_resource::<GameWorldRes>();
     let mut positions = ecs.write_storage::<Position>();
     let players = ecs.read_storage::<Player>();
     let interactors = ecs.read_storage::<Interactor>();
@@ -67,7 +69,24 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) -> PlayerRespons
 
         let map = ecs.fetch::<MapRes>();
         if !map.0.in_bounds(target_pos) {
-            return PlayerResponse::Waiting;
+            let x = map.0.chunk_x() as i32 + delta_x;
+            let x = if x < 0 { gw.0.width - 1 } else { x as usize };
+            let y = map.0.chunk_y() as i32 + delta_y;
+            let y = if y < 0 { gw.0.height - 1 } else { y as usize };
+            let level_idx = xy_to_idx_given_width(x, y, gw.0.width);
+
+            let player_pos = Position::from(if delta_y < 0 {
+                (pos.x, map.0.height - 1)
+            } else if delta_y > 0 {
+                (pos.x, 0)
+            } else if delta_x > 0 {
+                (0, pos.y)
+            } else {
+                // delta_x < 0
+                (map.0.width - 1, pos.y)
+            });
+
+            return PlayerResponse::StateChange(AppState::MapChange { level_idx, player_pos });
         }
 
         match map.0.first_entity_in_pos(&Position::from(target_pos)) {

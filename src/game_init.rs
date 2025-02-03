@@ -11,15 +11,15 @@ pub const WHITE: (u8, u8, u8) = (255, 255, 255);
 
 use crate::{
     components::{
-        EquipmentSlots, Interactor, InteractorMode, LevelPersistent, Name, Position, Renderable, Transform, Viewshed,
+        EquipmentSlots, GamePersistent, Interactor, InteractorMode, Name, Position, Renderable, Transform, Viewshed,
     },
     data_read::prelude::build_being,
     get_text,
     items::{ItemID, ItemSpawner, SpawnType},
-    map::MapRes,
+    map::{xy_to_idx_given_width, MapRes},
     map_gen::{
         generate_map,
-        prelude::{generate_world, GameWorldRes},
+        prelude::{generate_world, get_random_chunk, ChunkType, GameWorldRes},
         WorldConfig,
     },
     player::Player,
@@ -41,10 +41,14 @@ impl Default for PlayerEntity {
 
 pub fn initialize_new_game_world(ecs: &mut World, world_config: &WorldConfig) {
     debug!("startup: map loading");
-    let new_world = generate_world(world_config);
-    ecs.insert(GameWorldRes(new_world));
+    let mut new_world = generate_world(world_config);
 
-    let map = generate_map(ecs, world_config);
+    let starting_island = get_random_chunk(&new_world, world_config.seed, ChunkType::Land);
+    let map = generate_map(ecs, world_config, starting_island);
+
+    let idx = xy_to_idx_given_width(map.chunk_x(), map.chunk_y(), new_world.width);
+    new_world.generated.insert(idx, map.clone());
+    ecs.insert(GameWorldRes(new_world));
     ecs.insert(MapRes::new(map));
     debug!("startup: map loaded");
 
@@ -62,7 +66,7 @@ pub fn initialize_new_game_world(ecs: &mut World, world_config: &WorldConfig) {
         .with(player_stats.set.get_health_stats())
         .with(Renderable::clear_bg(2, WHITE, PLAYER_Z))
         .with(Name("Player".to_string()))
-        .with(LevelPersistent {})
+        .with(GamePersistent {})
         .marked::<SimpleMarker<SerializeMe>>()
         .build();
     ecs.insert(PlayerEntity(player_entity));

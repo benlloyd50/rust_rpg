@@ -1,12 +1,7 @@
-use std::{
-    collections::HashMap,
-    hash::{DefaultHasher, Hash, Hasher},
-};
+use std::hash::{DefaultHasher, Hash, Hasher};
 
 use bracket_lib::random::RandomNumberGenerator;
-use gameworld::get_random_chunk;
 use log::error;
-use prelude::ChunkType;
 use specs::{Builder, World, WorldExt};
 
 mod gameworld;
@@ -22,10 +17,10 @@ use crate::{
 };
 
 pub mod prelude {
-    pub use crate::map_gen::gameworld::{generate_world, ChunkType, GameWorld, GameWorldRes};
+    pub use crate::map_gen::gameworld::{generate_world, get_random_chunk, ChunkType, GameWorld, GameWorldRes};
 }
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct WorldConfig {
     pub world_name: String,
     pub width: usize,
@@ -94,16 +89,12 @@ impl WorldConfig {
 }
 
 // Generates a map and populates ecs with relavent objects and world things
-pub fn generate_map(ecs: &mut World, wc: &WorldConfig) -> Map {
+pub fn generate_map(ecs: &mut World, wc: &WorldConfig, map_idx: usize) -> Map {
     {
         let mut noise_db = NOISE_DB.lock().unwrap();
         noise_db.reseed(wc.seed);
     }
     let mut rng = RandomNumberGenerator::seeded(wc.seed);
-
-    let mut world_maps = HashMap::<usize, Map>::new();
-
-    let starting_island = get_random_chunk(ecs, &mut rng, ChunkType::Land);
 
     let mut new_map = Map::new(wc.width, wc.height, (0, 0));
     new_map.tile_atlas_index = FONT_TERRAIN_FOREST;
@@ -121,11 +112,10 @@ pub fn generate_map(ecs: &mut World, wc: &WorldConfig) -> Map {
     fill_water_to_level(&mut new_map, wc.sea_level, ecs);
     generate_resources(&mut new_map, ecs, &mut rng);
 
-    let pt = idx_to_point(starting_island, new_map.width);
+    let pt = idx_to_point(map_idx, new_map.width);
     new_map.chunk_coords =
         WorldCoords { x: if pt.x >= 0 { pt.x as usize } else { 0 }, y: if pt.y >= 0 { pt.y as usize } else { 0 } };
 
-    world_maps.insert(starting_island, new_map.clone());
     new_map
 }
 

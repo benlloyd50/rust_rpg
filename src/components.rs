@@ -35,7 +35,7 @@ pub struct Renderable {
 /// This ensures certain things continue as normal since not all entities should be destroyed.
 #[derive(Component, Serialize, Deserialize, Clone)]
 #[storage(NullStorage)]
-pub struct LevelPersistent {}
+pub struct GamePersistent {}
 
 impl Renderable {
     /// Creates a renderable with a clear bg and specified parts

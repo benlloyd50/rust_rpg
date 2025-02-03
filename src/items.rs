@@ -20,7 +20,7 @@ use specs::{
 use crate::{
     audio::play_sound_effect,
     components::{
-        AttackBonus, Consumable, ConsumeAction, Equipable, HealAction, InBag, Item, LevelPersistent, Name,
+        AttackBonus, Consumable, ConsumeAction, Equipable, HealAction, InBag, Item, GamePersistent, Name,
         PickupAction, Position, Renderable,
     },
     data_read::prelude::*,
@@ -108,7 +108,7 @@ impl<'a> System<'a> for ItemSpawnerSystem {
         WriteStorage<'a, Equipable>,
         WriteStorage<'a, AttackBonus>,
         WriteStorage<'a, Consumable>,
-        WriteStorage<'a, LevelPersistent>,
+        WriteStorage<'a, GamePersistent>,
         WriteStorage<'a, SimpleMarker<SerializeMe>>,
         Write<'a, SimpleMarkerAllocator<SerializeMe>>,
         Read<'a, PlayerEntity>,
@@ -170,7 +170,7 @@ impl<'a> System<'a> for ItemSpawnerSystem {
                             let _ = inbags.insert(new_item, InBag { owner });
 
                             if player_entity.0 == owner {
-                                let _ = persistents.insert(new_item, LevelPersistent {});
+                                let _ = persistents.insert(new_item, GamePersistent {});
                             }
                         }
                     }
@@ -200,7 +200,7 @@ impl<'a> System<'a> for ItemPickupHandler {
         WriteStorage<'a, PickupAction>,
         WriteStorage<'a, InBag>,
         WriteStorage<'a, Item>,
-        WriteStorage<'a, LevelPersistent>,
+        WriteStorage<'a, GamePersistent>,
         Write<'a, MessageLog>,
         Read<'a, PlayerEntity>,
         ReadStorage<'a, Name>,
@@ -248,7 +248,7 @@ impl<'a> System<'a> for ItemPickupHandler {
                 None => {
                     let _ = inbags.insert(ground_entity, InBag { owner: picker });
                     if player_entity.0 == picker {
-                        let _ = persistents.insert(ground_entity, LevelPersistent {});
+                        let _ = persistents.insert(ground_entity, GamePersistent {});
                     }
                     positions.remove(ground_entity);
                     if let Some(text) = &edb.items.get_by_name_unchecked(&item_name.0).pickup_text {
